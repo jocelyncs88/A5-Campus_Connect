@@ -34,7 +34,19 @@ def parse_events(html_content):
     for container in event_containers:
         # 1. Ekstrak Judul
         title_tag = container.find('h3', class_='entry-title') 
-        nama_event = title_tag.text.strip() if title_tag else "Judul Tidak Diketahui"
+        raw_title = title_tag.text.strip() if title_tag else "Judul Tidak Diketahui"
+
+        # Memisahkan tanggal dan judul asli yang menyatu dalam satu teks
+        if " : " in raw_title:
+            # .split(" : ", 1) memotong teks maksimal 1 kali berdasarkan " : "
+            # Hasilnya adalah List dengan 2 elemen: [Tanggal, Judul Asli]
+            pecahan = raw_title.split(" : ", 1)
+            tanggal_waktu = pecahan[0].strip()  # Bagian Kiri (Tanggal)
+            nama_event = pecahan[1].strip()     # Bagian Kanan (Judul Bersih)
+        else:
+            # Fallback jika kebetulan ada postingan yang tidak pakai format titik dua
+            tanggal_waktu = "TBA"
+            nama_event = raw_title
 
         # 2. Ekstrak Gambar (Diperbarui untuk mengatasi Lazy Loading)
         figure_tag = container.find('figure', class_='entry-figure')
@@ -60,7 +72,7 @@ def parse_events(html_content):
             "deskripsi_singkat": deskripsi_singkat,
             "gambar_poster": gambar_poster,
             "jenis_event": "External",
-            "tanggal_waktu": "TBA",
+            "tanggal_waktu": tanggal_waktu,
             "source": "Scraped_WebPolban"
         }
 
@@ -71,22 +83,37 @@ def parse_events(html_content):
 # ==========================================
 # ENTRY POINT (TESTING)
 # ==========================================
-# Blok ini HARUS di paling bawah agar bisa memanggil fungsi-fungsi di atasnya
 if __name__ == "__main__":
-    target_url = "https://www.polban.ac.id/category/kemahasiswaan/event/"
+    base_url = "https://www.polban.ac.id/category/kemahasiswaan/event/"
     
-    # Alur 1: Ambil data mentah
-    html_mentah = fetch_html(target_url)
+    # KONSEP LECTURER: Penggunaan List utama untuk menampung gabungan data dari semua halaman
+    semua_event = []
     
-    if html_mentah:
-        # Alur 2: Bedah datanya
-        hasil_scraping = parse_events(html_mentah)
+    # Targetkan 2 halaman saja dulu untuk MVP
+    jumlah_halaman = 4 
+
+    for page in range(1, jumlah_halaman + 1):
+        print(f"\n>>> SEDANG MEMPROSES HALAMAN {page} <<<")
         
-        # Alur 3: Tampilkan hasilnya
-        print("\n--- HASIL EKSTRAKSI DATA ---")
-        for event in hasil_scraping: 
-            print(f"ID     : {event['event_id']}")
-            print(f"Judul  : {event['nama_event']}")
-            print(f"Gambar : {event['gambar_poster']}")
-            print(f"Desc   : {event['deskripsi_singkat']}")
-            print("-" * 40)
+        # Manipulasi URL: Halaman 1 pakai base_url, halaman berikutnya tambah 'page/X/'
+        if page == 1:
+            target_url = base_url
+        else:
+            target_url = f"{base_url}page/{page}/"
+            
+        html_mentah = fetch_html(target_url)
+        
+        if html_mentah:
+            hasil_per_halaman = parse_events(html_mentah)
+            # Gabungkan hasil halaman ini ke list utama
+            semua_event.extend(hasil_per_halaman) 
+
+    print("\n======================================")
+    print(f"TOTAL EVENT TERKUMPUL: {len(semua_event)} acara")
+    print("======================================")
+    
+    # Cek 3 event terakhir untuk memastikan data halaman 2 masuk
+    for event in semua_event[-4:]: 
+        print(f"Judul  : {event['nama_event']}")
+        print(f"Waktu  : {event['tanggal_waktu']}")
+        print("-" * 40)
