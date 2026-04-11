@@ -65,15 +65,27 @@ def parse_events(html_content):
         # Generate ID unik
         event_id = "SCR-" + nama_event[:10].replace(" ", "").upper()
 
+        # UPGRADE 1: Logika Klasifikasi Internal/External
+        teks_penentu = (nama_event + " " + deskripsi_singkat).lower()
+        if "polban" in teks_penentu or "hima" in teks_penentu or "mahasiswa" in teks_penentu:
+            jenis_event = "Internal"
+        else:
+            jenis_event = "External"
+
+        # UPGRADE 2: Ekstrak Kategori
+        kategori_tag = container.find('div', class_='entry-categories')
+        kategori = kategori_tag.text.strip() if kategori_tag else "Umum"
+
         # Bungkus ke dalam Dictionary
         event_data = {
             "event_id": event_id,
             "nama_event": nama_event,
             "deskripsi_singkat": deskripsi_singkat,
             "gambar_poster": gambar_poster,
-            "jenis_event": "External",
+            "jenis_event": jenis_event,
             "tanggal_waktu": tanggal_waktu,
-            "source": "Scraped_WebPolban"
+            "source": "Scraped_WebPolban",
+            "kategori": kategori
         }
 
         scraped_data_list.append(event_data)
@@ -90,7 +102,7 @@ if __name__ == "__main__":
     semua_event = []
     
     # Targetkan 2 halaman saja dulu untuk MVP
-    jumlah_halaman = 4 
+    jumlah_halaman = 1 
 
     for page in range(1, jumlah_halaman + 1):
         print(f"\n>>> SEDANG MEMPROSES HALAMAN {page} <<<")
@@ -113,7 +125,10 @@ if __name__ == "__main__":
     print("======================================")
     
     # Cek 3 event terakhir untuk memastikan data halaman 2 masuk
-    for event in semua_event[-4:]: 
-        print(f"Judul  : {event['nama_event']}")
-        print(f"Waktu  : {event['tanggal_waktu']}")
+    for event in semua_event[-12:]: 
+        print(f"Judul        : {event['nama_event']}")
+        print(f"Waktu        : {event['tanggal_waktu']}")
+        print(f"Kategori     : {event['kategori']}")
+        # print(f"Jenis Event  : {event['jenis_event']}")
+        # print(f"Source       : {event['source']}")
         print("-" * 40)
