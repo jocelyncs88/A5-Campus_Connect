@@ -34,7 +34,15 @@ def parse_events(html_content):
     for container in event_containers:
         # 1. Ekstrak Judul
         title_tag = container.find('h3', class_='entry-title') 
-        raw_title = title_tag.text.strip() if title_tag else "Judul Tidak Diketahui"
+        if title_tag:
+            # Mengambil teks judul
+            raw_title = title_tag.text.strip()
+            # Mengambil atribut 'href' dari tag <a> di dalam judul
+            a_tag = title_tag.find('a')
+            event_link = a_tag.get('href') if a_tag else "Link Tidak Ditemukan"
+        else:
+            raw_title = "Judul Tidak Diketahui"
+            event_link = "Link Tidak Ditemukan"
 
         # Memisahkan tanggal dan judul asli yang menyatu dalam satu teks
         if " : " in raw_title:
@@ -84,7 +92,7 @@ def parse_events(html_content):
             "gambar_poster": gambar_poster,
             "jenis_event": jenis_event,
             "tanggal_waktu": tanggal_waktu,
-            "source": "Scraped_WebPolban",
+            "source": event_link,
             "kategori": kategori
         }
 
@@ -130,5 +138,5 @@ if __name__ == "__main__":
         print(f"Waktu        : {event['tanggal_waktu']}")
         print(f"Kategori     : {event['kategori']}")
         # print(f"Jenis Event  : {event['jenis_event']}")
-        # print(f"Source       : {event['source']}")
-        print("-" * 40)
+        print(f"Source       : {event['source']}")
+        print("-" * 100)
