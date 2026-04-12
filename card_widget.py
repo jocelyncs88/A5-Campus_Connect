@@ -118,7 +118,7 @@ class EventCard(QWidget):
         # Mengunci ukuran area gambar menjadi tepat 200x150 piksel
         # setFixedSize memastikan ukuran tidak berubah meskipun teks/gambar berbeda
         # self.poster_label agar bisa diakses dari fungsi set_poster() nanti
-        self.poster_label.setFixedSize(200, 200)
+        self.poster_label.setFixedSize(200, 150)
 
         # Mengaktifkan fitur agar gambar otomatis menyesuaikan ukuran label
         # Tanpa ini, gambar berukuran besar akan meluap keluar bingkai
