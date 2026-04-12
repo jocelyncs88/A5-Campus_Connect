@@ -5,7 +5,9 @@ DB_NAME = "database.db"
 # =========================
 # INIT DATABASE
 # =========================
+
 def init_db():
+    # Buka koneksi ke file database SQLite.
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -24,6 +26,7 @@ def init_db():
     )
     """)
 
+    # Simpan struktur tabel ke database dan tutup koneksi.
     conn.commit()
     conn.close()
 
@@ -32,9 +35,11 @@ def init_db():
 # UPSERT EVENT
 # =========================
 def upsert_event(event):
+    # Buka koneksi untuk menyimpan data event baru.
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
+    # Insert event baru, atau ignore jika event sudah ada berdasarkan UNIQUE constraint.
     cursor.execute("""
     INSERT OR IGNORE INTO events
     (event_id, nama_event, deskripsi_singkat, gambar_poster,
@@ -51,6 +56,7 @@ def upsert_event(event):
         event.get("kategori")
     ))
 
+    # Commit agar data benar-benar tersimpan, lalu tutup koneksi.
     conn.commit()
     conn.close()
 
@@ -59,12 +65,15 @@ def upsert_event(event):
 # GET ALL EVENTS
 # =========================
 def get_all_events():
+    # Buka koneksi untuk membaca semua event yang tersimpan.
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
+    # Ambil semua event dan urutkan berdasarkan tanggal agar lebih mudah dibaca.
     cursor.execute("SELECT * FROM events ORDER BY tanggal_waktu ASC")
     rows = cursor.fetchall()
 
+    # Tutup koneksi lalu kembalikan data.
     conn.close()
     return rows
 
@@ -73,8 +82,10 @@ def get_all_events():
 # TEST MANUAL
 # =========================
 if __name__ == "__main__":
+    # Inisialisasi database untuk memastikan tabel events tersedia.
     init_db()
 
+    # Contoh data event yang akan dimasukkan ke database untuk pengujian.
     dummy_event = {
         "event_id": "SCR-TEST",
         "nama_event": "Seminar AI",
@@ -86,7 +97,9 @@ if __name__ == "__main__":
         "kategori": "Seminar"
     }
 
+    # Simpan data contoh ke database.
     upsert_event(dummy_event)
 
+    # Ambil semua data event yang ada dan tampilkan ke layar.
     for e in get_all_events():
         print(e)
