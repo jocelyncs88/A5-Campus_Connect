@@ -130,9 +130,9 @@ class MainWindow(QMainWindow):
         """)
         
         # Aksi di dalam Hamburger Menu
-        self.hamburger_menu.addAction(QIcon("assets/home.png"), "Add Event").triggered.connect(self.buka_form_input)
-        self.hamburger_menu.addAction(QIcon("assets/information-button.png"), "FAQ")
-        self.hamburger_menu.addAction(QIcon("assets/user.png"), "Setting")
+        self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
+        self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ")
+        self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting")
         self.btn_menu.setMenu(self.hamburger_menu)
 
         # Masukkan semua ke layout navbar
