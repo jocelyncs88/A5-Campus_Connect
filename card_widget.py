@@ -276,7 +276,7 @@ class EventCard(QWidget):
     # Dipisah dari setup_ui() agar:
     # - Perubahan desain tidak mengubah logika/struktur komponen
     # - Kode lebih mudah dibaca
-    # - Tim bisa mengubah warna/font tanpa menyentuh logika
+    # - bisa mengubah warna/font tanpa menyentuh logika
     # ----------------------------------------------------------
     def apply_style(self):
 
