@@ -10,14 +10,14 @@
 #            Kita "mewarisi" ini agar EventCard bisa ditampilkan di layar
 # QLabel   = komponen untuk menampilkan teks atau gambar
 # QVBoxLayout = pengatur tata letak vertikal (elemen disusun dari atas ke bawah)
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy
 
 # QPixmap  = class khusus untuk menyimpan dan menampilkan data gambar
 from PyQt5.QtGui import QPixmap
 
 # QByteArray = format data bytes yang dimengerti oleh Qt/PyQt5
 # pyqtSignal = cara membuat "tombol bel" untuk komunikasi antar komponen
-from PyQt5.QtCore import QByteArray, pyqtSignal
+from PyQt5.QtCore import QByteArray, pyqtSignal, Qt
 
 
 # ==============================================================
@@ -56,6 +56,7 @@ class EventCard(QWidget):
         # Ini menginisialisasi semua fitur bawaan QWidget ke objek ini
         # Tanpa baris ini, kartu tidak bisa ditampilkan di layar
         super().__init__(parent)
+        self.setObjectName("event_card")
 
         # Menyimpan seluruh dictionary event_data sebagai atribut objek
         # Dengan self.event_data, dictionary ini bisa diakses
@@ -99,13 +100,13 @@ class EventCard(QWidget):
         layout = QVBoxLayout()
 
         # Mengatur jarak antara satu elemen dengan elemen berikutnya
-        # Nilai 8 berarti ada jarak 8 piksel antar elemen
-        layout.setSpacing(8)
+        # Nilai 10 berarti ada jarak 10 piksel antar elemen (ditingkatkan dari 8)
+        layout.setSpacing(10)
 
         # Mengatur jarak antara isi kartu dengan tepi kartu (margin)
         # Format: setContentsMargins(kiri, atas, kanan, bawah)
-        # Semua sisi diberi jarak 12 piksel agar isi tidak menempel ke tepi
-        layout.setContentsMargins(12, 12, 12, 12)
+        # Semua sisi diberi jarak 14 piksel agar isi tidak menempel ke tepi
+        layout.setContentsMargins(14, 14, 14, 14)
 
 
         # ---- BAGIAN 1: GAMBAR POSTER ----
@@ -128,7 +129,6 @@ class EventCard(QWidget):
         # Setelah ini, poster akan muncul di posisi paling atas kartu
         layout.addWidget(self.poster_label)
 
-
         # ---- BAGIAN 2: BADGE JENIS EVENT ----
 
         # Mengambil nilai "jenis_event" dari dictionary event_data
@@ -138,13 +138,19 @@ class EventCard(QWidget):
 
         # Membuat label dengan teks jenis event yang sudah diambil
         self.badge_label = QLabel(jenis)
+        self.badge_label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        self.badge_label.setFixedWidth(72)
+        self.badge_label.setFixedHeight(18)
+        self.badge_label.setAlignment(Qt.AlignCenter)
 
         # Memberi nama objek "badge_label" agar bisa ditarget oleh QSS
         # di fungsi apply_style() — mirip seperti id="" di HTML
         self.badge_label.setObjectName("badge_label")
 
-        # Menambahkan badge ke layout (muncul di bawah poster)
-        layout.addWidget(self.badge_label)
+        # Overlay badge di ujung kiri atas poster sebagai child widget
+        self.badge_label.setParent(self.poster_label)
+        self.badge_label.move(8, 8)  # Posisi 8px dari kiri, 8px dari atas
+        self.badge_label.show()  # Tampilkan badge di atas poster
 
 
         # ---- BAGIAN 3: NAMA EVENT ----
@@ -152,6 +158,10 @@ class EventCard(QWidget):
         # Mengambil nilai "nama_event" dari dictionary
         # Ini adalah judul utama acara yang tampil tebal di kartu
         nama = self.event_data.get("nama_event", "")
+        
+        # Truncate nama jika melebihi 30 karakter untuk konsistensi visual
+        if len(nama) > 30:
+            nama = nama[:30] + "..."
 
         # Membuat label dengan teks nama event
         self.nama_label = QLabel(nama)
@@ -162,6 +172,10 @@ class EventCard(QWidget):
         # Mengaktifkan word wrap agar teks panjang tidak terpotong
         # melainkan dilanjutkan ke baris berikutnya secara otomatis
         self.nama_label.setWordWrap(True)
+        
+        # Tetapkan tinggi maksimal untuk nama event agar konsisten
+        # Ditingkatkan menjadi 60 untuk memberikan lebih banyak ruang
+        self.nama_label.setMaximumHeight(60)
 
         # Menambahkan ke layout (muncul di bawah badge)
         layout.addWidget(self.nama_label)
@@ -183,6 +197,10 @@ class EventCard(QWidget):
 
         # Mengaktifkan word wrap untuk deskripsi yang mungkin lebih panjang
         self.deskripsi_label.setWordWrap(True)
+        
+        # Tetapkan tinggi maksimal untuk deskripsi agar konsisten
+        # Ditingkatkan menjadi 40 untuk memberikan lebih banyak ruang
+        self.deskripsi_label.setMaximumHeight(40)
 
         # Menambahkan ke layout (muncul di bawah nama event)
         layout.addWidget(self.deskripsi_label)
@@ -196,6 +214,9 @@ class EventCard(QWidget):
 
         # Membuat label tanggal (tidak perlu ObjectName karena styling default)
         self.tanggal_label = QLabel(tanggal)
+        
+        # Tetapkan tinggi tetap untuk tanggal agar konsisten
+        self.tanggal_label.setFixedHeight(20)
 
         # Menambahkan ke layout (muncul paling bawah di dalam kartu)
         layout.addWidget(self.tanggal_label)
@@ -286,7 +307,7 @@ class EventCard(QWidget):
 
             /* Gaya untuk widget kartu utama (seluruh area kartu) */
             /* Ini seperti CSS untuk <div> kartu di HTML */
-            QWidget {
+            QWidget#event_card {
                 background-color: white;   /* warna latar putih */
                 border-radius: 12px;       /* sudut membulat 12px */
                 border: 1px solid #e0e0e0; /* garis tepi abu-abu tipis */
@@ -294,8 +315,13 @@ class EventCard(QWidget):
 
             /* Gaya saat mouse diarahkan ke atas kartu (hover effect) */
             /* Memberikan feedback visual ke user bahwa kartu bisa diklik */
-            QWidget:hover {
+            QWidget#event_card:hover {
                 border: 1px solid #a0a0a0; /* garis tepi sedikit lebih gelap */
+            }
+
+            QLabel {
+                background: transparent;
+                border: none;
             }
 
             /* Gaya khusus untuk label nama event */
@@ -321,7 +347,7 @@ class EventCard(QWidget):
                 color: white;              /* teks putih di atas background biru */
                 background-color: #4a90d9; /* background biru */
                 border-radius: 4px;        /* sudut sedikit membulat seperti pill */
-                padding: 2px 6px;          /* jarak dalam badge: 2px atas-bawah, 6px kiri-kanan */
+                padding: 0px;              /* tidak ada padding agar ukuran konsisten */
                 border: none;
             }
         """)

@@ -22,7 +22,7 @@ def _normalize_event_row(row):
     if isinstance(row, dict):
         return {
             "event_id": row.get("event_id", ""),
-            "jenis_event": row.get("jenis_event", "External") or "External",
+            "jenis_event": (row.get("jenis_event", "External") or "External").title(),
             "nama_event": row.get("nama_event", "Tanpa Judul") or "Tanpa Judul",
             "deskripsi_singkat": row.get("deskripsi_singkat", "") or "",
             "tanggal_waktu": row.get("tanggal_waktu", "TBA") or "TBA",
@@ -31,7 +31,7 @@ def _normalize_event_row(row):
 
     return {
         "event_id": row[1] if len(row) > 1 else "",
-        "jenis_event": row[5] if len(row) > 5 and row[5] else "External",
+        "jenis_event": (row[5] if len(row) > 5 and row[5] else "External").title(),
         "nama_event": row[2] if len(row) > 2 and row[2] else "Tanpa Judul",
         "deskripsi_singkat": row[3] if len(row) > 3 and row[3] else "",
         "tanggal_waktu": row[6] if len(row) > 6 and row[6] else "TBA",
@@ -86,6 +86,17 @@ def _load_ui_events_from_db():
 
     for row in rows:
         event = _normalize_event_row(row)
+        
+        # Pastikan field wajib tidak pernah kosong agar card render konsisten
+        if not event.get("deskripsi_singkat") or event.get("deskripsi_singkat").strip() == "":
+            event["deskripsi_singkat"] = "..."
+        
+        if not event.get("tanggal_waktu") or event.get("tanggal_waktu").strip() == "":
+            event["tanggal_waktu"] = "TBA"
+        
+        if not event.get("jenis_event") or event.get("jenis_event").strip() == "":
+            event["jenis_event"] = "External"
+        
         event["gambar_poster"] = _cache_image(event.get("gambar_poster", ""))
         events.append(event)
 
