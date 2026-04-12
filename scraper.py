@@ -100,6 +100,34 @@ def parse_events(html_content):
 
     return scraped_data_list
 
+def ambil_event_polban(limit=100, base_url="https://www.polban.ac.id/category/kemahasiswaan/event/"):
+    """Ambil event Polban lintas halaman sampai mencapai limit atau data habis."""
+    semua_event = []
+    page = 1
+
+    while len(semua_event) < limit:
+        print(f"\n>>> SEDANG MEMPROSES HALAMAN {page} <<<")
+
+        if page == 1:
+            target_url = base_url
+        else:
+            target_url = f"{base_url}page/{page}/"
+
+        html_mentah = fetch_html(target_url)
+        if not html_mentah:
+            print("Gagal mengambil halaman, proses dihentikan.")
+            break
+
+        hasil_per_halaman = parse_events(html_mentah)
+        if not hasil_per_halaman:
+            print("Tidak ada event lagi pada halaman ini, proses dihentikan.")
+            break
+
+        semua_event.extend(hasil_per_halaman)
+        page += 1
+
+    return semua_event[:limit]
+
 # ==========================================
 # ENTRY POINT (TESTING)
 # ==========================================
