@@ -16,6 +16,7 @@ CACHE_DIR = os.path.join(BASE_DIR, "assets", "cache_images")
 
 
 def _normalize_event_row(row):
+    """Menyamakan format data event dari DB menjadi dictionary untuk UI."""
     # db_manager.get_all_events() saat ini mengembalikan tuple SELECT *:
     # (id, event_id, nama_event, deskripsi_singkat, gambar_poster,
     #  jenis_event, tanggal_waktu, source, kategori)
@@ -40,13 +41,17 @@ def _normalize_event_row(row):
 
 
 def _is_http_url(value):
+    """Mengecek apakah nilai adalah URL gambar online (http/https)."""
     return isinstance(value, str) and value.startswith(("http://", "https://"))
 
 
 def _cache_image(image_url):
+    """Menyimpan gambar URL ke cache lokal agar loading UI lebih cepat/stabil."""
+    # Jika bukan URL online, langsung pakai path asli.
     if not _is_http_url(image_url):
         return image_url
 
+    # Pastikan folder cache tersedia.
     os.makedirs(CACHE_DIR, exist_ok=True)
 
     parsed = urlparse(image_url)
@@ -54,13 +59,16 @@ def _cache_image(image_url):
     if ext not in {".jpg", ".jpeg", ".png", ".webp"}:
         ext = ".jpg"
 
+    # Nama file cache dibuat deterministik dari URL (MD5).
     file_name = hashlib.md5(image_url.encode("utf-8")).hexdigest() + ext
     local_path = os.path.join(CACHE_DIR, file_name)
 
+    # Jika sudah pernah diunduh, pakai file lokal.
     if os.path.exists(local_path):
         return local_path
 
     try:
+        # Download gambar sekali, lalu simpan untuk pemakaian berikutnya.
         response = requests.get(
             image_url,
             timeout=10,
@@ -77,10 +85,12 @@ def _cache_image(image_url):
             f.write(response.content)
         return local_path
     except requests.RequestException:
+        # Fallback: kembalikan URL asli jika unduh gagal.
         return image_url
 
 
 def _load_ui_events_from_db():
+    """Mengambil event dari DB, normalisasi field, lalu siapkan path gambar untuk UI."""
     rows = db_manager.get_all_events()
     events = []
 
@@ -100,18 +110,22 @@ def _load_ui_events_from_db():
         event["gambar_poster"] = _cache_image(event.get("gambar_poster", ""))
         events.append(event)
 
+    # Dipakai untuk mengganti dummy data saat data DB tersedia.
     return events
 
 
 def main():
+    """Entry point aplikasi: init DB, siapkan data UI, lalu jalankan PyQt app."""
     # Ensure local database and table exist before UI is shown.
     db_manager.init_db()
 
+    # Muat data event dari DB untuk ditampilkan di homepage.
     db_events = _load_ui_events_from_db()
     if db_events:
         # Override dummy list in main_window only when DB has data.
         main_window.dummy_events = db_events
 
+    # Inisialisasi aplikasi Qt dan tampilkan jendela utama.
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
