@@ -57,8 +57,23 @@ class MainWindow(QMainWindow):
         navbar_container.setStyleSheet(f"background-color: {COLOR_GRAY_LIGHT}; border-radius: 40px;")
         navbar_layout = QHBoxLayout(navbar_container)
         self.logo = QLabel("<span style='font-family: serif; font-size: 26px; color: #516465;'>Campus</span><br><span style='font-family: sans-serif; font-size: 26px; font-weight: bold; color: {COLOR_PINK_LIGHT};'>Connect</span>")
-        btn_home = QPushButton("🏠 Home")
-        btn_about = QPushButton("ℹ About Us")
+        
+        self.btn_home = QPushButton("  Home")
+        self.btn_home.setIcon(QIcon("assets/home.png"))
+        self.btn_home.setIconSize(QSize(20, 20))
+        
+        self.btn_about = QPushButton("  About Us")
+        self.btn_about.setIcon(QIcon("assets/information-button.png"))
+        self.btn_about.setIconSize(QSize(20, 20))
+
+        self.btn_login = QPushButton("  Login")
+        self.btn_login.setIcon(QIcon("assets/user.png"))
+        self.btn_login.setIconSize(QSize(18, 18))
+
+        self.btn_menu = QPushButton()
+        self.btn_menu.setIcon(QIcon("assets/menu.png"))
+        self.btn_menu.setIconSize(QSize(24, 24))
+        
         nav_style = f"background: transparent; color: {COLOR_TEXT_PRIMARY}; border: none;"
         btn_home.setStyleSheet(nav_style + "font-weight: bold;")
         btn_about.setStyleSheet(nav_style)
