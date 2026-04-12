@@ -156,8 +156,6 @@ class ScraperThread(QThread):
     # FUNGSI __init__ (Konstruktor)
     #   scraper_func = fungsi dari scraper.py yang akan dijalankan
     #                  dikirim sebagai parameter agar ScraperThread
-    #                  tidak perlu tahu detail cara scraping
-    #                  (prinsip pemisahan tanggung jawab/modular)
     # ----------------------------------------------------------
     def __init__(self, scraper_func):
 
