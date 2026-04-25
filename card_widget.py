@@ -2,7 +2,7 @@
 # FILE: card_widget.py
 # TUGAS: Membuat blueprint/template untuk SATU kartu event
 # yang akan ditampilkan berulang di homepage Campus Connect
-# DIBUAT OLEH: UI/UX Component Builder
+# DIBUAT OLEH: UI/UX Component Builder (Tania)
 # ==============================================================
 
 
