@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
         self.central_widget.setStyleSheet(f"""
             QWidget#mainCanvas {{ 
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-                stop:0 #5D6B6B, stop:0.25 #BDD7D8, stop:0.5 #D6E6E6, stop:0.75 #D2E6E5, stop:1 #F7CBCA); 
+                stop:0 #B5CECE, stop:0.4 #C8DCDC, stop:0.75 #D6E6E6, stop:1 #F7CBCA); 
             }}
         """)
         
