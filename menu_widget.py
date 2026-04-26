@@ -154,7 +154,7 @@ class DropdownMenu(QWidget):
         self.setLayout(layout)
 
         # Mengunci lebar dropdown agar konsisten sesuai proporsi mockup
-        self.setFixedWidth(200)
+        self.setFixedWidth(150)
 
 
     # ----------------------------------------------------------
@@ -195,7 +195,7 @@ class DropdownMenu(QWidget):
 
         # Mengatur font Inter Regular ukuran 22 sesuai Figma
         # QFont("Inter", 22) = nama font, ukuran dalam poin
-        font = QFont("Inter", 22)
+        font = QFont("Inter", 11)
 
         # QFont.Normal = Regular weight (bukan Bold atau Light)
         # Sesuai Figma: weight Regular
@@ -225,7 +225,7 @@ class DropdownMenu(QWidget):
                 border: none;
                 padding: 12px 20px;
                 text-align: left;
-                font-size: 22px;
+                font-size: 11px;
                 border-radius: 12px;
                 line-height: 150%;
             }

@@ -159,17 +159,17 @@ class EventCard(QWidget):
         self.badge_label.setObjectName("badge_label")
 
         # Mengatur font badge: Inter SemiBold ukuran 18 sesuai Figma
-        font_badge = QFont("Inter SemiBold", 18)
+        font_badge = QFont("Inter SemiBold", 9)
         self.badge_label.setFont(font_badge)
 
-        # Menyesuaikan lebar badge mengikuti panjang teksnya
-        self.badge_label.adjustSize()
+        # Lebar badge disesuaikan otomatis berdasarkan teks + padding
+        self.badge_label.setFixedHeight(22)
+        self.badge_label.setContentsMargins(6, 0, 6, 0)
 
-        # Mengunci tinggi badge menjadi 28 piksel
-        self.badge_label.setFixedHeight(28)
-
-        # Margin dalam badge: 8px kiri-kanan agar teks tidak mepet
-        self.badge_label.setContentsMargins(8, 0, 8, 0)
+        # Hitung lebar badge secara manual agar tidak kepotong
+        # panjang teks x 7 piksel per karakter + padding kiri kanan 24px
+        lebar_badge = len(jenis) * 7 + 24
+        self.badge_label.setFixedWidth(lebar_badge)
 
         # Meratakan teks badge ke tengah
         self.badge_label.setAlignment(Qt.AlignCenter)
@@ -222,7 +222,7 @@ class EventCard(QWidget):
         self.nama_label.setObjectName("nama_label")
 
         # Mengatur font nama: Inter Medium ukuran 20 sesuai Figma
-        font_nama = QFont("Inter Medium", 20)
+        font_nama = QFont("Inter Medium", 11)
         self.nama_label.setFont(font_nama)
 
         # Word wrap agar nama panjang tidak terpotong, turun ke baris berikutnya
@@ -252,7 +252,7 @@ class EventCard(QWidget):
         self.deskripsi_label.setObjectName("deskripsi_label")
 
         # Mengatur font deskripsi: Inter Regular ukuran 16 sesuai Figma
-        font_deskripsi = QFont("Inter", 16)
+        font_deskripsi = QFont("Inter", 10)
         self.deskripsi_label.setFont(font_deskripsi)
 
         # Word wrap untuk deskripsi yang mungkin agak panjang
