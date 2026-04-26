@@ -3,6 +3,8 @@ import os
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from about_page import AboutPage
+from faq_page import FAQPage  # ← TAMBAHAN
 
 # Import class EventCard dari file card_widget.py
 # Pastikan file card_widget.py ada di folder yang sama
@@ -73,6 +75,10 @@ class MainWindow(QMainWindow):
         self.render_event_cards(dummy_events)
         self.layout_utama.addStretch()
 
+        # Page references — dibuat lazy (None dulu, baru dibuat saat pertama dibuka)
+        self.about_page = None
+        self.faq_page = None  # ← TAMBAHAN
+
     def _register_wheel_forwarding(self, widget):
         widget.installEventFilter(self)
         for child in widget.findChildren(QWidget):
@@ -108,7 +114,6 @@ class MainWindow(QMainWindow):
                         move_by = int(-steps * step_size)
                     else:
                         steps = angle_delta.y() / 120
-                        # Shift + wheel juga dipetakan ke horizontal, seperti pola umum desktop.
                         if modifiers & Qt.ShiftModifier:
                             move_by = int(-steps * step_size)
                         else:
@@ -120,6 +125,16 @@ class MainWindow(QMainWindow):
                     return True
 
         return super().eventFilter(watched, event)
+
+    def _hide_all_pages(self):
+        """Helper: sembunyikan semua page konten (home, about, faq)."""
+        self.hero_widget.hide()
+        self.event_title.hide()
+        self.scroll.hide()
+        if self.about_page:
+            self.about_page.hide()
+        if self.faq_page:
+            self.faq_page.hide()
 
     def init_header(self):
         navbar_container = QWidget()
@@ -158,7 +173,7 @@ class MainWindow(QMainWindow):
         self.btn_menu.setCursor(Qt.PointingHandCursor)
         self.btn_menu.setStyleSheet("background: transparent; border: none;")
 
-        # Dropdown Menu Styling (Blok 3A)
+        # Dropdown Menu Styling
         self.hamburger_menu = QMenu(self)
         self.hamburger_menu.setCursor(Qt.PointingHandCursor)
         self.hamburger_menu.setStyleSheet(f"""
@@ -182,7 +197,8 @@ class MainWindow(QMainWindow):
         
         # Aksi Menu
         self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
-        self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ")
+        # ← TAMBAHAN: connect FAQ ke show_faq_page
+        self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
         self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting")
         self.btn_menu.setMenu(self.hamburger_menu)
 
@@ -195,9 +211,12 @@ class MainWindow(QMainWindow):
         navbar_layout.addSpacing(10)
         navbar_layout.addWidget(self.btn_menu)
         self.layout_utama.addWidget(navbar_container)
+        self.btn_about.clicked.connect(self.show_about_page)
+        self.btn_home.clicked.connect(self.show_home_page)
 
     def init_hero(self):
-        hero_widget = QWidget()
+        self.hero_widget = QWidget()
+        hero_widget = self.hero_widget
         layout = QVBoxLayout(hero_widget)
         l1 = QLabel("Welcome to,")
         l1.setStyleSheet(f"font-size: 24px; font-style: italic; color: {COLOR_TEXT_PRIMARY};")
@@ -209,7 +228,8 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(hero_widget)
 
     def init_scroll_area(self):
-        title = QLabel("Highlight / Upcoming Events")
+        self.event_title = QLabel("Highlight / Upcoming Events")
+        title = self.event_title
         title.setStyleSheet(f"font-weight: bold; font-size: 18px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
         self.layout_utama.addWidget(title)
         
@@ -244,7 +264,7 @@ class MainWindow(QMainWindow):
     def render_event_cards(self, data):
         for e in data:
             card = EventCard(e)
-            card.setCursor(Qt.PointingHandCursor) # Mouse tangan untuk kartu
+            card.setCursor(Qt.PointingHandCursor)
             card.diklik.connect(self.handle_card_click) 
             self._register_wheel_forwarding(card)
             
@@ -260,7 +280,6 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Detail Event", f"Membuka detail untuk ID: {event_id}")
 
     def buka_form_input(self):
-        # Implementasi Jendela Dialog (Blok 3B)
         dialog = QDialog(self)
         dialog.setWindowTitle("Add New Event")
         dialog.setFixedSize(400, 300)
@@ -279,6 +298,34 @@ class MainWindow(QMainWindow):
         layout.addWidget(btn_save)
         
         dialog.exec_()
+
+    def show_about_page(self):
+        self._hide_all_pages()
+
+        if self.about_page is None:
+            self.about_page = AboutPage()
+            self.layout_utama.insertWidget(4, self.about_page)
+
+        self.about_page.show()
+
+    # ↓ TAMBAHAN: method untuk buka FAQ page
+    def show_faq_page(self):
+        self._hide_all_pages()
+
+        if self.faq_page is None:
+            self.faq_page = FAQPage()
+            self.layout_utama.insertWidget(4, self.faq_page)
+
+        self.faq_page.show()
+
+    def show_home_page(self):
+        self._hide_all_pages()
+
+        # Munculkan kembali komponen home
+        self.hero_widget.show()
+        self.event_title.show()
+        self.scroll.show()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
