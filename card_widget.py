@@ -181,6 +181,15 @@ class EventCard(QWidget):
         # Memastikan badge terlihat (ditampilkan di atas gambar)
         self.badge_label.show()
 
+        # Mengatur transparansi badge langsung ke objek badge
+        # Format rgba di PyQt5 harus diset via setStyleSheet per objek
+        self.badge_label.setStyleSheet("""
+            background-color: rgba(0, 0, 0, 150);
+            color: white;
+            border-radius: 4px;
+            padding: 0px 4px;
+        """)
+
         # Menambahkan poster (beserta badge overlay) ke layout utama
         layout.addWidget(self.poster_label)
 
