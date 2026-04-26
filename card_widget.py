@@ -2,22 +2,29 @@
 # FILE: card_widget.py
 # TUGAS: Membuat blueprint/template untuk SATU kartu event
 # yang akan ditampilkan berulang di homepage Campus Connect
-# DIBUAT OLEH: UI/UX Component Builder 
+# DIBUAT OLEH: UI/UX Component Builder (Tania)
 # ==============================================================
 
 
-# QWidget  = class dasar untuk semua komponen visual di PyQt5
-#            Kita "mewarisi" ini agar EventCard bisa ditampilkan di layar
-# QLabel   = komponen untuk menampilkan teks atau gambar
-# QVBoxLayout = pengatur tata letak vertikal (elemen disusun dari atas ke bawah)
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy
+# QWidget     = class dasar untuk semua komponen visual di PyQt5
+# QLabel      = komponen untuk menampilkan teks atau gambar
+# QVBoxLayout = pengatur tata letak vertikal (atas ke bawah)
+# QSizePolicy = mengatur kebijakan ukuran komponen
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QSizePolicy
 
-# QPixmap  = class khusus untuk menyimpan dan menampilkan data gambar
-from PyQt5.QtGui import QPixmap
+# QPixmap      = class khusus untuk menyimpan dan menampilkan data gambar
+# QFont        = class untuk mengatur jenis dan ukuran font
+# QFontDatabase = class untuk mendaftarkan font dari file .ttf
+from PyQt5.QtGui import QPixmap, QFont, QFontDatabase
 
 # QByteArray = format data bytes yang dimengerti oleh Qt/PyQt5
 # pyqtSignal = cara membuat "tombol bel" untuk komunikasi antar komponen
+# Qt         = berisi konstanta seperti Qt.AlignCenter untuk perataan
 from PyQt5.QtCore import QByteArray, pyqtSignal, Qt
+
+# os = library bawaan Python untuk mengakses sistem file
+# digunakan untuk mencari lokasi folder fonts secara otomatis
+import os
 
 
 # ==============================================================
@@ -43,40 +50,50 @@ class EventCard(QWidget):
     # ----------------------------------------------------------
     # FUNGSI __init__ (Konstruktor)
     # Dipanggil OTOMATIS saat objek baru dibuat dengan EventCard(data)
-    # 
+    #
     # Parameter:
-    #   self       = referensi ke objek itu sendiri (wajib ada di setiap method)
-    #   event_data = dictionary Python berisi semua info 1 event
-    #                contoh: {"event_id": "001", "nama_event": "Sparta Festival", ...}
-    #   parent     = komponen induk di PyQt5 (default None = berdiri sendiri)
+    #   self       = referensi ke objek itu sendiri (wajib ada)
+    #   event_data = dictionary berisi semua info 1 event
+    #   parent     = komponen induk (default None = berdiri sendiri)
     # ----------------------------------------------------------
     def __init__(self, event_data, parent=None):
 
         # Wajib memanggil konstruktor QWidget terlebih dahulu
-        # Ini menginisialisasi semua fitur bawaan QWidget ke objek ini
-        # Tanpa baris ini, kartu tidak bisa ditampilkan di layar
+        # Menginisialisasi semua fitur bawaan QWidget ke objek ini
         super().__init__(parent)
+
+        # Memberi nama objek "event_card" agar bisa ditarget QSS
+        # Mirip seperti id="event_card" di HTML
         self.setObjectName("event_card")
 
         # Menyimpan seluruh dictionary event_data sebagai atribut objek
-        # Dengan self.event_data, dictionary ini bisa diakses
-        # dari fungsi manapun di dalam class ini
-        # Contoh akses: self.event_data.get("nama_event")
+        # Bisa diakses dari fungsi manapun dalam class ini
         self.event_data = event_data
 
-        # Mengambil nilai event_id dari dictionary dan menyimpannya
-        # sebagai atribut tersendiri agar mudah diakses saat kartu diklik
-        # .get("event_id", "") artinya: ambil nilai key "event_id",
-        # jika key tidak ditemukan, gunakan string kosong "" sebagai default
+        # Mengambil event_id dari dictionary, default "" jika tidak ada
+        # Disimpan tersendiri agar mudah diakses saat kartu diklik
         self.event_id = event_data.get("event_id", "")
 
-        # Memanggil fungsi setup_ui() untuk membangun semua elemen tampilan
-        # Dipisah dari __init__ agar kode lebih terorganisir:
-        # __init__ hanya mengurus inisialisasi, setup_ui mengurus tampilan
+        # Mencari lokasi absolut folder tempat file card_widget.py berada
+        # os.path.abspath(__file__) = path lengkap file ini
+        # os.path.dirname() = ambil foldernya saja (bukan nama filenya)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Mendaftarkan font Inter Medium dari file .ttf ke aplikasi
+        # os.path.join() = menggabungkan path folder + subfolder + nama file
+        # Setelah didaftarkan, font bisa dipakai di QFont("Inter Medium")
+        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "Inter-Medium.ttf"))
+
+        # Mendaftarkan font Inter Regular (untuk deskripsi event)
+        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "Inter-Regular.ttf"))
+
+        # Mendaftarkan font Inter SemiBold (untuk badge Internal/External)
+        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "Inter-SemiBold.ttf"))
+
+        # Memanggil fungsi untuk membangun semua elemen tampilan kartu
         self.setup_ui()
 
-        # Memanggil fungsi apply_style() untuk mengatur gaya visual
-        # Dipisah agar perubahan desain tidak mengganggu logika setup_ui
+        # Memanggil fungsi untuk mengatur gaya visual (warna, border, dll)
         self.apply_style()
 
 
@@ -86,268 +103,296 @@ class EventCard(QWidget):
     # Dipanggil sekali saat objek pertama kali dibuat
     #
     # Urutan elemen dari atas ke bawah:
-    #   1. Gambar poster (placeholder dulu)
-    #   2. Badge jenis event (Internal/External)
-    #   3. Nama event (teks tebal)
-    #   4. Deskripsi singkat (teks abu-abu)
-    #   5. Tanggal waktu
+    #   1. Gambar poster (rasio 1:1, 220x220px)
+    #   2. Badge jenis event (menumpuk di atas gambar)
+    #   3. Nama event (Inter Medium 20px)
+    #   4. Deskripsi singkat (Inter Regular 16px)
     # ----------------------------------------------------------
     def setup_ui(self):
 
-        # Membuat objek layout vertikal
-        # Layout ini yang mengatur posisi semua elemen di dalam kartu
-        # QVBoxLayout = Vertical Box Layout = elemen tersusun dari atas ke bawah
+        # Membuat layout vertikal sebagai susunan utama kartu
         layout = QVBoxLayout()
 
-        # Mengatur jarak antara satu elemen dengan elemen berikutnya
-        # Nilai 10 berarti ada jarak 10 piksel antar elemen (ditingkatkan dari 8)
-        layout.setSpacing(10)
+        # Jarak 6 piksel antar elemen dalam layout
+        layout.setSpacing(6)
 
-        # Mengatur jarak antara isi kartu dengan tepi kartu (margin)
-        # Format: setContentsMargins(kiri, atas, kanan, bawah)
-        # Semua sisi diberi jarak 14 piksel agar isi tidak menempel ke tepi
-        layout.setContentsMargins(14, 14, 14, 14)
+        # Margin: atas=0, kiri=0, kanan=0, bawah=12
+        # Bawah diberi jarak 12px agar ada napas di bawah kartu
+        layout.setContentsMargins(0, 0, 0, 12)
 
 
-        # ---- BAGIAN 1: GAMBAR POSTER ----
+        # ---- BAGIAN 1: GAMBAR POSTER (rasio 1:1) ----
 
-        # Membuat QLabel kosong sebagai "bingkai" untuk gambar poster
-        # Teks "Memuat gambar..." tampil sebagai placeholder
-        # sementara worker_thread.py belum selesai mendownload gambar aslinya
-        self.poster_label = QLabel("Memuat gambar...")
+        # Membuat QLabel sebagai bingkai gambar poster
+        # Tidak ada teks placeholder karena warna abu sudah cukup
+        self.poster_label = QLabel()
 
-        # Mengunci ukuran area gambar menjadi tepat 200x150 piksel
-        # setFixedSize memastikan ukuran tidak berubah meskipun teks/gambar berbeda
-        # self.poster_label agar bisa diakses dari fungsi set_poster() nanti
-        self.poster_label.setFixedSize(200, 150)
+        # Mengunci ukuran gambar 220x220 piksel (rasio 1:1 sesuai Figma)
+        self.poster_label.setFixedSize(220, 220)
 
-        # Mengaktifkan fitur agar gambar otomatis menyesuaikan ukuran label
-        # Tanpa ini, gambar berukuran besar akan meluap keluar bingkai
+        # Gambar otomatis menyesuaikan ukuran label tanpa pecah
         self.poster_label.setScaledContents(True)
 
-        # Menambahkan poster_label ke dalam layout
-        # Setelah ini, poster akan muncul di posisi paling atas kartu
-        layout.addWidget(self.poster_label)
+        # Memberi nama objek untuk ditarget QSS
+        self.poster_label.setObjectName("poster_label")
 
-        # ---- BAGIAN 2: BADGE JENIS EVENT ----
+        # Meratakan konten ke tengah label
+        self.poster_label.setAlignment(Qt.AlignCenter)
 
-        # Mengambil nilai "jenis_event" dari dictionary event_data
-        # Nilainya hanya 2 kemungkinan: "Internal" atau "External"
-        # Jika key tidak ada di dictionary, gunakan string kosong
+        # Warna abu sebagai placeholder saat gambar belum selesai didownload
+        # border-radius: 8px agar sudut gambar membulat
+        self.poster_label.setStyleSheet("background-color: #e0e0e0; border-radius: 8px;")
+
+
+        # ---- BAGIAN 2: BADGE INTERNAL/EXTERNAL ----
+        # Badge ditaruh di ATAS gambar (overlay) pojok kiri atas
+
+        # Mengambil nilai "jenis_event" dari dictionary
+        # Nilainya "Internal" atau "External" sesuai Data Contract
         jenis = self.event_data.get("jenis_event", "")
 
-        # Membuat label dengan teks jenis event yang sudah diambil
-        self.badge_label = QLabel(jenis)
-        self.badge_label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
-        self.badge_label.setFixedWidth(72)
-        self.badge_label.setFixedHeight(18)
-        self.badge_label.setAlignment(Qt.AlignCenter)
+        # Membuat label badge dengan self.poster_label sebagai parent
+        # Ini yang membuat badge bisa ditaruh di atas gambar (overlay)
+        self.badge_label = QLabel(jenis, self.poster_label)
 
-        # Memberi nama objek "badge_label" agar bisa ditarget oleh QSS
-        # di fungsi apply_style() — mirip seperti id="" di HTML
+        # Memberi nama objek untuk ditarget QSS
         self.badge_label.setObjectName("badge_label")
 
-        # Overlay badge di ujung kiri atas poster sebagai child widget
-        self.badge_label.setParent(self.poster_label)
-        self.badge_label.move(8, 8)  # Posisi 8px dari kiri, 8px dari atas
-        self.badge_label.show()  # Tampilkan badge di atas poster
+        # Mengatur font badge: Inter SemiBold ukuran 18 sesuai Figma
+        font_badge = QFont("Inter SemiBold", 9)
+        self.badge_label.setFont(font_badge)
+
+        # Lebar badge disesuaikan otomatis berdasarkan teks + padding
+        self.badge_label.setFixedHeight(22)
+        self.badge_label.setContentsMargins(6, 0, 6, 0)
+
+        # Hitung lebar badge secara manual agar tidak kepotong
+        # panjang teks x 7 piksel per karakter + padding kiri kanan 24px
+        lebar_badge = len(jenis) * 7 + 24
+        self.badge_label.setFixedWidth(lebar_badge)
+
+        # Meratakan teks badge ke tengah
+        self.badge_label.setAlignment(Qt.AlignCenter)
+
+        # Memindahkan badge ke posisi x=8, y=8 dari pojok kiri atas gambar
+        # Hasilnya badge menumpuk di atas gambar pojok kiri atas
+        self.badge_label.move(8, 8)
+
+        # Memastikan badge terlihat (ditampilkan di atas gambar)
+        self.badge_label.show()
+
+        # Mengatur transparansi badge langsung ke objek badge
+        # Format rgba di PyQt5 harus diset via setStyleSheet per objek
+        self.badge_label.setStyleSheet("""
+            background-color: rgba(0, 0, 0, 150);
+            color: white;
+            border-radius: 4px;
+            padding: 0px 4px;
+        """)
+
+        # Menambahkan poster (beserta badge overlay) ke layout utama
+        layout.addWidget(self.poster_label)
 
 
-        # ---- BAGIAN 3: NAMA EVENT ----
+        # ---- BAGIAN 3 & 4: AREA TEKS BAWAH GAMBAR ----
+
+        # Membuat widget kosong sebagai wadah teks nama dan deskripsi
+        # Dipisah dari gambar agar margin bisa diatur berbeda
+        text_widget = QWidget()
+
+        # Memberi nama objek untuk ditarget QSS
+        text_widget.setObjectName("text_widget")
+
+        # Layout vertikal khusus untuk area teks
+        text_layout = QVBoxLayout()
+
+        # Jarak 4 piksel antara nama event dan deskripsi
+        text_layout.setSpacing(4)
+
+        # Margin area teks: kiri=12, atas=8, kanan=12, bawah=0
+        # Memberi jarak agar teks tidak mepet ke tepi kartu
+        text_layout.setContentsMargins(12, 8, 12, 0)
+
+
+        # ---- NAMA EVENT ----
 
         # Mengambil nilai "nama_event" dari dictionary
-        # Ini adalah judul utama acara yang tampil tebal di kartu
         nama = self.event_data.get("nama_event", "")
-        
-        # Truncate nama jika melebihi 30 karakter untuk konsistensi visual
-        if len(nama) > 30:
-            nama = nama[:30] + "..."
 
-        # Membuat label dengan teks nama event
+        # Memotong nama jika lebih dari 25 karakter agar tampilan konsisten
+        # Karakter ke-26 dst diganti "..." sebagai tanda ada teks yang dipotong
+        if len(nama) > 25:
+            nama = nama[:25] + "..."
+
+        # Membuat label nama event
         self.nama_label = QLabel(nama)
 
-        # Memberi nama objek untuk ditarget QSS (font tebal, ukuran lebih besar)
+        # Memberi nama objek untuk ditarget QSS
         self.nama_label.setObjectName("nama_label")
 
-        # Mengaktifkan word wrap agar teks panjang tidak terpotong
-        # melainkan dilanjutkan ke baris berikutnya secara otomatis
+        # Mengatur font nama: Inter Medium ukuran 20 sesuai Figma
+        font_nama = QFont("Inter Medium", 11)
+        self.nama_label.setFont(font_nama)
+
+        # Word wrap agar nama panjang tidak terpotong, turun ke baris berikutnya
         self.nama_label.setWordWrap(True)
-        
-        # Tetapkan tinggi maksimal untuk nama event agar konsisten
-        # Ditingkatkan menjadi 60 untuk memberikan lebih banyak ruang
+
+        # Tinggi maksimal 60px agar semua kartu punya tinggi yang konsisten
         self.nama_label.setMaximumHeight(60)
 
-        # Menambahkan ke layout (muncul di bawah badge)
-        layout.addWidget(self.nama_label)
+        # Menambahkan nama event ke layout teks
+        text_layout.addWidget(self.nama_label)
 
 
-        # ---- BAGIAN 4: DESKRIPSI SINGKAT ----
+        # ---- DESKRIPSI SINGKAT ----
 
         # Mengambil nilai "deskripsi_singkat" dari dictionary
-        # Maksimal 50-70 karakter
-        # Jika data dari scraping tidak ada deskripsi_singkat,
-        # ambil dari potongan awal deskripsi_lengkap (dilakukan di db_manager)
+        # Maksimal 50-70 karakter sesuai Data Contract
         deskripsi = self.event_data.get("deskripsi_singkat", "")
 
-        # Membuat label deskripsi dengan teks yang sudah diambil
+        # Memotong deskripsi jika lebih dari 35 karakter
+        if len(deskripsi) > 35:
+            deskripsi = deskripsi[:35] + "..."
+
+        # Membuat label deskripsi
         self.deskripsi_label = QLabel(deskripsi)
 
-        # Memberi nama objek untuk ditarget QSS (warna abu-abu, ukuran kecil)
+        # Memberi nama objek untuk ditarget QSS
         self.deskripsi_label.setObjectName("deskripsi_label")
 
-        # Mengaktifkan word wrap untuk deskripsi yang mungkin lebih panjang
+        # Mengatur font deskripsi: Inter Regular ukuran 16 sesuai Figma
+        font_deskripsi = QFont("Inter", 10)
+        self.deskripsi_label.setFont(font_deskripsi)
+
+        # Word wrap untuk deskripsi yang mungkin agak panjang
         self.deskripsi_label.setWordWrap(True)
-        
-        # Tetapkan tinggi maksimal untuk deskripsi agar konsisten
-        # Ditingkatkan menjadi 40 untuk memberikan lebih banyak ruang
-        self.deskripsi_label.setMaximumHeight(40)
 
-        # Menambahkan ke layout (muncul di bawah nama event)
-        layout.addWidget(self.deskripsi_label)
+        # Tinggi maksimal 50px agar konsisten antar kartu
+        self.deskripsi_label.setMaximumHeight(50)
 
+        # Menambahkan deskripsi ke layout teks
+        text_layout.addWidget(self.deskripsi_label)
 
-        # ---- BAGIAN 5: TANGGAL WAKTU ----
+        # Menerapkan layout teks ke text_widget
+        text_widget.setLayout(text_layout)
 
-        # Mengambil nilai "tanggal_waktu" dari dictionary
-        # Format ISO "YYYY-MM-DD HH:MM"
-        tanggal = self.event_data.get("tanggal_waktu", "")
+        # Menambahkan text_widget ke layout utama kartu
+        # Posisinya di bawah gambar poster
+        layout.addWidget(text_widget)
 
-        # Membuat label tanggal (tidak perlu ObjectName karena styling default)
-        self.tanggal_label = QLabel(tanggal)
-        
-        # Tetapkan tinggi tetap untuk tanggal agar konsisten
-        self.tanggal_label.setFixedHeight(20)
-
-        # Menambahkan ke layout (muncul paling bawah di dalam kartu)
-        layout.addWidget(self.tanggal_label)
-
-
-        # Menerapkan layout yang sudah berisi semua elemen ke widget kartu ini
-        # Tanpa baris ini, semua addWidget() di atas tidak akan tampil
+        # Menerapkan layout utama ke widget kartu ini
         self.setLayout(layout)
+
+        # Mengunci lebar kartu sama dengan lebar gambar (220px)
+        # Agar semua kartu punya lebar yang seragam
+        self.setFixedWidth(220)
 
 
     # ----------------------------------------------------------
     # FUNGSI set_poster()
-    # Dipanggil dari LUAR class ini, yaitu oleh worker_thread.py
-    # setelah proses download gambar poster selesai
+    # Dipanggil dari LUAR oleh worker_thread.py
+    # setelah proses download gambar selesai
     #
     # Parameter:
     #   image_bytes = data gambar mentah dalam format bytes
-    #                 (hasil dari response.content di worker_thread)
-    #
-    # Alasan dipisah dari setup_ui():
-    #   Karena gambar tidak langsung tersedia saat kartu dibuat
-    #   Download gambar butuh waktu, dilakukan di background oleh worker_thread
     # ----------------------------------------------------------
     def set_poster(self, image_bytes):
 
         # Mengubah bytes biasa menjadi QByteArray
-        # Qt/PyQt5 membutuhkan format QByteArray, bukan bytes Python biasa
-        # untuk bisa membaca data gambar
+        # Format yang dibutuhkan PyQt5 untuk membaca data gambar
         byte_array = QByteArray(image_bytes)
 
         # Membuat objek QPixmap kosong sebagai wadah gambar
-        # QPixmap adalah format gambar yang dioptimalkan untuk ditampilkan di layar
         pixmap = QPixmap()
 
-        # Memuat data dari QByteArray ke dalam pixmap
-        # loadFromData() mengembalikan True jika berhasil, False jika data rusak
-        # Hasilnya disimpan di variabel success untuk pengecekan di bawah
+        # Memuat data gambar dari QByteArray ke dalam pixmap
+        # Mengembalikan True jika berhasil, False jika data rusak
         success = pixmap.loadFromData(byte_array)
 
-        # Pengecekan apakah gambar berhasil dimuat
         if success:
-            # Jika berhasil: pasang gambar ke poster_label
-            # Teks placeholder "Memuat gambar..." akan hilang diganti gambar
+            # Hapus styling placeholder abu setelah gambar berhasil dimuat
+            # Hanya sisakan border-radius agar sudut gambar tetap membulat
+            self.poster_label.setStyleSheet("border-radius: 8px;")
+
+            # Pasang gambar ke poster_label
+            # Teks/warna placeholder akan hilang diganti gambar asli
             self.poster_label.setPixmap(pixmap)
         else:
-            # Jika gagal (URL rusak, file bukan gambar, dll):
-            # Tampilkan teks pengganti agar user tau ada masalah
+            # Jika gambar gagal dimuat (URL rusak, bukan file gambar, dll)
+            # Tampilkan teks pengganti agar user tahu ada masalah
             self.poster_label.setText("Gambar tidak tersedia")
 
 
     # ----------------------------------------------------------
     # FUNGSI mousePressEvent()
-    # Ini adalah OVERRIDE dari fungsi bawaan QWidget
-    #
-    # Dipanggil OTOMATIS oleh PyQt5 setiap kali user mengklik widget ini
-    # Tidak perlu memanggil fungsi ini secara manual
-    #
-    # Parameter:
-    #   event = objek MouseEvent dari PyQt5 (berisi info klik: posisi, tombol, dll)
-    #           tidak menggunakan isinya, tapi parameter ini wajib ada
+    # Override fungsi bawaan QWidget
+    # Dipanggil OTOMATIS saat user mengklik kartu ini
     # ----------------------------------------------------------
     def mousePressEvent(self, event):
 
         # Memancarkan sinyal 'diklik' sambil membawa event_id kartu ini
-        # .emit() = "menekan tombol bel" dan mengirimkan data
-        #
-        # Siapapun yang sudah connect() ke sinyal ini akan menerima event_id
-        # Main_window.py yang akan membuka halaman detail
-        # Contoh di main_window.py: kartu.diklik.connect(self.buka_detail)
+        # main_window.py yang sudah connect() akan menerima event_id ini
+        # dan membuka halaman detail event yang diklik
         self.diklik.emit(self.event_id)
 
 
     # ----------------------------------------------------------
     # FUNGSI apply_style()
-    # Mengatur tampilan visual kartu menggunakan QSS (Qt Style Sheet)
-    # QSS = versi CSS yang dipakai PyQt5, sintaksnya sangat mirip CSS web
-    #
-    # Dipisah dari setup_ui() agar:
-    # - Perubahan desain tidak mengubah logika/struktur komponen
-    # - Kode lebih mudah dibaca
-    # - bisa mengubah warna/font tanpa menyentuh logika
+    # Mengatur tampilan visual menggunakan QSS (Qt Style Sheet)
+    # QSS sintaksnya mirip CSS web
     # ----------------------------------------------------------
     def apply_style(self):
 
-        # setStyleSheet() menerima string berisi aturan QSS
-        # Tanda """ """ untuk string multi-baris di Python
+        # setStyleSheet() menerima string QSS
+        # """ """ untuk string multi-baris di Python
         self.setStyleSheet("""
 
-            /* Gaya untuk widget kartu utama (seluruh area kartu) */
-            /* Ini seperti CSS untuk <div> kartu di HTML */
+            /* Kartu utama: sudut membulat, border tipis */
             QWidget#event_card {
-                background-color: white;   /* warna latar putih */
-                border-radius: 12px;       /* sudut membulat 12px */
-                border: 1px solid #e0e0e0; /* garis tepi abu-abu tipis */
+                background-color: white;
+                border-radius: 12px;
+                border: 1px solid #e0e0e0;
             }
 
-            /* Gaya saat mouse diarahkan ke atas kartu (hover effect) */
-            /* Memberikan feedback visual ke user bahwa kartu bisa diklik */
+            /* Saat mouse diarahkan ke kartu: border sedikit gelap */
             QWidget#event_card:hover {
-                border: 1px solid #a0a0a0; /* garis tepi sedikit lebih gelap */
+                border: 1px solid #a0a0a0;
             }
 
+            /* Area teks bawah gambar: transparan tanpa border */
+            QWidget#text_widget {
+                background: transparent;
+                border: none;
+            }
+
+            /* Semua QLabel: transparan tanpa border sebagai default */
             QLabel {
                 background: transparent;
                 border: none;
             }
 
-            /* Gaya khusus untuk label nama event */
-            /* QLabel#nama_label = targetkan QLabel dengan objectName "nama_label" */
-            /* Mirip seperti CSS: label#nama_label { } */
+            /* Nama event: warna hitam, font diatur via QFont di setup_ui */
             QLabel#nama_label {
-                font-size: 13px;        /* ukuran font sedikit lebih besar */
-                font-weight: bold;      /* teks tebal */
-                color: #1a1a1a;         /* warna hampir hitam */
-                border: none;           /* hapus border warisan dari QWidget di atas */
+                color: #1a1a1a;
+                border: none;
+                background: transparent;
             }
 
-            /* Gaya untuk label deskripsi singkat */
+            /* Deskripsi: warna abu-abu, font diatur via QFont di setup_ui */
             QLabel#deskripsi_label {
-                font-size: 11px;        /* font lebih kecil dari nama */
-                color: #666666;         /* warna abu-abu untuk teks sekunder */
+                color: #666666;
                 border: none;
+                background: transparent;
             }
 
-            /* Gaya untuk badge jenis event (Internal/External) */
+            /* Badge Internal/External */
+            /* Warna abu #828282 sesuai Figma, teks putih */
+            /* Font diatur via QFont di setup_ui */
             QLabel#badge_label {
-                font-size: 10px;           /* font kecil seperti badge/tag */
-                color: white;              /* teks putih di atas background biru */
-                background-color: #4a90d9; /* background biru */
-                border-radius: 4px;        /* sudut sedikit membulat seperti pill */
-                padding: 0px;              /* tidak ada padding agar ukuran konsisten */
+                color: white;
+                background-color: #828282;
+                border-radius: 4px;
                 border: none;
+                padding: 0px 4px;
             }
         """)
