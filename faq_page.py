@@ -38,6 +38,8 @@ class FAQAccordionItem(QWidget):
         # 2. Komponen Jawaban (Menggunakan QLabel)
         self.lbl_answer = QLabel(answer)
         self.lbl_answer.setWordWrap(True)
+        self.lbl_answer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.lbl_answer.setMinimumHeight(self.lbl_answer.sizeHint().height())
         self.lbl_answer.setStyleSheet("""
             background: transparent;
             font-size: 15px;
