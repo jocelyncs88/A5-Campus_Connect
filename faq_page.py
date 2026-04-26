@@ -2,6 +2,72 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
+class FAQAccordionItem(QWidget):
+    def __init__(self, question, answer):
+        super().__init__()
+        
+        # Buat Layout Vertikal untuk satu pasang Q & A
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        # 1. Komponen Pertanyaan (Menggunakan QPushButton agar bisa diklik)
+        # Kita tambahkan simbol ▼ sebagai indikator visual
+        self.btn_question = QPushButton(f"▼  {question}")
+        self.btn_question.setCursor(Qt.PointingHandCursor)
+        
+        # Styling tombol agar terlihat seperti teks biasa (rata kiri)
+        self.btn_question.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                font-size: 20px;
+                font-weight: bold;
+                color: #516465;
+                text-align: left;
+                border: none;
+                padding: 5px 0px;
+            }
+            QPushButton:hover {
+                color: #F7CBCA; /* Warna pink saat di-hover */
+            }
+        """)
+        
+        # Hubungkan aksi klik dengan fungsi toggle
+        self.btn_question.clicked.connect(self.toggle_answer)
+
+        # 2. Komponen Jawaban (Menggunakan QLabel)
+        self.lbl_answer = QLabel(answer)
+        self.lbl_answer.setWordWrap(True)
+        self.lbl_answer.setStyleSheet("""
+            background: transparent;
+            font-size: 15px;
+            color: #667777;
+            padding-left: 28px; /* Diberi jarak agar sejajar dengan teks, bukan panah */
+            padding-bottom: 10px;
+        """)
+        
+        # KUNCI ACCORDION: Sembunyikan jawaban secara default
+        self.lbl_answer.setVisible(False)
+
+        # Masukkan ke layout
+        layout.addWidget(self.btn_question)
+        layout.addWidget(self.lbl_answer)
+
+    def toggle_answer(self):
+        """Fungsi untuk memunculkan/menyembunyikan jawaban saat tombol diklik"""
+        # Cek status saat ini (apakah sedang terlihat?)
+        is_visible = self.lbl_answer.isVisible()
+        
+        # Ubah status visibilitas ke kebalikannya (True jadi False, False jadi True)
+        self.lbl_answer.setVisible(not is_visible)
+        
+        # Animasi UX sederhana: Ubah arah panah
+        if is_visible:
+            # Jika sebelumnya terlihat, berarti sekarang disembunyikan -> panah ke bawah
+            self.btn_question.setText(self.btn_question.text().replace("▲", "▼"))
+        else:
+            # Jika sebelumnya sembunyi, berarti sekarang dimunculkan -> panah ke atas
+            self.btn_question.setText(self.btn_question.text().replace("▼", "▲"))
 
 class FAQPage(QWidget):
     def __init__(self):
@@ -103,36 +169,8 @@ class FAQPage(QWidget):
         layout.addWidget(footer)
 
     def create_item(self, question, answer):
-        box = QWidget()
-        box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-
-        vbox = QVBoxLayout(box)
-        vbox.setContentsMargins(0, 0, 0, 0)
-        vbox.setSpacing(8)
-
-        q = QLabel(question)
-        q.setWordWrap(True)
-        q.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        q.setStyleSheet("""
-            background: transparent;
-            font-size: 20px;
-            font-weight: bold;
-            color: #516465;
-        """)
-
-        a = QLabel(answer)
-        a.setWordWrap(True)
-        a.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        a.setStyleSheet("""
-            background: transparent;
-            font-size: 15px;
-            color: #667777;
-        """)
-
-        vbox.addWidget(q)
-        vbox.addWidget(a)
-
-        return box
+        item_widget = FAQAccordionItem(question, answer)
+        return item_widget
 
 
 # TEST
