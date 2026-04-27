@@ -3,3 +3,5 @@ __pycache__/
 .venv/
 venv/
 kampus_connect.db
+database.db
+assets/cache_images/

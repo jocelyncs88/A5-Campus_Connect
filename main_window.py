@@ -83,6 +83,54 @@ class MainWindow(QMainWindow):
         
         self.layout_utama.addStretch() # Mendorong semua ke atas
 
+    def _register_wheel_forwarding(self, widget):
+        widget.installEventFilter(self)
+        for child in widget.findChildren(QWidget):
+            child.installEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if hasattr(self, "scroll") and event.type() == QEvent.Wheel:
+            sources = {
+                self.scroll,
+                self.scroll.viewport(),
+                self.scroll_content,
+            }
+            if watched in sources or self.scroll_content.isAncestorOf(watched):
+                hbar = self.scroll.horizontalScrollBar()
+                if hbar.maximum() <= 0:
+                    return super().eventFilter(watched, event)
+
+                pixel_delta = event.pixelDelta()
+                angle_delta = event.angleDelta()
+                modifiers = event.modifiers()
+
+                step_size = max(hbar.singleStep(), 40)
+                move_by = 0
+
+                if not pixel_delta.isNull():
+                    if pixel_delta.x() != 0:
+                        move_by = -pixel_delta.x()
+                    else:
+                        move_by = -pixel_delta.y()
+                elif not angle_delta.isNull():
+                    if angle_delta.x() != 0:
+                        steps = angle_delta.x() / 120
+                        move_by = int(-steps * step_size)
+                    else:
+                        steps = angle_delta.y() / 120
+                        # Shift + wheel juga dipetakan ke horizontal, seperti pola umum desktop.
+                        if modifiers & Qt.ShiftModifier:
+                            move_by = int(-steps * step_size)
+                        else:
+                            move_by = int(-steps * step_size)
+
+                if move_by:
+                    hbar.setValue(hbar.value() + move_by)
+                    event.accept()
+                    return True
+
+        return super().eventFilter(watched, event)
+
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
         navbar_container = QWidget()
@@ -187,14 +235,23 @@ class MainWindow(QMainWindow):
         self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         
         self.scroll.setWidget(self.scroll_content)
+        self.scroll.installEventFilter(self)
+        self.scroll.viewport().installEventFilter(self)
+        self.scroll_content.installEventFilter(self)
         self.layout_utama.addWidget(self.scroll)
 
     def render_event_cards(self, data):
         """Membuat dan menampilkan objek kartu berdasarkan list data"""
         for e in data:
             card = EventCard(e)
+<<<<<<< HEAD
             card.setCursor(Qt.PointingHandCursor) # Mouse tangan 
             card.diklik.connect(self.handle_card_click) # Menghubungkan signal klik
+=======
+            card.setCursor(Qt.PointingHandCursor) # Mouse tangan untuk kartu
+            card.diklik.connect(self.handle_card_click) 
+            self._register_wheel_forwarding(card)
+>>>>>>> main
             
             # Membaca gambar poster dari folder local
             path_poster = e.get("gambar_poster", "")
