@@ -1,12 +1,14 @@
 import sys
 import os
 import hashlib
+import sqlite3
 from urllib.parse import urlparse
 
 from PyQt5.QtWidgets import QApplication
 import requests
 
 import db_manager
+import scraper
 import main_window
 from main_window import MainWindow
 
@@ -114,11 +116,46 @@ def _load_ui_events_from_db():
     return events
 
 
+def _sync_scraped_events_to_db():
+    """Ambil data dari scraper, lalu refresh isi tabel events dengan data terbaru."""
+    hasil_scraping = scraper.ambil_event_polban(limit=100)
+    if not hasil_scraping:
+        return False
+
+    conn = sqlite3.connect(db_manager.DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM events")
+
+    for event in hasil_scraping:
+        cursor.execute("""
+        INSERT OR IGNORE INTO events
+        (event_id, nama_event, deskripsi_singkat, gambar_poster,
+         jenis_event, tanggal_waktu, source, kategori)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            event.get("event_id"),
+            event.get("nama_event"),
+            event.get("deskripsi_singkat"),
+            event.get("gambar_poster"),
+            event.get("jenis_event"),
+            event.get("tanggal_waktu"),
+            event.get("source"),
+            event.get("kategori"),
+        ))
+
+    conn.commit()
+    conn.close()
+    return True
+
+
 def main():
     """Entry point aplikasi: init DB, siapkan data UI, lalu jalankan PyQt app."""
     # Ensure local database and table exist before UI is shown.
     db_manager.init_db()
 
+     # Jalankan scraping saat aplikasi dimulai agar data yang tampil selalu diperbarui.
+    _sync_scraped_events_to_db()
+    
     # Muat data event dari DB untuk ditampilkan di homepage.
     db_events = _load_ui_events_from_db()
     if db_events:
