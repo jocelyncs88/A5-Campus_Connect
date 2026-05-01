@@ -1,8 +1,9 @@
 # ==============================================================
 # FILE: menu_widget.py
-# TUGAS: Membuat komponen dropdown menu yang muncul
-#        saat tombol hamburger (≡) diklik
-# DIBUAT OLEH: UI/UX Component Builder (Tania)
+# TUGAS: Membuat komponen sidebar untuk halaman Settings
+#        berisi menu navigasi: Account, Your Events,
+#        Notifications, Appearance, dan Language
+# DIBUAT OLEH: UI/UX Component Builder
 # ==============================================================
 
 
@@ -15,39 +16,49 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton
 # Qt         = berisi konstanta seperti Qt.LeftToRight
 from PyQt5.QtCore import pyqtSignal, Qt
 
-# QFont = class untuk mengatur jenis, ukuran, dan ketebalan font
+# QFont = class untuk mengatur jenis dan ukuran font
 from PyQt5.QtGui import QFont
 
 
 # ==============================================================
-# CLASS DropdownMenu
-# Mewarisi QWidget artinya DropdownMenu ADALAH komponen UI
-# Komponen ini muncul/sembunyi saat tombol hamburger diklik
+# CLASS SettingsSidebar
+# Mewarisi QWidget artinya SettingsSidebar ADALAH komponen UI
+# Komponen ini tampil di sisi kiri halaman Settings
+# Berisi tombol navigasi untuk berpindah antar sub-halaman
 # ==============================================================
-class DropdownMenu(QWidget):
+class SettingsSidebar(QWidget):
 
     # ----------------------------------------------------------
     # DEKLARASI SINYAL
-    # Masing-masing menu punya sinyal tersendiri
-    # Saat tombol diklik, sinyal dipancarkan ke main_window.py
+    # Setiap tombol menu punya sinyal tersendiri
+    # Saat tombol diklik, sinyal dipancarkan ke halaman Settings
+    # di main_window.py agar konten kanan bisa berubah
     # ----------------------------------------------------------
 
-    # Sinyal saat "Add event" diklik
-    # main_window.py akan menerima sinyal ini dan membuka halaman Add Event
-    add_event_diklik = pyqtSignal()
+    # Sinyal saat tombol "Account" diklik
+    # main_window.py akan menampilkan konten Account Settings
+    account_diklik = pyqtSignal()
 
-    # Sinyal saat "FAQ" diklik
-    # main_window.py akan menerima sinyal ini dan membuka halaman FAQ
-    faq_diklik = pyqtSignal()
+    # Sinyal saat tombol "Your Events" diklik
+    # main_window.py akan menampilkan daftar event milik user
+    your_events_diklik = pyqtSignal()
 
-    # Sinyal saat "Setting" diklik
-    # main_window.py akan menerima sinyal ini dan membuka halaman Setting
-    settings_diklik = pyqtSignal()
+    # Sinyal saat tombol "Notifications" diklik
+    # main_window.py akan menampilkan pengaturan notifikasi
+    notifications_diklik = pyqtSignal()
+
+    # Sinyal saat tombol "Appearance" diklik
+    # main_window.py akan menampilkan pengaturan tampilan
+    appearance_diklik = pyqtSignal()
+
+    # Sinyal saat tombol "Language" diklik
+    # main_window.py akan menampilkan pengaturan bahasa
+    language_diklik = pyqtSignal()
 
 
     # ----------------------------------------------------------
     # FUNGSI __init__ (Konstruktor)
-    # Dipanggil OTOMATIS saat objek DropdownMenu pertama kali dibuat
+    # Dipanggil OTOMATIS saat objek SettingsSidebar dibuat
     #
     # Parameter:
     #   parent = komponen induk (default None = berdiri sendiri)
@@ -58,25 +69,19 @@ class DropdownMenu(QWidget):
         # Menginisialisasi semua fitur bawaan QWidget ke objek ini
         super().__init__(parent)
 
-        # Memberi nama objek "dropdown_menu" agar bisa ditarget QSS
-        # Mirip seperti id="dropdown_menu" di HTML
-        self.setObjectName("dropdown_menu")
+        # Memberi nama objek "settings_sidebar" agar bisa ditarget QSS
+        self.setObjectName("settings_sidebar")
 
-        # Menyembunyikan menu saat pertama kali dibuat
-        # Menu hanya akan muncul saat tombol hamburger diklik
-        # Dipanggil lewat fungsi tampilkan() dari main_window.py
-        self.hide()
-
-        # Memanggil fungsi untuk membangun tampilan menu
+        # Memanggil fungsi untuk membangun semua tombol sidebar
         self.setup_ui()
 
-        # Memanggil fungsi untuk mengatur gaya visual menu
+        # Memanggil fungsi untuk mengatur gaya visual sidebar
         self.apply_style()
 
 
     # ----------------------------------------------------------
     # FUNGSI setup_ui()
-    # Membangun 3 tombol menu: Add event, FAQ, Setting
+    # Membangun 5 tombol navigasi sidebar Settings
     # Dipanggil sekali saat objek pertama kali dibuat
     # ----------------------------------------------------------
     def setup_ui(self):
@@ -84,161 +89,196 @@ class DropdownMenu(QWidget):
         # Layout vertikal agar tombol tersusun dari atas ke bawah
         layout = QVBoxLayout()
 
-        # Tidak ada jarak antar tombol agar terlihat menyatu
-        layout.setSpacing(0)
+        # Jarak 4 piksel antar tombol agar tidak terlalu rapat
+        layout.setSpacing(4)
 
-        # Margin dalam dropdown: atas-bawah 8px, kiri-kanan 4px
-        # Memberi sedikit napas di dalam kotak menu
-        layout.setContentsMargins(4, 8, 4, 8)
+        # Margin dalam sidebar: atas-bawah 16px, kiri-kanan 8px
+        # Memberi napas agar tombol tidak mepet ke tepi sidebar
+        layout.setContentsMargins(8, 16, 8, 16)
 
 
-        # ---- TOMBOL ADD EVENT ----
+        # ---- TOMBOL ACCOUNT ----
 
-        # Membuat tombol dengan icon kalender + teks "Add event"
+        # Membuat tombol dengan icon orang + teks "Account"
         # Icon menggunakan unicode emoji sesuai mockup Figma
-        self.btn_add_event = QPushButton("  🗓  Add event")
+        self.btn_account = QPushButton("  🙍  Account")
 
-        # Memberi nama objek untuk ditarget QSS di apply_style()
-        self.btn_add_event.setObjectName("menu_button")
+        # "sidebar_button" = style tombol normal (belum dipilih)
+        self.btn_account.setObjectName("sidebar_button")
 
-        # Memastikan teks dan icon rata ke kiri sesuai mockup
-        self.btn_add_event.setLayoutDirection(Qt.LeftToRight)
-
-        # Menghubungkan sinyal clicked tombol ke sinyal add_event_diklik
-        # Saat tombol diklik → sinyal add_event_diklik dipancarkan
-        # main_window.py yang sudah connect() akan menerima sinyal ini
-        self.btn_add_event.clicked.connect(self.add_event_diklik.emit)
+        # Menghubungkan klik tombol ke sinyal account_diklik
+        # Saat diklik → sinyal dipancarkan → main_window merespons
+        self.btn_account.clicked.connect(self.account_diklik.emit)
 
         # Menambahkan tombol ke layout
-        layout.addWidget(self.btn_add_event)
+        layout.addWidget(self.btn_account)
 
 
-        # ---- TOMBOL FAQ ----
+        # ---- TOMBOL YOUR EVENTS ----
 
-        # Icon lingkaran tanda tanya sesuai mockup Figma
-        self.btn_faq = QPushButton("  ❓  FAQ")
+        # Icon kalender + teks "Your events" sesuai mockup Figma
+        self.btn_events = QPushButton("  🗓  Your events")
 
-        # Memberi nama objek untuk ditarget QSS
-        self.btn_faq.setObjectName("menu_button")
+        # Nama objek untuk QSS, sama dengan tombol lainnya
+        self.btn_events.setObjectName("sidebar_button")
 
-        # Teks rata kiri sesuai mockup
-        self.btn_faq.setLayoutDirection(Qt.LeftToRight)
+        # Menghubungkan klik ke sinyal your_events_diklik
+        self.btn_events.clicked.connect(self.your_events_diklik.emit)
 
-        # Menghubungkan klik tombol ke sinyal faq_diklik
-        self.btn_faq.clicked.connect(self.faq_diklik.emit)
-
-        # Menambahkan tombol ke layout
-        layout.addWidget(self.btn_faq)
+        layout.addWidget(self.btn_events)
 
 
-        # ---- TOMBOL SETTING ----
+        # ---- TOMBOL NOTIFICATIONS ----
 
-        # Icon gear/roda gigi sesuai mockup Figma
-        self.btn_settings = QPushButton("  ⚙  Setting")
+        # Icon lonceng + teks "Notifications" sesuai mockup Figma
+        self.btn_notif = QPushButton("  🔔  Notifications")
 
-        # Memberi nama objek untuk ditarget QSS
-        self.btn_settings.setObjectName("menu_button")
+        self.btn_notif.setObjectName("sidebar_button")
 
-        # Teks rata kiri sesuai mockup
-        self.btn_settings.setLayoutDirection(Qt.LeftToRight)
+        # Menghubungkan klik ke sinyal notifications_diklik
+        self.btn_notif.clicked.connect(self.notifications_diklik.emit)
 
-        # Menghubungkan klik tombol ke sinyal settings_diklik
-        self.btn_settings.clicked.connect(self.settings_diklik.emit)
-
-        # Menambahkan tombol ke layout
-        layout.addWidget(self.btn_settings)
+        layout.addWidget(self.btn_notif)
 
 
-        # Menerapkan layout yang sudah berisi 3 tombol ke widget ini
-        # Tanpa baris ini semua addWidget() di atas tidak akan tampil
+        # ---- TOMBOL APPEARANCE ----
+
+        # Icon palet + teks "Appearance" sesuai mockup Figma
+        self.btn_appearance = QPushButton("  🎨  Appearance")
+
+        self.btn_appearance.setObjectName("sidebar_button")
+
+        # Menghubungkan klik ke sinyal appearance_diklik
+        self.btn_appearance.clicked.connect(self.appearance_diklik.emit)
+
+        layout.addWidget(self.btn_appearance)
+
+
+        # ---- TOMBOL LANGUAGE ----
+
+        # Icon globe + teks "Language" sesuai mockup Figma
+        self.btn_language = QPushButton("  🌐  Language")
+
+        self.btn_language.setObjectName("sidebar_button")
+
+        # Menghubungkan klik ke sinyal language_diklik
+        self.btn_language.clicked.connect(self.language_diklik.emit)
+
+        layout.addWidget(self.btn_language)
+
+
+        # Mendorong semua tombol ke atas agar tidak tersebar
+        # addStretch() = mengisi sisa ruang kosong di bawah tombol
+        # dengan ruang kosong elastis agar tombol selalu rapi di atas 
+        # meskipun jendela diperbesar
+        layout.addStretch()
+
+        # Menerapkan layout yang sudah berisi semua tombol
         self.setLayout(layout)
 
-        # Mengunci lebar dropdown agar konsisten sesuai proporsi mockup
-        self.setFixedWidth(150)
+        # Mengunci lebar sidebar menjadi 200 piksel
+        # Agar konsisten dengan mockup Figma
+        self.setFixedWidth(200)
 
 
     # ----------------------------------------------------------
-    # FUNGSI tampilkan()
-    # Dipanggil oleh main_window.py (temanmu)
-    # saat tombol hamburger (≡) diklik oleh user
+    # FUNGSI set_active()
+    # Mengubah tampilan tombol yang sedang aktif/dipilih
+    # Dipanggil dari main_window.py setiap kali tombol diklik
+    #
+    # Parameter:
+    #   button = objek tombol yang ingin ditandai sebagai aktif
+    #            contoh: self.sidebar.set_active(self.sidebar.btn_account)
     # ----------------------------------------------------------
-    def tampilkan(self):
+    def set_active(self, button):
 
-        # Menampilkan widget dropdown yang sebelumnya disembunyikan
-        self.show()
+        # Reset SEMUA tombol ke style normal dulu
+        # Agar hanya satu tombol yang aktif di satu waktu
+        for btn in [self.btn_account, self.btn_events,
+                    self.btn_notif, self.btn_appearance,
+                    self.btn_language]:
 
-        # Memastikan dropdown muncul di lapisan paling depan
-        # raise_() = angkat komponen ke atas semua komponen lain
-        # Tanpa ini dropdown bisa tertutup oleh komponen lain
-        self.raise_()
+            # Kembalikan nama objek ke "sidebar_button" (style normal)
+            btn.setObjectName("sidebar_button")
 
+            # unpolish() = hapus style lama yang sudah diterapkan
+            btn.style().unpolish(btn)
 
-    # ----------------------------------------------------------
-    # FUNGSI sembunyikan()
-    # Dipanggil oleh main_window.py
-    # saat user mengklik di luar area dropdown
-    # ----------------------------------------------------------
-    def sembunyikan(self):
+            # polish() = terapkan ulang style berdasarkan objectName baru
+            btn.style().polish(btn)
 
-        # Menyembunyikan kembali widget dropdown
-        # Widget tidak dihapus dari memori, hanya disembunyikan
-        # Sehingga bisa ditampilkan kembali kapanpun
-        self.hide()
+        # Ubah nama objek tombol yang dipilih menjadi "sidebar_button_active"
+        # Sehingga QSS menerapkan style aktif (background lebih gelap, teks tebal)
+        button.setObjectName("sidebar_button_active")
+
+        # Terapkan ulang style untuk tombol yang aktif
+        button.style().unpolish(button)
+        button.style().polish(button)
 
 
     # ----------------------------------------------------------
     # FUNGSI apply_style()
-    # Mengatur tampilan visual menggunakan QSS (Qt Style Sheet)
+    # Mengatur tampilan visual sidebar menggunakan QSS
     # Disesuaikan dengan mockup Figma
     # ----------------------------------------------------------
     def apply_style(self):
 
-        # Mengatur font Inter Regular ukuran 22 sesuai Figma
-        # QFont("Inter", 22) = nama font, ukuran dalam poin
-        font = QFont("Inter", 11)
+        # Mengatur font Inter Regular ukuran 14 untuk semua tombol
+        font = QFont("Inter", 14)
 
-        # QFont.Normal = Regular weight (bukan Bold atau Light)
-        # Sesuai Figma: weight Regular
+        # QFont.Normal = Regular weight sesuai mockup
         font.setWeight(QFont.Normal)
 
-        # Menerapkan font yang sama ke semua tombol menu
-        self.btn_add_event.setFont(font)
-        self.btn_faq.setFont(font)
-        self.btn_settings.setFont(font)
+        # Menerapkan font yang sama ke semua tombol sidebar
+        for btn in [self.btn_account, self.btn_events,
+                    self.btn_notif, self.btn_appearance,
+                    self.btn_language]:
+            btn.setFont(font)
 
         self.setStyleSheet("""
 
-            /* Kotak dropdown utama */
-            /* Background putih, sudut sangat membulat, TANPA border */
-            /* Sesuai mockup Figma */
-            QWidget#dropdown_menu {
+            /* Sidebar utama */
+            /* Background putih*/
+            /* border-radius besar agar sudut membulat */
+            QWidget#settings_sidebar {
                 background-color: #D2E6E5;
-                border-radius: 16px;
+                border-radius: 0px;
                 border: none;
             }
 
-            /* Tombol menu: background transparan, teks rata kiri */
-            /* Font diatur via QFont di atas, bukan di sini */
-            QPushButton#menu_button {
+            /* Tombol sidebar dalam kondisi normal (belum dipilih) */
+            /* Background transparan agar warna sidebar tembus */
+            QPushButton#sidebar_button {
                 background-color: transparent;
-                color: #1a1a1a;
+                color: #5D6B6B;
                 border: none;
-                padding: 12px 20px;
+                padding: 12px 16px;
                 text-align: left;
-                font-size: 11px;
-                border-radius: 12px;
-                line-height: 150%;
+                border-radius: 0px;
             }
 
             /* Efek saat mouse diarahkan ke tombol */
-            /* Sedikit menggelap sebagai feedback visual ke user */
-            QPushButton#menu_button:hover {
-                background-color: #eeeeee;
+            /* Sedikit menggelap sebagai feedback visual */
+            QPushButton#sidebar_button:hover {
+                background-color: #D2E6E5;
             }
 
             /* Efek saat tombol ditekan */
             /* Lebih gelap dari hover sebagai feedback klik */
-            QPushButton#menu_button:pressed {
-                background-color: #d0d0d0;
+            QPushButton#sidebar_button:pressed {
+                background-color: #a8c8c9;
+            }
+
+            /* Tombol yang sedang aktif/dipilih */
+            /* Background lebih gelap dan teks tebal */
+            /* untuk menandakan halaman yang sedang dibuka */
+            QPushButton#sidebar_button_active {
+                background-color: #BDD7D8;
+                color: #3a5555;
+                font-weight: bold;
+                border: none;
+                padding: 12px 16px;
+                text-align: left;
+                border-radius: 10px;
             }
         """)
