@@ -5,6 +5,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from about_page import AboutPage
 from faq_page import FAQPage  # ← TAMBAHAN
+from add_event_page import AddEventPage # ← TAMBAHAN
+from success_page import SuccessPage # ← TAMBAHAN
 
 # Import class EventCard dari file card_widget.py
 # Pastikan file card_widget.py ada di folder yang sama
@@ -51,7 +53,7 @@ class MainWindow(QMainWindow):
         self.font_sans = QFontDatabase.applicationFontFamilies(id_sans)[0] if id_sans != -1 else "sans-serif"
 
         self.setWindowTitle("Campus Connect - Homepage")
-        self.resize(1200, 750)
+        self.resize(1280, 900)
         
         # Background Canvas Gradient
         self.central_widget = QWidget()
@@ -78,6 +80,8 @@ class MainWindow(QMainWindow):
         # Page references — dibuat lazy (None dulu, baru dibuat saat pertama dibuka)
         self.about_page = None
         self.faq_page = None  # ← TAMBAHAN
+        self.add_event_page = None  # ← TAMBAHAN
+        self.success_page = None  # ← TAMBAHAN
 
     def _register_wheel_forwarding(self, widget):
         widget.installEventFilter(self)
@@ -135,11 +139,16 @@ class MainWindow(QMainWindow):
             self.about_page.hide()
         if self.faq_page:
             self.faq_page.hide()
+        if self.add_event_page:      
+            self.add_event_page.hide()
+        if self.success_page:        
+            self.success_page.hide()
 
     def init_header(self):
         navbar_container = QWidget()
         navbar_container.setStyleSheet(f"background-color: {COLOR_GRAY_LIGHT}; border-radius: 40px;")
         navbar_layout = QHBoxLayout(navbar_container)
+        self.navbar_container = navbar_container 
         navbar_layout.setContentsMargins(25, 10, 25, 10)
 
         # Logo
@@ -280,24 +289,18 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Detail Event", f"Membuka detail untuk ID: {event_id}")
 
     def buka_form_input(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Add New Event")
-        dialog.setFixedSize(400, 300)
-        dialog.setStyleSheet(f"background-color: {COLOR_GRAY_LIGHT}; font-family: '{self.font_sans}';")
+        self._hide_all_pages()
+        self.navbar_container.hide()
         
-        layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel("<b>Nama Event:</b>"))
-        layout.addWidget(QLineEdit())
-        layout.addWidget(QLabel("<b>Deskripsi:</b>"))
-        layout.addWidget(QTextEdit())
-        
-        btn_save = QPushButton("Simpan Event")
-        btn_save.setCursor(Qt.PointingHandCursor)
-        btn_save.setStyleSheet("background-color: #ff99aa; color: white; padding: 8px; border-radius: 10px; font-weight: bold;")
-        btn_save.clicked.connect(dialog.accept)
-        layout.addWidget(btn_save)
-        
-        dialog.exec_()
+        if self.add_event_page is None:
+            self.add_event_page = AddEventPage()
+            self.add_event_page.event_dipublikasi.connect(self.on_event_dipublikasi)
+            self.add_event_page.dibatalkan.connect(self.show_home_page)
+            self.layout_utama.insertWidget(4, self.add_event_page)
+            # Membuat add_event_page mengisi seluruh ruang yang tersedia
+            self.layout_utama.setStretchFactor(self.add_event_page, 1)
+
+        self.add_event_page.show()
 
     def show_about_page(self):
         self._hide_all_pages()
@@ -318,8 +321,31 @@ class MainWindow(QMainWindow):
 
         self.faq_page.show()
 
+    # ↓ TAMBAHAN: method untuk buka add event page
+    def on_event_dipublikasi(self, data):
+        self._hide_all_pages()
+        self.layout_utama.setContentsMargins(60, 20, 60, 40)
+
+        if self.success_page is None:
+            self.success_page = SuccessPage()
+            self.success_page.lihat_event_diklik.connect(self.show_home_page)
+            self.success_page.buat_event_lain_diklik.connect(self.buka_form_input)
+            self.layout_utama.insertWidget(4, self.success_page)
+
+        self.success_page.set_data(data)
+        self.success_page.show()
+
+    # ↓ TAMBAHAN: method untuk buka success page setelah event dipublikasi
+    def show_success_page(self):
+        self._hide_all_pages()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+
+        if self.success_page:
+            self.success_page.show()
+
     def show_home_page(self):
         self._hide_all_pages()
+        self.navbar_container.show()
 
         # Munculkan kembali komponen home
         self.hero_widget.show()
