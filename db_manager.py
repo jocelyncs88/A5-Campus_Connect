@@ -65,15 +65,10 @@ def upsert_event(event):
 # GET ALL EVENTS
 # =========================
 def get_all_events():
-    # Buka koneksi untuk membaca semua event yang tersimpan.
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-
-    # Ambil semua event dan urutkan berdasarkan tanggal agar lebih mudah dibaca.
-    cursor.execute("SELECT * FROM events ORDER BY tanggal_waktu ASC")
+    cursor.execute("SELECT * FROM events ORDER BY id ASC")
     rows = cursor.fetchall()
-
-    # Tutup koneksi lalu kembalikan data.
     conn.close()
     return rows
 
