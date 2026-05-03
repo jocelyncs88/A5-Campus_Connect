@@ -244,14 +244,9 @@ class MainWindow(QMainWindow):
         """Membuat dan menampilkan objek kartu berdasarkan list data"""
         for e in data:
             card = EventCard(e)
-<<<<<<< HEAD
-            card.setCursor(Qt.PointingHandCursor) # Mouse tangan 
-            card.diklik.connect(self.handle_card_click) # Menghubungkan signal klik
-=======
             card.setCursor(Qt.PointingHandCursor) # Mouse tangan untuk kartu
             card.diklik.connect(self.handle_card_click) 
             self._register_wheel_forwarding(card)
->>>>>>> main
             
             # Membaca gambar poster dari folder local
             path_poster = e.get("gambar_poster", "")
