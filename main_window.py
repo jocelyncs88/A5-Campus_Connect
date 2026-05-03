@@ -7,6 +7,7 @@ from about_page import AboutPage
 from faq_page import FAQPage  # ← TAMBAHAN
 from add_event_page import AddEventPage # ← TAMBAHAN
 from success_page import SuccessPage # ← TAMBAHAN
+from crud_events import prepare_create, save_payload
 
 # Import class EventCard dari file card_widget.py
 # Pastikan file card_widget.py ada di folder yang sama
@@ -323,6 +324,25 @@ class MainWindow(QMainWindow):
 
     # ↓ TAMBAHAN: method untuk buka add event page
     def on_event_dipublikasi(self, data):
+        form_data = {
+            "nama_event": data.get("nama_event", ""),
+            "deskripsi_event": data.get("deskripsi_singkat", ""),
+            "jenis_event": data.get("jenis_event", ""),
+            "kategori_event": data.get("kategori", ""),
+            "tanggal": data.get("tanggal", ""),
+            "waktu": data.get("waktu", ""),
+            "poster_event": data.get("gambar_poster", ""),
+            "source": data.get("source", "manual"),
+        }
+
+        is_valid, errors, payload = prepare_create(form_data)
+        if not is_valid:
+            pesan_error = "\n".join(errors.values()) if errors else "Data event tidak valid."
+            QMessageBox.warning(self, "Event Gagal Dipublikasi", pesan_error)
+            return
+
+        save_payload(payload)
+
         self._hide_all_pages()
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
 
