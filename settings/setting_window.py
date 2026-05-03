@@ -1,9 +1,16 @@
 # ==============================================================
-# FILE: settings_window.py
+# FILE: setting_window.py
 # TUGAS: Mengelola tampilan halaman Settings Campus Connect
-# FITUR: Sidebar navigasi, Account Settings, dan panel konten
-#        dinamis yang menyesuaikan role user
+# FITUR: Sidebar navigasi dan panel konten dinamis per menu
 # DIBUAT OLEH: UI/UX Designer (fitur-Settings)
+#
+# STRUKTUR FILE:
+#   - SettingsWindow     : jendela utama (topbar + sidebar + stacked)
+#   - Panel Account      : didelegasikan ke settings/account_window.py
+#   - Panel Your Events  : buat_panel_your_events()
+#   - Panel Notifications: buat_panel_notif()
+#   - Panel Appearance   : buat_panel_appearance()
+#   - Panel Language     : buat_panel_language()
 # ==============================================================
 
 import sys
@@ -11,7 +18,9 @@ import os
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-
+from toggle_widget import ToggleSwitch
+from setting_item_widget import SettingItem
+from account_window import AccountPanel  
 
 # ==============================================================
 # KONSTANTA WARNA
@@ -48,7 +57,7 @@ ROLE_UMUM      = "umum"
 #
 # Cara memanggilnya dari main_window.py:
 #   from settings_window import SettingsWindow
-#   win = SettingsWindow(user_role=ROLE_ORGANIZER, parent=self)
+#   win = SettingsWindow(user_data=user_data, parent=self)
 #   win.exec_()
 # ==============================================================
 class SettingsWindow(QDialog):
@@ -64,7 +73,8 @@ class SettingsWindow(QDialog):
     #                   "bio": "Music Festival",
     #                   "email": "eventorganizer@gmail.com",
     #                   "kontak": "+6281-3456-7898",
-    #                   "role": "organizer"
+    #                   "role": "organizer",
+    #                   "inisial": "EO"
     #                }
     #   parent     = komponen induk (biasanya MainWindow)
     # ----------------------------------------------------------
@@ -73,23 +83,20 @@ class SettingsWindow(QDialog):
 
         # Menyimpan data user sebagai atribut agar bisa diakses
         # oleh semua fungsi di dalam class ini
-        # Jika tidak ada data yang dikirim, gunakan data dummy sebagai fallback
+        # Jika tidak ada data yang dikirim, gunakan data kosong sebagai fallback
+        # (menandakan user belum login)
         self.user_data = user_data or {
-            "nama"   : "Event Organizer",
-            "bio"    : "Music Festival",
-            "email"  : "eventorganizer@gmail.com",
-            "kontak" : "+6281-3456-7898",
-            "role"   : ROLE_ORGANIZER,
-            "inisial": "EO"
+            "nama"   : "",
+            "bio"    : "",
+            "email"  : "",
+            "kontak" : "",
+            "role"   : ROLE_UMUM,
+            "inisial": ""
         }
 
         # Mengambil nilai role dari user_data untuk keperluan logika
         # tampilan menu yang berbeda-beda sesuai role
         self.role = self.user_data.get("role", ROLE_UMUM)
-
-        # Menyimpan referensi ke panel konten yang sedang aktif
-        # Digunakan oleh fungsi switch_panel() untuk mengganti konten
-        self.panel_aktif = None
 
         # Setup dasar jendela dialog
         self.setWindowTitle("Settings - Campus Connect")
@@ -139,7 +146,7 @@ class SettingsWindow(QDialog):
     #   - Topbar (judul + tombol Home)
     #   - Body utama yang terbagi dua:
     #       kiri  = sidebar menu navigasi
-    #       kanan = area konten panel aktif
+    #       kanan = area konten panel aktif (QStackedWidget)
     # ----------------------------------------------------------
     def setup_ui(self):
 
@@ -153,8 +160,6 @@ class SettingsWindow(QDialog):
         root_layout.addWidget(topbar)
 
         # ---- BODY (Sidebar + Konten) ----
-        # QSplitter memungkinkan lebar sidebar bisa digeser oleh user
-        # Sidebar → kiri, Panel konten → kanan
         body = QWidget()
         body_layout = QHBoxLayout(body)
         body_layout.setContentsMargins(0, 0, 0, 0)
@@ -171,11 +176,17 @@ class SettingsWindow(QDialog):
 
         # Membuat semua panel dan memasukkannya ke stacked_widget
         # urutan index: 0=Account, 1=YourEvents, 2=Notifications, 3=Appearance, 4=Language
-        self.panel_account      = self.buat_panel_account()
-        self.panel_your_events  = self.buat_panel_your_events()
-        self.panel_notif        = self.buat_panel_notif()
-        self.panel_appearance   = self.buat_panel_appearance()
-        self.panel_language     = self.buat_panel_language()
+        #
+        # Panel Account didelegasikan ke AccountPanel (settings/account_window.py)
+        # agar kode tidak duplikat dan lebih mudah di-maintain per file
+        self.panel_account     = AccountPanel(
+            user_data=self.user_data,
+            stacked_widget=self.stacked_widget
+        )
+        self.panel_your_events = self.buat_panel_your_events()
+        self.panel_notif       = self.buat_panel_notif()
+        self.panel_appearance  = self.buat_panel_appearance()
+        self.panel_language    = self.buat_panel_language()
 
         self.stacked_widget.addWidget(self.panel_account)     # index 0
         self.stacked_widget.addWidget(self.panel_your_events) # index 1
@@ -217,7 +228,9 @@ class SettingsWindow(QDialog):
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         # Tombol Home — menutup jendela settings dan kembali ke homepage
-        btn_home = QPushButton("🏠 Home")
+        btn_home = QPushButton("  Home")
+        btn_home.setIcon(QIcon("assets/home.png"))
+        btn_home.setIconSize(QSize(16, 16))
         btn_home.setCursor(Qt.PointingHandCursor)
         btn_home.setStyleSheet(f"""
             QPushButton {{
@@ -232,11 +245,11 @@ class SettingsWindow(QDialog):
                 font-weight: bold;
             }}
         """)
-        btn_home.clicked.connect(self.close)  # Menutup dialog saat diklik
+        btn_home.clicked.connect(self.close)
 
         # Avatar lingkaran berisi inisial nama user
-        inisial = self.user_data.get("inisial", "??")
-        avatar = QLabel(inisial)
+        inisial = self.user_data.get("inisial", "")
+        avatar = QLabel(inisial if inisial else "")
         avatar.setFixedSize(36, 36)
         avatar.setAlignment(Qt.AlignCenter)
         avatar.setStyleSheet(f"""
@@ -262,13 +275,6 @@ class SettingsWindow(QDialog):
     # FUNGSI buat_sidebar()
     # Membangun panel navigasi kiri berisi daftar menu settings
     #
-    # Daftar menu dan ikonnya:
-    #   Account       → ikon orang
-    #   Your Events   → ikon kalender (tampilan tergantung role)
-    #   Notifications → ikon lonceng (tampilan tergantung role)
-    #   Appearance    → ikon palet
-    #   Language      → ikon teks A
-    #
     # Return: QWidget siap pakai
     # ----------------------------------------------------------
     def buat_sidebar(self):
@@ -280,7 +286,7 @@ class SettingsWindow(QDialog):
         layout.setContentsMargins(0, 20, 0, 20)
         layout.setSpacing(4)
 
-        # Definisi menu: (label teks, index panel di stacked_widget, unicode icon)
+        # Definisi menu: (label teks, index panel di stacked_widget, nama file icon)
         menus = [
             ("Account",       0, "profile"),
             ("Your events",   1, "event"),
@@ -293,8 +299,8 @@ class SettingsWindow(QDialog):
         self.sidebar_buttons = []
 
         for label, index, icon_file in menus:
-            btn = QPushButton(f"  {label}")   # ← hapus {icon} dari teks
-            btn.setIcon(QIcon(f"assets/{icon_file}.png"))   # ← tambahkan icon gambar
+            btn = QPushButton(f"  {label}")
+            btn.setIcon(QIcon(f"assets/{icon_file}.png"))
             btn.setIconSize(QSize(18, 18))
             btn.setCursor(Qt.PointingHandCursor)
             btn.setCheckable(True)
@@ -305,7 +311,7 @@ class SettingsWindow(QDialog):
             layout.addWidget(btn)
             self.sidebar_buttons.append(btn)
 
-        layout.addStretch()  # Mendorong semua tombol ke atas
+        layout.addStretch()
 
         # Aktifkan tombol pertama (Account) sebagai default
         self.sidebar_buttons[0].setChecked(True)
@@ -317,11 +323,10 @@ class SettingsWindow(QDialog):
     # ----------------------------------------------------------
     # FUNGSI _style_sidebar_btn()
     # Mengembalikan string QSS untuk tombol sidebar
-    # Dipisah agar mudah diubah tanpa menyentuh logika
     #
     # Parameter:
-    #   aktif = True  → tampilkan style tombol yang sedang dipilih
-    #   aktif = False → tampilkan style tombol normal
+    #   aktif = True  → style tombol yang sedang dipilih
+    #   aktif = False → style tombol normal
     # ----------------------------------------------------------
     def _style_sidebar_btn(self, aktif=False):
         if aktif:
@@ -365,10 +370,8 @@ class SettingsWindow(QDialog):
     #   index = index panel di stacked_widget (0–4)
     # ----------------------------------------------------------
     def switch_panel(self, index):
-        # Ganti panel yang tampil
         self.stacked_widget.setCurrentIndex(index)
 
-        # Reset style semua tombol ke kondisi tidak aktif
         for i, btn in enumerate(self.sidebar_buttons):
             aktif = (i == index)
             btn.setChecked(aktif)
@@ -377,202 +380,9 @@ class SettingsWindow(QDialog):
 
     # ==========================================================
     # ---- PANEL-PANEL KONTEN ----
-    # Setiap fungsi di bawah membangun satu panel untuk satu menu
-    # Semua panel dimasukkan ke self.stacked_widget di setup_ui()
+    # Panel Account → didelegasikan ke AccountPanel (account_window.py)
+    # Panel lainnya → dibangun di bawah ini
     # ==========================================================
-
-
-    # ----------------------------------------------------------
-    # FUNGSI buat_panel_account()
-    # Membangun panel "Account Settings" yang berisi:
-    #   - Judul halaman
-    #   - Sub-judul "Basic info"
-    #   - Baris profile picture (dengan avatar + tombol Upload/Remove)
-    #   - Baris-baris info: Name, Bio, Email, Contact
-    #
-    # Tampilan panel ini SAMA untuk semua role user
-    # ----------------------------------------------------------
-    def buat_panel_account(self):
-        panel = QWidget()
-        panel.setStyleSheet("background: transparent;")
-
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(50, 40, 50, 40)
-        layout.setSpacing(0)
-
-        # ---- Judul halaman ----
-        lbl_judul = QLabel("Account Settings")
-        lbl_judul.setStyleSheet(f"""
-            font-size: 28px;
-            font-weight: bold;
-            color: {COLOR_TEXT_PRIMARY};
-            margin-bottom: 24px;
-        """)
-        layout.addWidget(lbl_judul)
-        layout.addSpacing(20)
-
-        # ---- Sub-judul "Basic info" ----
-        lbl_basic = QLabel("Basic info")
-        lbl_basic.setStyleSheet(f"""
-            font-size: 16px;
-            font-weight: bold;
-            color: {COLOR_TEXT_PRIMARY};
-            margin-bottom: 12px;
-        """)
-        layout.addWidget(lbl_basic)
-        layout.addSpacing(10)
-
-        # ---- Garis pembatas atas ----
-        layout.addWidget(self._buat_divider())
-
-        # ---- Baris Profile Picture ----
-        baris_foto = self._buat_baris_foto()
-        layout.addWidget(baris_foto)
-        layout.addWidget(self._buat_divider())
-
-        # ---- Baris-baris info dari dictionary user_data ----
-        # Setiap baris berisi: label kiri (nama field) + nilai + panah (>)
-        fields = [
-            ("Name",    self.user_data.get("nama",   "")),
-            ("Bio",     self.user_data.get("bio",    "")),
-            ("Email",   self.user_data.get("email",  "")),
-            ("Contact", self.user_data.get("kontak", "")),
-        ]
-
-        for field_label, field_value in fields:
-            baris = self._buat_baris_info(field_label, field_value)
-            layout.addWidget(baris)
-            layout.addWidget(self._buat_divider())
-
-        layout.addStretch()  # Mendorong semua konten ke atas
-
-        return panel
-
-
-    # ----------------------------------------------------------
-    # FUNGSI _buat_baris_foto()
-    # Membangun baris khusus untuk menampilkan dan mengubah foto profil
-    # Isi baris (dari kiri ke kanan):
-    #   - Teks "Profile picture" di kiri (warna muted)
-    #   - Avatar lingkaran dengan inisial di tengah-kanan
-    #   - Teks "Upload new picture" + "Remove" di kanan
-    #
-    # Return: QWidget baris siap pakai
-    # ----------------------------------------------------------
-    def _buat_baris_foto(self):
-        baris = QWidget()
-        baris.setStyleSheet("background: transparent;")
-        baris.setFixedHeight(80)
-
-        layout = QHBoxLayout(baris)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        # Label nama field di kiri
-        lbl_field = QLabel("Profile picture")
-        lbl_field.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
-        lbl_field.setFixedWidth(220)
-
-        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        # Avatar lingkaran berisi inisial (sama seperti di topbar)
-        inisial = self.user_data.get("inisial", "??")
-        avatar = QLabel(inisial)
-        avatar.setFixedSize(48, 48)
-        avatar.setAlignment(Qt.AlignCenter)
-        avatar.setStyleSheet(f"""
-            background-color: {COLOR_TEAL_DARK};
-            color: white;
-            font-weight: bold;
-            font-size: 16px;
-            border-radius: 24px;
-        """)
-
-        # Kolom kanan: tombol Upload dan Remove
-        action_col = QWidget()
-        action_col.setStyleSheet("background: transparent;")
-        action_layout = QVBoxLayout(action_col)
-        action_layout.setContentsMargins(12, 0, 0, 0)
-        action_layout.setSpacing(2)
-
-        btn_upload = QLabel("Upload new picture")
-        btn_upload.setCursor(Qt.PointingHandCursor)
-        btn_upload.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; font-size: 12px;")
-
-        btn_remove = QLabel("Remove")
-        btn_remove.setCursor(Qt.PointingHandCursor)
-        btn_remove.setStyleSheet("color: #E05C5C; font-size: 12px;")  # Merah untuk aksi berbahaya
-
-        action_layout.addWidget(btn_upload)
-        action_layout.addWidget(btn_remove)
-
-        layout.addWidget(lbl_field)
-        layout.addSpacerItem(spacer)
-        layout.addWidget(avatar)
-        layout.addWidget(action_col)
-
-        return baris
-
-
-    # ----------------------------------------------------------
-    # FUNGSI _buat_baris_info()
-    # Template untuk membuat satu baris info yang bisa diklik
-    # Isi baris (dari kiri ke kanan):
-    #   - Nama field di kiri (warna muted)
-    #   - Nilai field di kanan
-    #   - Panah (>) sebagai petunjuk bisa diklik untuk edit
-    #
-    # Parameter:
-    #   field_label = nama field, contoh: "Name", "Email"
-    #   field_value = nilai saat ini, contoh: "Event Organizer"
-    #
-    # Return: QWidget baris siap pakai
-    # ----------------------------------------------------------
-    def _buat_baris_info(self, field_label, field_value):
-        baris = QWidget()
-        baris.setStyleSheet("background: transparent;")
-        baris.setFixedHeight(56)
-        baris.setCursor(Qt.PointingHandCursor)
-
-        layout = QHBoxLayout(baris)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        # Nama field di kiri
-        lbl_field = QLabel(field_label)
-        lbl_field.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
-        lbl_field.setFixedWidth(220)
-
-        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        # Nilai field di kanan (teks gelap)
-        lbl_value = QLabel(field_value)
-        lbl_value.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; font-size: 13px;")
-        lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-
-        # Panah ">" sebagai indikator visual bahwa baris ini bisa diklik
-        lbl_arrow = QLabel(">")
-        lbl_arrow.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; font-size: 14px; margin-left: 8px;")
-
-        layout.addWidget(lbl_field)
-        layout.addSpacerItem(spacer)
-        layout.addWidget(lbl_value)
-        layout.addWidget(lbl_arrow)
-
-        return baris
-
-
-    # ----------------------------------------------------------
-    # FUNGSI _buat_divider()
-    # Membuat garis tipis horizontal sebagai pemisah antar baris
-    # Agar tampilan lebih rapi dan terstruktur seperti settings iOS/Android
-    #
-    # Return: QFrame siap pakai
-    # ----------------------------------------------------------
-    def _buat_divider(self):
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setStyleSheet(f"color: {COLOR_DIVIDER}; background-color: {COLOR_DIVIDER};")
-        line.setFixedHeight(1)
-        return line
 
 
     # ----------------------------------------------------------
@@ -582,9 +392,6 @@ class SettingsWindow(QDialog):
     #   ROLE_ORGANIZER → daftar event yang pernah dibuat + tombol tambah event
     #   ROLE_MAHASISWA → daftar event yang pernah didaftarkan / di-RSVP
     #   ROLE_UMUM      → pesan bahwa fitur ini tidak tersedia + ajakan login
-    #
-    # CATATAN: Implementasi penuh (dengan data dari database) akan
-    # dikerjakan di sprint berikutnya. Saat ini ditampilkan placeholder.
     # ----------------------------------------------------------
     def buat_panel_your_events(self):
         panel = QWidget()
@@ -598,9 +405,7 @@ class SettingsWindow(QDialog):
         lbl_judul.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
         layout.addWidget(lbl_judul)
 
-        # Konten berbeda berdasarkan role user
         if self.role == ROLE_ORGANIZER:
-            # Event Organizer melihat event yang pernah mereka buat
             lbl_info = QLabel("Event yang pernah kamu buat akan muncul di sini.")
             lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
             layout.addWidget(lbl_info)
@@ -623,13 +428,11 @@ class SettingsWindow(QDialog):
             layout.addWidget(btn_tambah)
 
         elif self.role == ROLE_MAHASISWA:
-            # Mahasiswa melihat event yang pernah mereka daftarkan
             lbl_info = QLabel("Event yang pernah kamu ikuti akan muncul di sini.")
             lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
             layout.addWidget(lbl_info)
 
         else:
-            # User umum tidak punya akses ke fitur ini
             lbl_info = QLabel("Fitur ini hanya tersedia untuk pengguna terdaftar.\nSilakan login untuk mengakses riwayat event kamu.")
             lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
             lbl_info.setWordWrap(True)
@@ -646,9 +449,6 @@ class SettingsWindow(QDialog):
     #   ROLE_ORGANIZER → toggle notifikasi untuk pendaftar event mereka
     #   ROLE_MAHASISWA → toggle notifikasi untuk event yang diikuti
     #   ROLE_UMUM      → toggle notifikasi umum (terbatas)
-    #
-    # CATATAN: Implementasi penuh dengan toggle switch (QCheckBox /
-    # custom toggle) akan dikerjakan di sprint berikutnya.
     # ----------------------------------------------------------
     def buat_panel_notif(self):
         panel = QWidget()
@@ -662,7 +462,6 @@ class SettingsWindow(QDialog):
         lbl_judul.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
         layout.addWidget(lbl_judul)
 
-        # Deskripsi notifikasi berbeda per role
         if self.role == ROLE_ORGANIZER:
             deskripsi = "Atur kapan kamu ingin mendapat notifikasi tentang pendaftar event yang kamu buat."
         elif self.role == ROLE_MAHASISWA:
@@ -675,10 +474,13 @@ class SettingsWindow(QDialog):
         lbl_info.setWordWrap(True)
         layout.addWidget(lbl_info)
 
-        # Placeholder toggle (akan diganti QCheckBox bergaya custom nanti)
-        lbl_coming = QLabel("⚙️  Pengaturan notifikasi akan hadir di sprint berikutnya.")
-        lbl_coming.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 12px; font-style: italic;")
-        layout.addWidget(lbl_coming)
+        item = SettingItem(
+            judul="New registrant",
+            deskripsi="Get alerts every time a user registers",
+            nama_setting="notif_registrant",
+            default_on=True
+        )
+        layout.addWidget(item)
 
         layout.addStretch()
         return panel
@@ -688,10 +490,6 @@ class SettingsWindow(QDialog):
     # FUNGSI buat_panel_appearance()
     # Membangun panel "Appearance" berisi pengaturan tampilan
     # Tampilan panel ini SAMA untuk semua role user
-    #
-    # Rencana konten (sprint berikutnya):
-    #   - Pilihan tema: Light / Dark / System
-    #   - Ukuran font
     # ----------------------------------------------------------
     def buat_panel_appearance(self):
         panel = QWidget()
@@ -717,9 +515,6 @@ class SettingsWindow(QDialog):
     # FUNGSI buat_panel_language()
     # Membangun panel "Language" berisi pengaturan bahasa antarmuka
     # Tampilan panel ini SAMA untuk semua role user
-    #
-    # Rencana konten (sprint berikutnya):
-    #   - Pilihan bahasa: Bahasa Indonesia / English
     # ----------------------------------------------------------
     def buat_panel_language(self):
         panel = QWidget()
@@ -753,13 +548,14 @@ if __name__ == "__main__":
     app.setStyle("Fusion")
 
     # Data dummy untuk keperluan testing tampilan
+    # Kosongkan nilai untuk simulasi user belum login
     user_dummy = {
-        "nama"   : "Event Organizer",
-        "bio"    : "Music Festival",
-        "email"  : "eventorganizer@gmail.com",
-        "kontak" : "+6281-3456-7898",
-        "role"   : ROLE_ORGANIZER,   # Ganti ke ROLE_MAHASISWA atau ROLE_UMUM untuk test role lain
-        "inisial": "EO"
+        "nama"   : "",
+        "bio"    : "",
+        "email"  : "",
+        "kontak" : "",
+        "role"   : ROLE_UMUM,   # Ganti ke ROLE_ORGANIZER atau ROLE_MAHASISWA untuk test role lain
+        "inisial": ""
     }
 
     window = SettingsWindow(user_data=user_dummy)
