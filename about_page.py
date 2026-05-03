@@ -204,25 +204,24 @@ class AboutPage(QWidget):
             ("TR","Tania Putri Ramadhani"),
         ]
 
-        for i in range(0, len(members), 2):
-            r = QHBoxLayout()
-            r.setSpacing(12)
+        # QGridLayout dengan 2 kolom equal — semua card otomatis sama lebar
+        grid = QGridLayout()
+        grid.setSpacing(12)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
 
-            for m in members[i:i+2]:
-                r.addWidget(self.card(m[0], m[1]))
+        for idx, m in enumerate(members):
+            row_i = idx // 2
+            col_i = idx % 2
+            grid.addWidget(self.card(m[0], m[1]), row_i, col_i)
 
-            if len(members[i:i+2]) == 1:
-                r.addStretch()
-
-            layout.addLayout(r)
-            layout.addSpacing(10)
+        layout.addLayout(grid)
 
     # ===== MEMBER CARD =====
     def card(self, init, name):
         w = QWidget()
         w.setFixedHeight(56)
         w.setObjectName("memberCard")
-        # FIX: gunakan selector QWidget#memberCard agar tidak bocor ke child QLabel
         w.setStyleSheet("""
             QWidget#memberCard {
                 background: rgba(255,255,255,0.6);
