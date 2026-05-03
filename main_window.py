@@ -7,6 +7,9 @@
 
 import sys
 import os
+import scraper
+import db_manager
+from worker_thread import ScraperThread
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -93,6 +96,80 @@ class MainWindow(QMainWindow):
         self.faq_page = None  # ← TAMBAHAN
         self.add_event_page = None  # ← TAMBAHAN
         self.success_page = None  # ← TAMBAHAN
+        
+        # === FITUR AUTO UPDATE 15 MENIT ===
+        # QTimer sudah di-import melalui 'from PyQt5.QtCore import *'
+        self.timer_update = QTimer(self)
+        
+        # Hubungkan detak timer ke fungsi eksekutor
+        self.timer_update.timeout.connect(self.jalankan_auto_update)
+        
+        # Mulai timer: 15 menit = 15 * 60 detik * 1000 milidetik = 900000 ms
+        self.timer_update.start(900000)
+        
+    def jalankan_auto_update(self):
+        print("[AUTO UPDATE] Memulai sinkronisasi data di latar belakang...")
+        
+        # 1. Ambil data yang sudah ada di database untuk jadi acuan
+        data_db = db_manager.get_all_events()
+        existing_keys = { (row[2].strip().lower(), row[6].strip().lower()) for row in data_db }
+        
+        # 2. Bungkus fungsi scraper + parameternya menggunakan lambda
+        fungsi_scraper = lambda: scraper.ambil_event_polban(limit=100, existing_keys=existing_keys)
+        
+        # 3. Masukkan ke thread
+        self.thread_scraper = ScraperThread(fungsi_scraper)
+        self.thread_scraper.selesai.connect(self.on_auto_update_selesai)
+        self.thread_scraper.error.connect(lambda msg: print(f"[AUTO UPDATE ERROR] {msg}"))
+        self.thread_scraper.start()
+
+    def on_auto_update_selesai(self, hasil_scraping):
+        """Menerima data dari thread setelah scraping selesai."""
+        if not hasil_scraping:
+            print("[AUTO UPDATE] Tidak ada data baru yang ditemukan.")
+            return
+
+        print(f"[AUTO UPDATE] Berhasil menarik {len(hasil_scraping)} data. Memperbarui database...")
+        
+        # 1. Update Database (Menggunakan fungsi INSERT OR IGNORE dari db_manager)
+        for event in hasil_scraping:
+            db_manager.upsert_event(event)
+            
+        # 2. Refresh Tampilan UI Layar Utama
+        self.refresh_tampilan_homepage()
+        print("[AUTO UPDATE] Tampilan homepage berhasil diperbarui dengan data terbaru!")
+
+    def refresh_tampilan_homepage(self):
+        """Menghapus kartu lama dan me-render ulang kartu baru dari database."""
+        from main import _cache_image
+        
+        # A. Kosongkan layout kartu yang lama
+        while self.card_layout.count():
+            item = self.card_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                # Hapus widget dari memori dengan aman
+                widget.deleteLater()
+                
+        # B. Ambil data terbaru dari database
+        data_db_terbaru = db_manager.get_all_events()
+        
+        # C. Format ulang data dari bentuk baris Database ke bentuk Dictionary untuk UI
+        data_untuk_ui = []
+        for row in data_db_terbaru:
+            event_dict = {
+                "event_id": row[1] if len(row) > 1 else "",
+                "nama_event": row[2] if len(row) > 2 and row[2] else "Tanpa Judul",
+                "deskripsi_singkat": row[3] if len(row) > 3 and row[3] else "...",
+                # Ganti baris gambar_poster menjadi ini:
+                "gambar_poster": _cache_image(row[4] if len(row) > 4 and row[4] else ""),
+                "jenis_event": (row[5] if len(row) > 5 and row[5] else "External").title(),
+                "tanggal_waktu": row[6] if len(row) > 6 and row[6] else "TBA",
+            }
+            data_untuk_ui.append(event_dict)
+            
+        # D. Cetak ulang kartu-kartu baru ke layar
+        self.render_event_cards(data_untuk_ui)
 
     def _register_wheel_forwarding(self, widget):
         widget.installEventFilter(self)
