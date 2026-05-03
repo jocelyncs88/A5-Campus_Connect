@@ -98,17 +98,19 @@ class MainWindow(QMainWindow):
         self.timer_update.start(900000)
         
     def jalankan_auto_update(self):
-        """Dijalankan otomatis oleh QTimer setiap 15 menit."""
         print("[AUTO UPDATE] Memulai sinkronisasi data di latar belakang...")
         
-        # Menyerahkan tugas scraping ke ScraperThread agar UI tidak freeze
-        self.thread_scraper = ScraperThread(scraper.ambil_event_polban)
+        # 1. Ambil data yang sudah ada di database untuk jadi acuan
+        data_db = db_manager.get_all_events()
+        existing_keys = { (row[2].strip().lower(), row[6].strip().lower()) for row in data_db }
         
-        # Dengarkan sinyal dari thread jika sudah selesai
+        # 2. Bungkus fungsi scraper + parameternya menggunakan lambda
+        fungsi_scraper = lambda: scraper.ambil_event_polban(limit=100, existing_keys=existing_keys)
+        
+        # 3. Masukkan ke thread
+        self.thread_scraper = ScraperThread(fungsi_scraper)
         self.thread_scraper.selesai.connect(self.on_auto_update_selesai)
         self.thread_scraper.error.connect(lambda msg: print(f"[AUTO UPDATE ERROR] {msg}"))
-        
-        # Mulai proses background
         self.thread_scraper.start()
 
     def on_auto_update_selesai(self, hasil_scraping):
@@ -129,6 +131,7 @@ class MainWindow(QMainWindow):
 
     def refresh_tampilan_homepage(self):
         """Menghapus kartu lama dan me-render ulang kartu baru dari database."""
+        from main import _cache_image
         
         # A. Kosongkan layout kartu yang lama
         while self.card_layout.count():
@@ -148,7 +151,8 @@ class MainWindow(QMainWindow):
                 "event_id": row[1] if len(row) > 1 else "",
                 "nama_event": row[2] if len(row) > 2 and row[2] else "Tanpa Judul",
                 "deskripsi_singkat": row[3] if len(row) > 3 and row[3] else "...",
-                "gambar_poster": row[4] if len(row) > 4 and row[4] else "",
+                # Ganti baris gambar_poster menjadi ini:
+                "gambar_poster": _cache_image(row[4] if len(row) > 4 and row[4] else ""),
                 "jenis_event": (row[5] if len(row) > 5 and row[5] else "External").title(),
                 "tanggal_waktu": row[6] if len(row) > 6 and row[6] else "TBA",
             }
