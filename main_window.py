@@ -10,6 +10,10 @@ import os
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from about_page import AboutPage
+from faq_page import FAQPage  # ← TAMBAHAN
+from add_event_page import AddEventPage # ← TAMBAHAN
+from success_page import SuccessPage # ← TAMBAHAN
 
 # --- INTEGRASI COMPONENT ---
 # Mencoba mengimport EventCard dari file card_widget.py
@@ -56,7 +60,7 @@ class MainWindow(QMainWindow):
 
         # 2. WINDOW SETTINGS
         self.setWindowTitle("Campus Connect - Homepage")
-        self.resize(1200, 750)
+        self.resize(1280, 900)
         
         # 3. BACKGROUND CANVAS (Menggunakan Gradient QSS)
         self.central_widget = QWidget()
@@ -65,7 +69,7 @@ class MainWindow(QMainWindow):
         self.central_widget.setStyleSheet(f"""
             QWidget#mainCanvas {{ 
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1, 
-                stop:0 #5D6B6B, stop:0.25 #BDD7D8, stop:0.5 #D6E6E6, stop:0.75 #D2E6E5, stop:1 #F7CBCA); 
+                stop:0 #B5CECE, stop:0.4 #C8DCDC, stop:0.75 #D6E6E6, stop:1 #F7CBCA); 
             }}
         """)
         
@@ -82,6 +86,12 @@ class MainWindow(QMainWindow):
         self.render_event_cards(dummy_events) # Mengisi Kartu dengan Data
         
         self.layout_utama.addStretch() # Mendorong semua ke atas
+
+        # Page references — dibuat lazy (None dulu, baru dibuat saat pertama dibuka)
+        self.about_page = None
+        self.faq_page = None  # ← TAMBAHAN
+        self.add_event_page = None  # ← TAMBAHAN
+        self.success_page = None  # ← TAMBAHAN
 
     def _register_wheel_forwarding(self, widget):
         widget.installEventFilter(self)
@@ -118,7 +128,6 @@ class MainWindow(QMainWindow):
                         move_by = int(-steps * step_size)
                     else:
                         steps = angle_delta.y() / 120
-                        # Shift + wheel juga dipetakan ke horizontal, seperti pola umum desktop.
                         if modifiers & Qt.ShiftModifier:
                             move_by = int(-steps * step_size)
                         else:
@@ -131,11 +140,26 @@ class MainWindow(QMainWindow):
 
         return super().eventFilter(watched, event)
 
+    def _hide_all_pages(self):
+        """Helper: sembunyikan semua page konten (home, about, faq)."""
+        self.hero_widget.hide()
+        self.event_title.hide()
+        self.scroll.hide()
+        if self.about_page:
+            self.about_page.hide()
+        if self.faq_page:
+            self.faq_page.hide()
+        if self.add_event_page:      
+            self.add_event_page.hide()
+        if self.success_page:        
+            self.success_page.hide()
+
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
         navbar_container = QWidget()
         navbar_container.setStyleSheet(f"background-color: {COLOR_GRAY_LIGHT}; border-radius: 40px;")
         navbar_layout = QHBoxLayout(navbar_container)
+        self.navbar_container = navbar_container 
         navbar_layout.setContentsMargins(25, 10, 25, 10)
 
         # Logo dengan perpaduan font Lobster
@@ -168,7 +192,11 @@ class MainWindow(QMainWindow):
         self.btn_menu.setCursor(Qt.PointingHandCursor)
         self.btn_menu.setStyleSheet("background: transparent; border: none;")
 
+<<<<<<< HEAD
         # Custom Styling untuk QMenu (Dropdown) agar tidak warnanya sesuai tema
+=======
+        # Dropdown Menu Styling
+>>>>>>> 8eb470a5e70f717221f3897f7c307398317b8a03
         self.hamburger_menu = QMenu(self)
         self.hamburger_menu.setCursor(Qt.PointingHandCursor)
         self.hamburger_menu.setStyleSheet(f"""
@@ -179,7 +207,8 @@ class MainWindow(QMainWindow):
         
         # Aksi di dalam Hamburger Menu
         self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
-        self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ")
+        # ← TAMBAHAN: connect FAQ ke show_faq_page
+        self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
         self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting")
         self.btn_menu.setMenu(self.hamburger_menu)
 
@@ -193,10 +222,17 @@ class MainWindow(QMainWindow):
         navbar_layout.addSpacing(10)
         navbar_layout.addWidget(self.btn_menu)
         self.layout_utama.addWidget(navbar_container)
+        self.btn_about.clicked.connect(self.show_about_page)
+        self.btn_home.clicked.connect(self.show_home_page)
 
     def init_hero(self):
+<<<<<<< HEAD
         """Membangun teks sambutan utama"""
         hero_widget = QWidget()
+=======
+        self.hero_widget = QWidget()
+        hero_widget = self.hero_widget
+>>>>>>> 8eb470a5e70f717221f3897f7c307398317b8a03
         layout = QVBoxLayout(hero_widget)
         l1 = QLabel("Welcome to,")
         l1.setStyleSheet(f"font-size: 24px; font-style: italic; color: {COLOR_TEXT_PRIMARY};")
@@ -208,8 +244,13 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(hero_widget)
 
     def init_scroll_area(self):
+<<<<<<< HEAD
         """Membangun area horizontal scroll untuk kartu event"""
         title = QLabel("Highlight / Upcoming Events")
+=======
+        self.event_title = QLabel("Highlight / Upcoming Events")
+        title = self.event_title
+>>>>>>> 8eb470a5e70f717221f3897f7c307398317b8a03
         title.setStyleSheet(f"font-weight: bold; font-size: 18px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
         self.layout_utama.addWidget(title)
         
@@ -244,7 +285,7 @@ class MainWindow(QMainWindow):
         """Membuat dan menampilkan objek kartu berdasarkan list data"""
         for e in data:
             card = EventCard(e)
-            card.setCursor(Qt.PointingHandCursor) # Mouse tangan untuk kartu
+            card.setCursor(Qt.PointingHandCursor)
             card.diklik.connect(self.handle_card_click) 
             self._register_wheel_forwarding(card)
             
@@ -262,6 +303,7 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Detail Event", f"Membuka detail untuk ID: {event_id}")
 
     def buka_form_input(self):
+<<<<<<< HEAD
         """Membuka dialog Add Event (Blok 3B)"""
         dialog = QDialog(self)
         dialog.setWindowTitle("Add New Event")
@@ -284,6 +326,71 @@ class MainWindow(QMainWindow):
         layout.addWidget(btn_save)
         
         dialog.exec_()
+=======
+        self._hide_all_pages()
+        self.navbar_container.hide()
+        
+        if self.add_event_page is None:
+            self.add_event_page = AddEventPage()
+            self.add_event_page.event_dipublikasi.connect(self.on_event_dipublikasi)
+            self.add_event_page.dibatalkan.connect(self.show_home_page)
+            self.layout_utama.insertWidget(4, self.add_event_page)
+            # Membuat add_event_page mengisi seluruh ruang yang tersedia
+            self.layout_utama.setStretchFactor(self.add_event_page, 1)
+
+        self.add_event_page.show()
+
+    def show_about_page(self):
+        self._hide_all_pages()
+
+        if self.about_page is None:
+            self.about_page = AboutPage()
+            self.layout_utama.insertWidget(4, self.about_page)
+
+        self.about_page.show()
+
+    # ↓ TAMBAHAN: method untuk buka FAQ page
+    def show_faq_page(self):
+        self._hide_all_pages()
+
+        if self.faq_page is None:
+            self.faq_page = FAQPage()
+            self.layout_utama.insertWidget(4, self.faq_page)
+
+        self.faq_page.show()
+
+    # ↓ TAMBAHAN: method untuk buka add event page
+    def on_event_dipublikasi(self, data):
+        self._hide_all_pages()
+        self.layout_utama.setContentsMargins(60, 20, 60, 40)
+
+        if self.success_page is None:
+            self.success_page = SuccessPage()
+            self.success_page.lihat_event_diklik.connect(self.show_home_page)
+            self.success_page.buat_event_lain_diklik.connect(self.buka_form_input)
+            self.layout_utama.insertWidget(4, self.success_page)
+
+        self.success_page.set_data(data)
+        self.success_page.show()
+
+    # ↓ TAMBAHAN: method untuk buka success page setelah event dipublikasi
+    def show_success_page(self):
+        self._hide_all_pages()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+
+        if self.success_page:
+            self.success_page.show()
+
+    def show_home_page(self):
+        self._hide_all_pages()
+        self.navbar_container.show()
+
+        # Munculkan kembali komponen home
+        self.hero_widget.show()
+        self.event_title.show()
+        self.scroll.show()
+
+>>>>>>> 8eb470a5e70f717221f3897f7c307398317b8a03
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
