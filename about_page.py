@@ -58,7 +58,7 @@ class AboutPage(QWidget):
 
     def build(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(40, 20, 40, 20)
+        root.setContentsMargins(32, 20, 32, 20)
         root.setSpacing(0)
 
         root.addStretch(1)
@@ -88,13 +88,8 @@ class AboutPage(QWidget):
         root.addSpacing(18)
 
         # ===== CARD =====
-        h = QHBoxLayout()
-        h.addStretch()
-
         card = QFrame()
-        card.setMaximumWidth(720)
         card.setObjectName("mainCard")
-        # FIX: gunakan selector QFrame#mainCard agar style tidak bocor ke child QLabel
         card.setStyleSheet("""
             QFrame#mainCard {
                 background: rgba(255,255,255,0.45);
@@ -126,10 +121,7 @@ class AboutPage(QWidget):
 
         self.team(cv)
 
-        h.addWidget(card)
-        h.addStretch()
-
-        root.addLayout(h)
+        root.addWidget(card)
 
         # ===== FOOTER =====
         root.addSpacing(30)
@@ -141,7 +133,7 @@ class AboutPage(QWidget):
         f_title.setAlignment(Qt.AlignCenter)
         f_title.setStyleSheet(f"font-size:14px; font-weight:bold; color:{C_TITLE}; background:transparent; border:none;")
 
-        f_text = QLabel("© 2024 Campus Connect. Academic Serenity for the Modern Student.")
+        f_text = QLabel("© 2026 Campus Connect. Academic Serenity for the Modern Student.")
         f_text.setAlignment(Qt.AlignCenter)
         f_text.setStyleSheet(f"font-size:11px; color:{C_FOOTER}; background:transparent; border:none;")
 
