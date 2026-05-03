@@ -100,10 +100,19 @@ def parse_events(html_content):
 
     return scraped_data_list
 
-def ambil_event_polban(limit=100, base_url="https://www.polban.ac.id/category/kemahasiswaan/event/"):
-    """Ambil event Polban lintas halaman sampai mencapai limit atau data habis."""
+
+def _event_identity(event):
+    """Identitas event yang dipakai untuk mendeteksi duplikasi."""
+    nama_event = (event.get("nama_event") or "").strip().lower()
+    tanggal_waktu = (event.get("tanggal_waktu") or "").strip().lower()
+    return nama_event, tanggal_waktu
+
+
+def ambil_event_polban(limit=100, base_url="https://www.polban.ac.id/category/kemahasiswaan/event/", existing_keys=None):
+    """Ambil event Polban lintas halaman sampai mencapai limit, data habis, atau ketemu event lama."""
     semua_event = []
     page = 1
+    existing_keys = set(existing_keys or [])
 
     while len(semua_event) < limit:
         print(f"\n>>> SEDANG MEMPROSES HALAMAN {page} <<<")
@@ -123,7 +132,25 @@ def ambil_event_polban(limit=100, base_url="https://www.polban.ac.id/category/ke
             print("Tidak ada event lagi pada halaman ini, proses dihentikan.")
             break
 
-        semua_event.extend(hasil_per_halaman)
+        stop_scraping = False
+        for event in hasil_per_halaman:
+            event_key = _event_identity(event)
+
+            # Begitu ketemu event yang sudah ada di DB, asumsi sisanya adalah data lama.
+            if event_key in existing_keys:
+                print(f"Event lama ditemukan: {event.get('nama_event')} - scraping dihentikan.")
+                stop_scraping = True
+                break
+
+            semua_event.append(event)
+            existing_keys.add(event_key)
+
+            if len(semua_event) >= limit:
+                break
+
+        if stop_scraping:
+            break
+
         page += 1
 
     return semua_event[:limit]
