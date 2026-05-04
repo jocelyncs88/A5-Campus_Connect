@@ -82,11 +82,18 @@ class MainWindow(QMainWindow):
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         
         # 4. INISIALISASI KOMPONEN UI
-        self.init_header()        # Membangun Navbar
-        self.layout_utama.addSpacing(40)
-        self.init_hero()          # Membangun Judul Besar
-        self.layout_utama.addSpacing(30)
-        self.init_scroll_area()   # Membangun Wadah Kartu Event
+# SESUDAH:
+        self.init_header()
+        self.spacing_after_navbar = QWidget()   # ← jadikan widget, bisa di-hide
+        self.spacing_after_navbar.setFixedHeight(40)
+        self.spacing_after_navbar.setStyleSheet("background: transparent;")
+        self.layout_utama.addWidget(self.spacing_after_navbar)
+        self.init_hero()
+        self.spacing_after_hero = QWidget()
+        self.spacing_after_hero.setFixedHeight(30)
+        self.spacing_after_hero.setStyleSheet("background: transparent;")
+        self.layout_utama.addWidget(self.spacing_after_hero)
+        self.init_scroll_area()
         self.render_event_cards(dummy_events) # Mengisi Kartu dengan Data
         
         self.layout_utama.addStretch() # Mendorong semua ke atas
@@ -96,6 +103,7 @@ class MainWindow(QMainWindow):
         self.faq_page = None  # ← TAMBAHAN
         self.add_event_page = None  # ← TAMBAHAN
         self.success_page = None  # ← TAMBAHAN
+        self.settings_page = None
         
         # === FITUR AUTO UPDATE 15 MENIT ===
         # QTimer sudah di-import melalui 'from PyQt5.QtCore import *'
@@ -223,6 +231,8 @@ class MainWindow(QMainWindow):
         self.hero_widget.hide()
         self.event_title.hide()
         self.scroll.hide()
+        self.spacing_after_navbar.hide()
+        self.spacing_after_hero.hide()
         if self.about_page:
             self.about_page.hide()
         if self.faq_page:
@@ -231,6 +241,8 @@ class MainWindow(QMainWindow):
             self.add_event_page.hide()
         if self.success_page:        
             self.success_page.hide()
+        if self.settings_page:
+            self.settings_page.hide()
 
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
@@ -283,7 +295,7 @@ class MainWindow(QMainWindow):
         self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
         # ← TAMBAHAN: connect FAQ ke show_faq_page
         self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
-        self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting")
+        self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
         self.btn_menu.setMenu(self.hamburger_menu)
 
         # Masukkan semua ke layout navbar
@@ -369,6 +381,8 @@ class MainWindow(QMainWindow):
     def buka_form_input(self):
         self._hide_all_pages()
         self.navbar_container.hide()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        self.layout_utama.setSpacing(0)
         
         if self.add_event_page is None:
             self.add_event_page = AddEventPage()
@@ -444,10 +458,36 @@ class MainWindow(QMainWindow):
         self._hide_all_pages()
         self.navbar_container.show()
 
-        # Munculkan kembali komponen home
+        self.spacing_after_navbar.show()
+        self.spacing_after_hero.show()
+
+        self.layout_utama.setContentsMargins(60, 20, 60, 40)
+        self.layout_utama.setSpacing(0)
+
         self.hero_widget.show()
         self.event_title.show()
         self.scroll.show()
+    
+    def buka_settings(self):
+        from settings.setting_window import SettingsWindow
+        self._hide_all_pages()
+        self.navbar_container.hide()
+
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        self.layout_utama.setSpacing(0)
+
+        if self.settings_page is None:
+            self.settings_page = SettingsWindow(
+                user_data={
+                    "nama": "", "bio": "", "email": "",
+                    "kontak": "", "role": "umum", "inisial": ""
+                }
+            )
+            self.settings_page.btn_home.clicked.connect(self.show_home_page)
+            self.layout_utama.insertWidget(4, self.settings_page)
+            self.layout_utama.setStretchFactor(self.settings_page, 1)
+
+        self.settings_page.show()
 
 
 if __name__ == "__main__":

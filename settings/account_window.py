@@ -813,12 +813,12 @@ if __name__ == "__main__":
 
     # Data dummy untuk testing — ganti role untuk test tampilan berbeda
     user_dummy = {
-        "nama"   : "Event Organizer",
-        "bio"    : "Music Festival",
-        "email"  : "eventorganizer@gmail.com",
-        "kontak" : "+6281-3456-7898",
-        "role"   : ROLE_ORGANIZER,  # Ganti ke ROLE_MAHASISWA atau ROLE_UMUM
-        "inisial": "EO"
+        "nama"   : "",
+        "bio"    : "",
+        "email"  : "",
+        "kontak" : "",
+        "role"   : ROLE_UMUM,
+        "inisial": ""
     }
 
     panel = AccountPanel(user_data=user_dummy, stacked_widget=stacked)

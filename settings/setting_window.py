@@ -20,7 +20,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from toggle_widget import ToggleSwitch
 from setting_item_widget import SettingItem
-from account_window import AccountPanel  
+from settings.account_window import AccountPanel
+  
 
 # ==============================================================
 # KONSTANTA WARNA
@@ -60,7 +61,7 @@ ROLE_UMUM      = "umum"
 #   win = SettingsWindow(user_data=user_data, parent=self)
 #   win.exec_()
 # ==============================================================
-class SettingsWindow(QDialog):
+class SettingsWindow(QWidget):
 
     # ----------------------------------------------------------
     # FUNGSI __init__ (Konstruktor)
@@ -100,8 +101,7 @@ class SettingsWindow(QDialog):
 
         # Setup dasar jendela dialog
         self.setWindowTitle("Settings - Campus Connect")
-        self.setFixedSize(900, 620)
-        self.setModal(True)  # Memblokir interaksi ke window di belakangnya
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Memuat font custom yang sama dengan main_window.py
         # agar tipografi konsisten di seluruh aplikasi
@@ -124,15 +124,9 @@ class SettingsWindow(QDialog):
         # Menerapkan background gradient yang sama dengan main_window.py
         # agar transisi visual antara homepage dan settings terasa mulus
         self.setStyleSheet(f"""
-            QDialog {{
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0   #BDD7D8,
-                    stop:0.5 #D6E6E6,
-                    stop:0.75 #D2E6E5,
-                    stop:1   #F7CBCA
-                );
+            QWidget {{
                 font-family: '{self.font_sans}';
+                background: transparent;   # ← ganti jadi transparent
             }}
         """)
 
@@ -228,11 +222,11 @@ class SettingsWindow(QDialog):
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         # Tombol Home — menutup jendela settings dan kembali ke homepage
-        btn_home = QPushButton("  Home")
-        btn_home.setIcon(QIcon("assets/home.png"))
-        btn_home.setIconSize(QSize(16, 16))
-        btn_home.setCursor(Qt.PointingHandCursor)
-        btn_home.setStyleSheet(f"""
+        self.btn_home = QPushButton("  Home")
+        self.btn_home.setIcon(QIcon("assets/home.png"))
+        self.btn_home.setIconSize(QSize(16, 16))
+        self.btn_home.setCursor(Qt.PointingHandCursor)
+        self.btn_home.setStyleSheet(f"""
             QPushButton {{
                 background: transparent;
                 color: {COLOR_TEXT_PRIMARY};
@@ -245,7 +239,7 @@ class SettingsWindow(QDialog):
                 font-weight: bold;
             }}
         """)
-        btn_home.clicked.connect(self.close)
+        self.btn_home.clicked.connect(self.close)
 
         # Avatar lingkaran berisi inisial nama user
         inisial = self.user_data.get("inisial", "")
@@ -264,7 +258,7 @@ class SettingsWindow(QDialog):
         layout.addSpacing(10)
         layout.addWidget(lbl_title)
         layout.addSpacerItem(spacer)
-        layout.addWidget(btn_home)
+        layout.addWidget(self.btn_home)
         layout.addSpacing(8)
         layout.addWidget(avatar)
 
