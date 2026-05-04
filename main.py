@@ -116,17 +116,39 @@ def _load_ui_events_from_db():
     return events
 
 
-def _sync_scraped_events_to_db():
-    """Ambil data dari scraper, lalu refresh isi tabel events dengan data terbaru."""
-    hasil_scraping = scraper.ambil_event_polban(limit=100)
-    if not hasil_scraping:
-        return False
+def _event_identity(event):
+    """Identitas sederhana untuk mendeteksi event yang sudah pernah tersimpan."""
+    nama_event = (event.get("nama_event") or "").strip().lower()
+    tanggal_waktu = (event.get("tanggal_waktu") or "").strip().lower()
+    return nama_event, tanggal_waktu
 
+
+def _sync_scraped_events_to_db():
+    """Ambil data dari scraper, lalu tambahkan event baru saja tanpa mengulang data lama."""
     conn = sqlite3.connect(db_manager.DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM events")
+    cursor.execute("SELECT nama_event, tanggal_waktu FROM events")
+    existing_keys = {
+        ((row[0] or "").strip().lower(), (row[1] or "").strip().lower())
+        for row in cursor.fetchall()
+    }
+
+    hasil_scraping = scraper.ambil_event_polban(limit=100, existing_keys=existing_keys)
+    if not hasil_scraping:
+        conn.close()
+        return False
+
+    inserted_count = 0
 
     for event in hasil_scraping:
+        event_key = _event_identity(event)
+
+        # Begitu ketemu event yang sudah ada, asumsi sisanya adalah data lama.
+        # Ini cocok untuk website yang urut dari event terbaru ke yang lebih lama.
+        if event_key in existing_keys:
+            print(f"Data lama ditemukan di scraper: {event.get('nama_event')} - hentikan scraping lanjutan.")
+            break
+
         cursor.execute("""
         INSERT OR IGNORE INTO events
         (event_id, nama_event, deskripsi_singkat, gambar_poster,
@@ -142,10 +164,12 @@ def _sync_scraped_events_to_db():
             event.get("source"),
             event.get("kategori"),
         ))
+        inserted_count += 1
+        existing_keys.add(event_key)
 
     conn.commit()
     conn.close()
-    return True
+    return inserted_count > 0
 
 
 def main():
