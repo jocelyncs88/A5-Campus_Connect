@@ -270,11 +270,7 @@ class MainWindow(QMainWindow):
         self.btn_menu.setCursor(Qt.PointingHandCursor)
         self.btn_menu.setStyleSheet("background: transparent; border: none;")
 
-<<<<<<< HEAD
-        # Custom Styling untuk QMenu (Dropdown) agar tidak warnanya sesuai tema
-=======
         # Dropdown Menu Styling
->>>>>>> 8eb470a5e70f717221f3897f7c307398317b8a03
         self.hamburger_menu = QMenu(self)
         self.hamburger_menu.setCursor(Qt.PointingHandCursor)
         self.hamburger_menu.setStyleSheet(f"""
@@ -304,13 +300,8 @@ class MainWindow(QMainWindow):
         self.btn_home.clicked.connect(self.show_home_page)
 
     def init_hero(self):
-<<<<<<< HEAD
-        """Membangun teks sambutan utama"""
-        hero_widget = QWidget()
-=======
         self.hero_widget = QWidget()
         hero_widget = self.hero_widget
->>>>>>> 8eb470a5e70f717221f3897f7c307398317b8a03
         layout = QVBoxLayout(hero_widget)
         l1 = QLabel("Welcome to,")
         l1.setStyleSheet(f"font-size: 24px; font-style: italic; color: {COLOR_TEXT_PRIMARY};")
@@ -322,13 +313,8 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(hero_widget)
 
     def init_scroll_area(self):
-<<<<<<< HEAD
-        """Membangun area horizontal scroll untuk kartu event"""
-        title = QLabel("Highlight / Upcoming Events")
-=======
         self.event_title = QLabel("Highlight / Upcoming Events")
         title = self.event_title
->>>>>>> 8eb470a5e70f717221f3897f7c307398317b8a03
         title.setStyleSheet(f"font-weight: bold; font-size: 18px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
         self.layout_utama.addWidget(title)
         
@@ -381,30 +367,6 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Detail Event", f"Membuka detail untuk ID: {event_id}")
 
     def buka_form_input(self):
-<<<<<<< HEAD
-        """Membuka dialog Add Event (Blok 3B)"""
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Add New Event")
-        dialog.setFixedSize(400, 350)
-        dialog.setStyleSheet(f"background-color: {COLOR_GRAY_LIGHT}; font-family: '{self.font_sans}';")
-        
-        layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel("<b>Nama Event:</b>"))
-        self.input_nama = QLineEdit()
-        layout.addWidget(self.input_nama)
-        
-        layout.addWidget(QLabel("<b>Deskripsi Singkat:</b>"))
-        self.input_desc = QTextEdit()
-        layout.addWidget(self.input_desc)
-        
-        btn_save = QPushButton("Simpan ke List")
-        btn_save.setCursor(Qt.PointingHandCursor)
-        btn_save.setStyleSheet("background-color: #ff99aa; color: white; padding: 10px; border-radius: 10px; font-weight: bold;")
-        btn_save.clicked.connect(dialog.accept)
-        layout.addWidget(btn_save)
-        
-        dialog.exec_()
-=======
         self._hide_all_pages()
         self.navbar_container.hide()
         
@@ -487,7 +449,6 @@ class MainWindow(QMainWindow):
         self.event_title.show()
         self.scroll.show()
 
->>>>>>> 8eb470a5e70f717221f3897f7c307398317b8a03
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
