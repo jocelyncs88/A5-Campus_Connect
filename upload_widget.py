@@ -84,16 +84,10 @@ class PosterUploadDialog(QDialog):
         self.setFixedWidth(420)
 
         self.setObjectName("upload_dialog")
+        # Pastikan background dialog putih
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.setup_ui()
         self.apply_style()
-
-        # Menambahkan efek shadow pada dialog sesuai mockup Figma
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setColor(QColor(0, 0, 0, 40))
-        shadow.setOffset(0, 4)
-        shadow.setBlurRadius(20)
-        self.setGraphicsEffect(shadow)
-
 
     # ----------------------------------------------------------
     # FUNGSI setup_ui()
@@ -125,7 +119,7 @@ class PosterUploadDialog(QDialog):
         self.btn_close.setObjectName("btn_close")
         self.btn_close.setFixedSize(28, 28)
         self.btn_close.clicked.connect(self.reject)
-
+        
         judul_layout.addWidget(self.judul_label)
         judul_layout.addStretch()
         judul_layout.addWidget(self.btn_close)
@@ -140,7 +134,7 @@ class PosterUploadDialog(QDialog):
         # Widget kotak area upload
         self.upload_area = QWidget()
         self.upload_area.setObjectName("upload_area")
-        self.upload_area.setFixedHeight(200)
+        self.upload_area.setFixedHeight(280)
 
         # Layout dalam area upload
         area_layout = QVBoxLayout()
@@ -176,6 +170,7 @@ class PosterUploadDialog(QDialog):
         # Membuat area upload bisa diklik oleh user
         # Saat diklik → fungsi buka_file_dialog() dipanggil
         self.upload_area.mousePressEvent = self.buka_file_dialog
+        self.upload_area.setCursor(Qt.PointingHandCursor)
 
         layout.addWidget(self.upload_area)
 
@@ -262,7 +257,8 @@ class PosterUploadDialog(QDialog):
         # Label untuk menampilkan preview gambar
         self.preview_label = QLabel()
         self.preview_label.setObjectName("preview_label")
-        self.preview_label.setFixedHeight(200)
+        self.preview_label.setMinimumHeight(300)  # lebih tinggi
+        self.preview_label.setMaximumHeight(400)  # batas maksimal
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setScaledContents(True)
 
@@ -302,6 +298,7 @@ class PosterUploadDialog(QDialog):
 
         # Saat diklik → tutup dialog (reject = tutup tanpa hasil)
         self.btn_batal.clicked.connect(self.reject)
+        self.btn_batal.setCursor(Qt.PointingHandCursor)
 
         # Tombol Upload — disabled dulu sebelum ada gambar
         # Teksnya berubah sesuai state
@@ -311,6 +308,7 @@ class PosterUploadDialog(QDialog):
         # Disabled dulu karena belum ada gambar yang dipilih
         self.btn_upload.setEnabled(False)
         self.btn_upload.clicked.connect(self.gunakan_foto)
+        self.btn_upload.setCursor(Qt.PointingHandCursor)
 
         btn_layout.addWidget(self.btn_batal)
         btn_layout.addWidget(self.btn_upload)
@@ -438,6 +436,7 @@ class PosterUploadDialog(QDialog):
         # Ganti tombol Batal menjadi Ganti Foto
         # Saat diklik → kembali ke state Default
         self.btn_batal.setText("Ganti Foto")
+        self.btn_batal.setCursor(Qt.PointingHandCursor)
         self.btn_batal.clicked.disconnect()
         self.btn_batal.clicked.connect(self.ganti_foto)
 
@@ -524,7 +523,7 @@ class PosterUploadDialog(QDialog):
             QDialog#upload_dialog {
                 background-color: white;
                 border-radius: 16px;
-                border: none;
+                border: 1px solid #B0CECE; 
             }
 
             /* Judul: Inter SemiBold, hitam */

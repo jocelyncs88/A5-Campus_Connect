@@ -33,7 +33,6 @@ from upload_widget import PosterUploadDialog
 
 import os
 
-
 # ==============================================================
 # CLASS AddEventPage
 # Mewarisi QWidget artinya AddEventPage ADALAH halaman UI
@@ -143,11 +142,15 @@ class AddEventPage(QWidget):
         self.input_jenis = QComboBox()
         self.input_jenis.setObjectName("input_combo")
         self.input_jenis.setFixedHeight(42)
-
-        # Placeholder item pertama yang tidak bisa dipilih
+        self.input_jenis.setCursor(Qt.PointingHandCursor)
+        
+        # Placeholder yang tampil sebelum user memilih
+        # Tidak perlu item dummy yang di-disable lagi
         self.input_jenis.addItem("Masukkan jenis event")
         self.input_jenis.addItem("Internal")
+        self.input_jenis.insertSeparator(1)  # garis tipis antara Internal dan External
         self.input_jenis.addItem("External")
+        self.input_jenis.view().setCursor(Qt.PointingHandCursor)
 
         # Menonaktifkan item pertama (placeholder)
         # agar user tidak bisa memilih placeholder
@@ -320,6 +323,7 @@ class AddEventPage(QWidget):
         self.poster_preview = QWidget()
         self.poster_preview.setObjectName("poster_preview_area")
         self.poster_preview.setFixedSize(200, 280)
+        self.poster_preview.setCursor(Qt.PointingHandCursor)
 
         poster_preview_layout = QVBoxLayout()
         poster_preview_layout.setAlignment(Qt.AlignCenter)
@@ -370,6 +374,7 @@ class AddEventPage(QWidget):
         self.btn_batal = QPushButton("Batal")
         self.btn_batal.setObjectName("btn_batal")
         self.btn_batal.setFixedSize(120, 45)
+        self.btn_batal.setCursor(Qt.PointingHandCursor)
         font_btn = QFont("Inter Medium", 13)
         self.btn_batal.setFont(font_btn)
 
@@ -381,6 +386,7 @@ class AddEventPage(QWidget):
         self.btn_publikasi = QPushButton("✓  Dipublikasi!")
         self.btn_publikasi.setObjectName("btn_publikasi")
         self.btn_publikasi.setFixedSize(160, 45)
+        self.btn_publikasi.setCursor(Qt.PointingHandCursor)
         self.btn_publikasi.setFont(font_btn)
 
         # Saat diklik → jalankan validasi dulu
@@ -437,7 +443,39 @@ class AddEventPage(QWidget):
             self.label_status_tiket.setText("Gratis")
             self.harga_widget.hide()
 
+    # ----------------------------------------------------------
+    # FUNGSI reset_form()
+    # Mengosongkan semua field form ke kondisi awal
+    # Dipanggil dari main_window.py setiap kali halaman Add Event dibuka
+    # ----------------------------------------------------------
+    def reset_form(self):
 
+        # Reset semua input field ke kosong
+        self.input_nama.clear()
+        self.input_deskripsi.clear()
+        self.input_kategori.clear()
+        self.input_tanggal.clear()
+        self.input_waktu.clear()
+        self.input_lokasi.clear()
+        self.input_kampus.clear()
+        self.input_harga.clear()
+
+        # Reset dropdown jenis event ke placeholder
+        self.input_jenis.setCurrentIndex(0)
+
+        # Reset toggle tiket ke Gratis (OFF)
+        self.toggle_tiket.set_on(False)
+        self.toggle_tiket.setCursor(Qt.PointingHandCursor)
+        self.label_status_tiket.setText("Gratis")
+        self.harga_widget.hide()
+
+        # Reset poster ke kondisi awal
+        self.poster_path = ""
+        self.poster_preview_icon.show()
+        self.poster_preview_text.show()
+        self.poster_preview_img.hide()
+        self.poster_preview_img.clear()
+        self.poster_preview.setStyleSheet("")
     # ----------------------------------------------------------
     # FUNGSI on_poster_dipilih()
     # Dipanggil saat user memilih gambar di upload_widget
@@ -459,6 +497,22 @@ class AddEventPage(QWidget):
 
         # Tampilkan preview gambar
         self.poster_preview_img.show()
+
+        # Hilangkan border putus-putus saat gambar sudah ada
+        # Ganti style poster_preview_area jadi tanpa border
+        self.poster_preview.setStyleSheet("""
+            QWidget {
+                border: none;
+                border-radius: 8px;
+                background-color: transparent;
+            }
+        """)
+    
+        # Paksa poster_preview_img mengisi seluruh area
+        self.poster_preview_img.setFixedSize(
+        self.poster_preview.width(),
+        self.poster_preview.height()
+     )
 
     # ----------------------------------------------------------
     # FUNGSI buka_dialog_upload()
@@ -490,7 +544,7 @@ class AddEventPage(QWidget):
 
         # Cek apakah Jenis Event sudah dipilih
         # Index 0 = placeholder "Masukkan jenis event" yang tidak valid
-        if self.input_jenis.currentIndex() == 0:
+        if self.input_jenis.currentIndex() == "":
             self.tampilkan_error("Jenis Event belum dipilih!")
             return
 
@@ -667,25 +721,39 @@ class AddEventPage(QWidget):
 
             QComboBox#input_combo::drop-down {
                 border: none;
-                width: 24px;
+                width: 30px;
             }
 
             QComboBox#input_combo::down-arrow {
-                image: none;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 6px solid #5D6B6B;
-                width: 0px;
-                height: 0px;
+                image: url(assets/arrow_down.png);
+                width: 12px;
+                height: 12px;
             }
 
             QComboBox#input_combo QAbstractItemView {
                 background-color: white;
                 border: 1px solid #CBD5E0;
                 border-radius: 8px;
+                padding: 4px;
+                outline: none;           
                 selection-background-color: #D2E6E5;
                 selection-color: #1a1a1a;
             }
+                           
+            QComboBox#input_combo QAbstractItemView::item {
+                padding: 8px 12px;
+                border-radius: 6px;        
+                margin: 2px 4px;
+            }
+
+            QComboBox#input_combo QAbstractItemView::item:selected {
+                background-color: #D2E6E5;
+            }                             
+
+            QComboBox#input_combo QAbstractItemView::separator {
+                height: 1px;
+                background-color: #E5E7EB; /* garis tipis pemisah */
+            }           
 
             /* Label status tiket (Gratis/Berbayar) */
             QLabel#label_status_tiket {
