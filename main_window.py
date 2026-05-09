@@ -5,6 +5,7 @@
 # DIBUAT OLEH: Jocelyn (fitur-Jocelyn)
 # ==============================================================
 
+import email
 import sys
 import os
 import scraper
@@ -18,6 +19,8 @@ from faq_page import FAQPage  # ← TAMBAHAN
 from add_event_page import AddEventPage # ← TAMBAHAN
 from success_page import SuccessPage # ← TAMBAHAN
 from crud_events import prepare_create, save_payload
+from login_page import LoginPage
+
 
 # --- INTEGRASI COMPONENT ---
 # Mencoba mengimport EventCard dari file card_widget.py
@@ -104,6 +107,7 @@ class MainWindow(QMainWindow):
         self.add_event_page = None  # ← TAMBAHAN
         self.success_page = None  # ← TAMBAHAN
         self.settings_page = None
+        self.login_page = None
         
         # === FITUR AUTO UPDATE 15 MENIT ===
         # QTimer sudah di-import melalui 'from PyQt5.QtCore import *'
@@ -243,6 +247,8 @@ class MainWindow(QMainWindow):
             self.success_page.hide()
         if self.settings_page:
             self.settings_page.hide()
+        if self.login_page:
+            self.login_page.hide()
 
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
@@ -275,6 +281,8 @@ class MainWindow(QMainWindow):
         self.btn_login.setIcon(QIcon("assets/user.png"))
         self.btn_login.setCursor(Qt.PointingHandCursor)
         self.btn_login.setStyleSheet("background-color: #ff99aa; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+
+        self.btn_login.clicked.connect(self.show_login_page)
         
         self.btn_menu = QPushButton()
         self.btn_menu.setIcon(QIcon("assets/menu.png"))
@@ -468,6 +476,26 @@ class MainWindow(QMainWindow):
         self.hero_widget.show()
         self.event_title.show()
         self.scroll.show()
+    
+    def show_login_page(self):
+        self._hide_all_pages()
+        self.navbar_container.hide()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        self.layout_utama.setSpacing(0) 
+
+        if self.login_page is None:
+            self.login_page = LoginPage()
+            self.login_page.login_diklik.connect(self.on_login_diklik)
+            self.login_page.kembali_diklik.connect(self.show_home_page)
+            self.layout_utama.insertWidget(4, self.login_page)
+            self.layout_utama.setStretchFactor(self.login_page, 1)
+
+        self.login_page.show()
+    
+    def on_login_diklik(self, email, password):
+        # Nanti diisi logic cek database oleh Rafi/Salman
+        # Sementara print dulu untuk test pagenya
+        print(f"Login dengan email: {email}, password: {password}")
     
     def buka_settings(self):
         from settings.setting_window import SettingsWindow
