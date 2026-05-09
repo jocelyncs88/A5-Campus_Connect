@@ -192,6 +192,7 @@ class SuccessPage(QWidget):
 
         # Saat diklik → pancarkan sinyal ke main_window.py
         self.btn_lihat.clicked.connect(self.lihat_event_diklik.emit)
+        self.btn_lihat.setCursor(Qt.PointingHandCursor) 
 
         # Tombol Buat Event Lain (teal gelap)
         self.btn_buat_lain = QPushButton("Buat Event Lain")
@@ -201,6 +202,7 @@ class SuccessPage(QWidget):
 
         # Saat diklik → pancarkan sinyal ke main_window.py
         self.btn_buat_lain.clicked.connect(self.buat_event_lain_diklik.emit)
+        self.btn_buat_lain.setCursor(Qt.PointingHandCursor)
 
         btn_layout.addWidget(self.btn_lihat)
         btn_layout.addWidget(self.btn_buat_lain)

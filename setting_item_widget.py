@@ -174,21 +174,22 @@ class SettingItem(QWidget):
     # ----------------------------------------------------------
     def apply_style(self):
 
-        self.setStyleSheet("""
-            # Mengatur font Inter SemiBold untuk judul
-            font_judul = QFont("Inter SemiBold", 14)
+         # Mengatur font Inter SemiBold untuk judul
+        font_judul = QFont("Inter", 14)
             
-            # DemiBold = SemiBold dalam istilah QFont
-            # Memastikan ketebalan font benar-benar SemiBold 
-            font_judul.setWeight(QFont.DemiBold)
+        # DemiBold = SemiBold dalam istilah QFont
+        # Memastikan ketebalan font benar-benar SemiBold 
+        font_judul.setWeight(QFont.DemiBold)
                            
-            # Menerapkan font ke label judul
-            self.judul_label.setFont(font_judul)
+        # Menerapkan font ke label judul
+        self.judul_label.setFont(font_judul)
 
-            # Mengatur font Inter Regular untuk deskripsi
-            font_deskripsi = QFont("Inter SemiBold", 11)
-            font_deskripsi.setWeight(QFont.Normal)
-            self.deskripsi_label.setFont(font_deskripsi)
+        # Mengatur font Inter semiBold untuk deskripsi
+        font_deskripsi = QFont("Inter", 11)
+        font_deskripsi.setWeight(QFont.DemiBold)
+        self.deskripsi_label.setFont(font_deskripsi)
+
+        self.setStyleSheet("""
                            
             /* Judul pengaturan: tebal, warna hitam gelap */
             QLabel#judul_label {

@@ -392,6 +392,7 @@ class MainWindow(QMainWindow):
             # Membuat add_event_page mengisi seluruh ruang yang tersedia
             self.layout_utama.setStretchFactor(self.add_event_page, 1)
 
+        self.add_event_page.reset_form()
         self.add_event_page.show()
 
     def show_about_page(self):
