@@ -56,7 +56,7 @@ class AddEventPage(QWidget):
     # ----------------------------------------------------------
     # FUNGSI __init__ (Konstruktor)
     # ----------------------------------------------------------
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, data_event=None):
         super().__init__(parent)
 
         # Menyimpan path poster yang dipilih user
@@ -871,8 +871,29 @@ class AddEventPage(QWidget):
         self.input_nama.setText(data.get("nama_event", ""))
         self.input_deskripsi.setText(data.get("deskripsi_singkat", ""))
         self.input_kategori.setText(data.get("kategori", ""))
-        self.input_tanggal.setText(data.get("tanggal_waktu", "")[:10])
-        self.input_waktu.setText(data.get("waktu_display", ""))
+        
+        tanggal_str = data.get("tanggal_waktu", "")[:10]
+        if tanggal_str:
+            try:
+                from PyQt5.QtCore import QDate
+                tgl = QDate.fromString(tanggal_str, "yyyy-MM-dd")
+                if tgl.isValid():
+                    self.input_tanggal.setDate(tgl)
+            except Exception:
+                pass
+
+        waktu_str = data.get("waktu_display", "")
+        if waktu_str:
+            try:
+                from PyQt5.QtCore import QTime
+                wkt = QTime.fromString(waktu_str, "HH:mm")
+                if not wkt.isValid():
+                    wkt = QTime.fromString(waktu_str, "h AP")
+                if wkt.isValid():
+                    self.input_waktu.setTime(wkt)
+            except Exception:
+                pass
+
         self.input_lokasi.setText(data.get("lokasi", ""))
 
         # Jenis event (dropdown)

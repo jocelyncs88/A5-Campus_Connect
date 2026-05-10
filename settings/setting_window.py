@@ -47,7 +47,7 @@ COLOR_DIVIDER      = "#D2E6E5"   # Warna garis pembatas antar baris
 #   ROLE_MAHASISWA  → Mahasiswa kampus (bisa daftar / RSVP event)
 #   ROLE_UMUM       → Pengunjung umum (akses terbatas)
 # ==============================================================
-ROLE_ORGANIZER = "organizer"
+ROLE_ORGANIZER = "eo"
 ROLE_MAHASISWA = "mahasiswa"
 ROLE_UMUM      = "umum"
 
@@ -183,6 +183,7 @@ class SettingsWindow(QWidget):
             stacked_widget=self.stacked_widget
         )
         self.panel_your_events.minta_edit_event.connect(self.buka_halaman_edit_event)
+        self.panel_your_events.minta_buka_add_event.connect(self.buka_add_event)
         self.panel_notif       = self.buat_panel_notif()
         self.panel_appearance  = self.buat_panel_appearance()
         self.panel_language    = self.buat_panel_language()
@@ -198,6 +199,11 @@ class SettingsWindow(QWidget):
 
         # Tampilkan panel Account sebagai tampilan awal (index 0)
         self.stacked_widget.setCurrentIndex(0)
+
+
+    def buka_add_event(self):
+        # Tutup settings, buka add event di main window
+        self.btn_home.clicked.emit()  # kembali ke homepage dulu
 
 
     # ----------------------------------------------------------
@@ -306,6 +312,9 @@ class SettingsWindow(QWidget):
             btn.setFixedHeight(48)
             btn.setStyleSheet(self._style_sidebar_btn(aktif=False))
             btn.clicked.connect(lambda checked, i=index: self.switch_panel(i))
+
+            if label == "Your events" and self.role not in [ROLE_ORGANIZER, ROLE_MAHASISWA]:
+                btn.hide()
 
             layout.addWidget(btn)
             self.sidebar_buttons.append(btn)

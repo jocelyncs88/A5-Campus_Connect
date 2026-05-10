@@ -44,7 +44,7 @@ COLOR_PINK_BOOKED  = "#EAA4A6"   # Warna tombol Booked setelah di-klik
 # ==============================================================
 # KONSTANTA ROLE USER
 # ==============================================================
-ROLE_ORGANIZER = "organizer"
+ROLE_ORGANIZER = "eo"
 ROLE_MAHASISWA = "mahasiswa"
 ROLE_UMUM      = "umum"
 
@@ -203,6 +203,7 @@ class YourEventsPanel(QWidget):
     #   → diterima settings_window/main_window untuk buka halaman edit
     # ----------------------------------------------------------
     minta_edit_event = pyqtSignal(dict)
+    minta_buka_add_event = pyqtSignal()
 
     # ----------------------------------------------------------
     # FUNGSI __init__
@@ -239,6 +240,10 @@ class YourEventsPanel(QWidget):
         self._render()
 
 
+    def _minta_buka_add_event(self):
+        self.minta_buka_add_event.emit()
+
+
     # ----------------------------------------------------------
     # FUNGSI _load_fonts()
     # Memuat font GoogleSans dari folder assets
@@ -249,21 +254,17 @@ class YourEventsPanel(QWidget):
         assets = os.path.join(BASE_DIR, "assets")
 
         id_regular = QFontDatabase.addApplicationFont(
-            os.path.join(assets, "GoogleSans_17pt-Regular.ttf")
+            os.path.join(assets, "Inter_18pt-Regular.ttf")
         )
         id_bold = QFontDatabase.addApplicationFont(
-            os.path.join(assets, "GoogleSans_17pt-Bold.ttf")
-        )
-        id_italic = QFontDatabase.addApplicationFont(
-            os.path.join(assets, "GoogleSans_17pt-Italic.ttf")
+            os.path.join(assets, "Inter_18pt-Bold.ttf")
         )
 
-        # Simpan nama font untuk dipakai di widget lain
         families_regular = QFontDatabase.applicationFontFamilies(id_regular)
         families_bold    = QFontDatabase.applicationFontFamilies(id_bold)
 
-        self.font_regular = families_regular[0] if families_regular else "sans-serif"
-        self.font_bold    = families_bold[0]    if families_bold    else "sans-serif"
+        self.font_regular = families_regular[0] if families_regular else "Inter"
+        self.font_bold    = families_bold[0]    if families_bold    else "Inter"
 
 
     # ----------------------------------------------------------
@@ -288,7 +289,7 @@ class YourEventsPanel(QWidget):
         # Judul panel
         lbl_judul = QLabel("Your Events Settings")
         lbl_judul.setFont(QFont(self.font_bold, 24))
-        lbl_judul.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+        lbl_judul.setStyleSheet("color: black; font-weight: bold;")
         layout.addWidget(lbl_judul)
 
         # Render konten sesuai role
@@ -316,7 +317,37 @@ class YourEventsPanel(QWidget):
         lbl_sub.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
         layout.addWidget(lbl_sub)
 
+        events = self._get_published_events()
+
+        # Jika belum ada event, tampilkan pesan kosong
+        if not events:
+            lbl_empty = QLabel("You haven't published any events yet.")
+            lbl_empty.setFont(QFont(self.font_regular, 13))
+            lbl_empty.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
+
+            btn_buat = QPushButton("Create your first event →")
+            btn_buat.setCursor(Qt.PointingHandCursor)
+            btn_buat.setStyleSheet("""
+                QPushButton {
+                    background: transparent;
+                    color: #5D6B6B;
+                    font-size: 13px;
+                    font-weight: bold;
+                    border: none;
+                    text-align: left;
+                }
+                QPushButton:hover { color: #516465; }
+            """)
+            # Sinyal ke main_window untuk buka Add Event
+            btn_buat.clicked.connect(self._minta_buka_add_event)
+
+            layout.addWidget(lbl_empty)
+            layout.addWidget(btn_buat)
+            layout.addStretch()
+            return
+
         # Area scroll untuk grid kartu
+        # Scroll hanya dibuat jika ada events
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.NoFrame)
@@ -327,8 +358,6 @@ class YourEventsPanel(QWidget):
         grid = QGridLayout(container)
         grid.setSpacing(20)
         grid.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-
-        events = self._get_published_events()
 
         # Susun kartu dalam grid 3 kolom
         for i, event in enumerate(events):
@@ -468,13 +497,13 @@ class YourEventsPanel(QWidget):
 
         lbl_sub = QLabel("My Events")
         lbl_sub.setFont(QFont(self.font_bold, 16))
-        lbl_sub.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+        lbl_sub.setStyleSheet("color: black; font-weight: bold;")
         layout.addWidget(lbl_sub)
 
         # ---- BOOKED EVENTS ----
         lbl_booked = QLabel("Booked Events")
         lbl_booked.setFont(QFont(self.font_bold, 13))
-        lbl_booked.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+        lbl_booked.setStyleSheet("color: black; font-weight: bold;")
         layout.addWidget(lbl_booked)
 
         booked_scroll = self._buat_booked_scroll()
@@ -483,7 +512,7 @@ class YourEventsPanel(QWidget):
         # ---- LIKED EVENTS ----
         lbl_liked = QLabel("Liked Events")
         lbl_liked.setFont(QFont(self.font_bold, 13))
-        lbl_liked.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+        lbl_liked.setStyleSheet("color: black; font-weight: bold;")
         layout.addWidget(lbl_liked)
 
         # Container liked events — disimpan sebagai atribut
@@ -524,6 +553,7 @@ class YourEventsPanel(QWidget):
         """)
 
         container = QWidget()
+        container.setFixedHeight(300) 
         container.setStyleSheet("background: transparent;")
         h_layout = QHBoxLayout(container)
         h_layout.setSpacing(16)
@@ -574,6 +604,7 @@ class YourEventsPanel(QWidget):
     def _buat_kartu_booked(self, event):
         kartu = QWidget()
         kartu.setFixedWidth(160)
+        kartu.setFixedHeight(280)
         kartu.setStyleSheet("background: transparent;")
 
         layout = QVBoxLayout(kartu)
@@ -597,7 +628,7 @@ class YourEventsPanel(QWidget):
         # Nama event
         lbl_nama = QLabel(event.get("nama_event", ""))
         lbl_nama.setFont(QFont(self.font_bold, 10))
-        lbl_nama.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+        lbl_nama.setStyleSheet("color: black;")
         lbl_nama.setWordWrap(True)
 
         # Deskripsi singkat
@@ -841,7 +872,7 @@ class YourEventsPanel(QWidget):
         lbl_desk.setWordWrap(True)
 
         layout.addWidget(poster_container)
-        layout.addSpacing(6)
+        layout.addSpacing(10)
         layout.addWidget(lbl_nama)
         layout.addWidget(lbl_desk)
 
