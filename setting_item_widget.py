@@ -174,7 +174,7 @@ class SettingItem(QWidget):
     # ----------------------------------------------------------
     def apply_style(self):
 
-         # Mengatur font Inter SemiBold untuk judul
+        # Mengatur font Inter SemiBold untuk judul
         font_judul = QFont("Inter", 14)
             
         # DemiBold = SemiBold dalam istilah QFont
