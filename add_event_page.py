@@ -17,11 +17,11 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                               QLabel, QLineEdit, QPushButton,
                               QComboBox, QScrollArea, QMessageBox,
-                              QSizePolicy)
+                              QSizePolicy, QDateEdit, QTimeEdit)
 
 # Qt         = konstanta PyQt5
 # pyqtSignal = sinyal komunikasi antar komponen
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QDate, QTime
 
 # QFont  = class untuk mengatur font
 # QColor = class untuk warna
@@ -209,18 +209,36 @@ class AddEventPage(QWidget):
         tanggal_layout = QVBoxLayout()
         self.label_tanggal = QLabel("Tanggal *")
         self.label_tanggal.setObjectName("label_field")
-        self.input_tanggal = QLineEdit()
-        self.input_tanggal.setPlaceholderText("05/04/2026")
+        self.input_tanggal = QDateEdit()
+        self.input_tanggal.setCalendarPopup(True)
+        self.input_tanggal.setDisplayFormat("dd/MM/yyyy")
+        self.input_tanggal.setDate(QDate.currentDate())
         self.input_tanggal.setObjectName("input_field")
+        self.input_tanggal.setFixedHeight(42)
         tanggal_layout.addWidget(self.label_tanggal)
         tanggal_layout.addWidget(self.input_tanggal)
 
         waktu_layout = QVBoxLayout()
         self.label_waktu = QLabel("Waktu *")
         self.label_waktu.setObjectName("label_field")
-        self.input_waktu = QLineEdit()
-        self.input_waktu.setPlaceholderText("07:00 - 12:00")
+        self.input_waktu = QTimeEdit()
+        self.input_waktu.setDisplayFormat("HH:mm")
+        # start at nearest half hour for convenience
+        now = QTime.currentTime()
+        minute = 30 if now.minute() >= 30 else 0
+        self.input_waktu.setTime(QTime(now.hour(), minute))
+        # allow wrapping so incrementing past 23:59 goes to 00:00 and vice versa
+        try:
+            self.input_waktu.setWrapping(True)
+        except Exception:
+            pass
+        # set single step to 30 minutes (so arrows advance by 30m)
+        try:
+            self.input_waktu.setSingleStep(QTime(0, 30))
+        except Exception:
+            pass
         self.input_waktu.setObjectName("input_field")
+        self.input_waktu.setFixedHeight(42)
         waktu_layout.addWidget(self.label_waktu)
         waktu_layout.addWidget(self.input_waktu)
 
@@ -454,8 +472,11 @@ class AddEventPage(QWidget):
         self.input_nama.clear()
         self.input_deskripsi.clear()
         self.input_kategori.clear()
-        self.input_tanggal.clear()
-        self.input_waktu.clear()
+        self.input_tanggal.setDate(QDate.currentDate())
+        # reset time to nearest half hour
+        now = QTime.currentTime()
+        minute = 30 if now.minute() >= 30 else 0
+        self.input_waktu.setTime(QTime(now.hour(), minute))
         self.input_lokasi.clear()
         self.input_kampus.clear()
         self.input_harga.clear()
@@ -544,28 +565,33 @@ class AddEventPage(QWidget):
 
         # Cek apakah Jenis Event sudah dipilih
         # Index 0 = placeholder "Masukkan jenis event" yang tidak valid
-        if self.input_jenis.currentIndex() == "":
+        if self.input_jenis.currentIndex() == 0:
             self.tampilkan_error("Jenis Event belum dipilih!")
             return
 
-        # Dictionary field wajib yang harus diisi
-        # key = nama field, value = objek QLineEdit
-        fields_wajib = {
-            "Nama Event"      : self.input_nama,
-            "Deskripsi Event" : self.input_deskripsi,
-            "Kategori Event"  : self.input_kategori,
-            "Tanggal"         : self.input_tanggal,
-            "Waktu"           : self.input_waktu,
-            "Lokasi"          : self.input_lokasi,
-            "Nama Kampus"     : self.input_kampus,
-        }
+        # Validasi field teks biasa
+        text_fields = [
+            ("Nama Event", self.input_nama),
+            ("Deskripsi Event", self.input_deskripsi),
+            ("Kategori Event", self.input_kategori),
+            ("Lokasi", self.input_lokasi),
+            ("Nama Kampus", self.input_kampus),
+        ]
 
-        # Loop semua field wajib
-        # Jika ada yang kosong → tampilkan error dan berhenti
-        for nama, field in fields_wajib.items():
-            if not field.text().strip():
+        for nama, widget in text_fields:
+            if not widget.text().strip():
                 self.tampilkan_error(f"{nama} belum diisi!")
                 return
+
+        # Validasi tanggal dan waktu dari picker
+        tanggal = self.input_tanggal.date().toString("yyyy-MM-dd")
+        waktu = self.input_waktu.time().toString("HH:mm")
+        if not tanggal or tanggal.strip() == "":
+            self.tampilkan_error("Tanggal belum diisi!")
+            return
+        if not waktu or waktu.strip() == "":
+            self.tampilkan_error("Waktu belum diisi!")
+            return
 
         # Cek harga tiket jika Berbayar
         if self.toggle_tiket.is_on():
@@ -576,15 +602,38 @@ class AddEventPage(QWidget):
         # ---- SEMUA VALIDASI LULUS ----
         # Kumpulkan semua data form ke dalam dictionary
         # Dictionary ini yang dikirim ke main_window.py
+        # Build a tidy description by appending location, campus and ticket info
+        base_desc = self.input_deskripsi.text().strip()
+        extras = []
+        lokasi_text = self.input_lokasi.text().strip()
+        kampus_text = self.input_kampus.text().strip()
+        if lokasi_text:
+            extras.append(f"Lokasi: {lokasi_text}")
+        if kampus_text:
+            extras.append(f"Penyelenggara: {kampus_text}")
+        if self.toggle_tiket.is_on():
+            harga = self.input_harga.text().strip()
+            if harga:
+                extras.append(f"Tiket: Berbayar — Rp {harga}")
+            else:
+                extras.append("Tiket: Berbayar")
+        else:
+            extras.append("Tiket: Gratis")
+
+        if base_desc:
+            combined_desc = base_desc + "\n\n" + "\n".join(extras)
+        else:
+            combined_desc = "\n".join(extras)
+
         data_event = {
             "nama_event"       : self.input_nama.text().strip(),
             "jenis_event"      : self.input_jenis.currentText(),
-            "deskripsi_singkat": self.input_deskripsi.text().strip(),
+            "deskripsi_singkat": combined_desc,
             "kategori"         : self.input_kategori.text().strip(),
-            "tanggal"          : self.input_tanggal.text().strip(),
-            "waktu"            : self.input_waktu.text().strip(),
-            "lokasi"           : self.input_lokasi.text().strip(),
-            "penyelenggara"    : self.input_kampus.text().strip(),
+            "tanggal"          : tanggal,
+            "waktu"            : waktu,
+            "lokasi"           : lokasi_text,
+            "penyelenggara"    : kampus_text,
             "tipe_tiket"       : "Berbayar" if self.toggle_tiket.is_on() else "Gratis",
             "harga_tiket"      : self.input_harga.text().strip() if self.toggle_tiket.is_on() else "0",
             "gambar_poster"    : self.poster_path,
@@ -686,7 +735,7 @@ class AddEventPage(QWidget):
             }
 
             /* Input field */
-            QLineEdit#input_field {
+            QLineEdit#input_field, QDateEdit#input_field, QTimeEdit#input_field {
                 background-color: white;
                 border: 1px solid #CBD5E0;
                 border-radius: 8px;
@@ -694,9 +743,9 @@ class AddEventPage(QWidget):
                 font-size: 13px;
                 color: #000000;
             }
-
+            
             /* Input field saat fokus */
-            QLineEdit#input_field:focus {
+            QLineEdit#input_field:focus, QDateEdit#input_field:focus, QTimeEdit#input_field:focus {
                 border: 1px solid #2D6A6A;
             }
 

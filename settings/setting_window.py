@@ -126,7 +126,7 @@ class SettingsWindow(QWidget):
         self.setStyleSheet(f"""
             QWidget {{
                 font-family: '{self.font_sans}';
-                background: transparent;   # ← ganti jadi transparent
+                background: transparent;
             }}
         """)
 

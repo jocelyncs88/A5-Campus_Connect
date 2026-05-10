@@ -4,8 +4,90 @@
 # ==============================================================
 
 import sqlite3
+import re
+from datetime import datetime
 
 DB_NAME = "database.db"
+
+
+_MONTH_TRANSLATIONS = {
+    "januari": "January",
+    "februari": "February",
+    "maret": "March",
+    "april": "April",
+    "mei": "May",
+    "juni": "June",
+    "juli": "July",
+    "agustus": "August",
+    "september": "September",
+    "oktober": "October",
+    "november": "November",
+    "desember": "December",
+}
+
+
+def _normalize_month_names(value):
+    text = str(value or "").strip().lower()
+    for source, target in _MONTH_TRANSLATIONS.items():
+        text = text.replace(source, target)
+    return text
+
+
+def _parse_event_datetime(value):
+    text = str(value or "").strip()
+    if not text or text.upper() == "TBA":
+        return None
+
+    normalized_text = _normalize_month_names(text)
+
+    range_match = re.match(
+        r"^(?P<start>\d{1,2})\s*-\s*(?P<end>\d{1,2})\s+(?P<month>[A-Za-z]+)\s+(?P<year>\d{4})(?:\s+(?P<time>\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?))?$",
+        normalized_text,
+    )
+    if range_match:
+        start_date = f"{range_match.group('start')} {range_match.group('month')} {range_match.group('year')}"
+        time_part = range_match.group('time') or ""
+        candidate = f"{start_date} {time_part}".strip()
+        for fmt in ("%d %B %Y %H:%M", "%d %B %Y", "%d %b %Y %H:%M", "%d %b %Y"):
+            try:
+                return datetime.strptime(candidate, fmt)
+            except ValueError:
+                continue
+
+    formats = (
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d",
+        "%d %B %Y %H:%M",
+        "%d %B %Y",
+        "%d %b %Y %H:%M",
+        "%d %b %Y",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y",
+    )
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(normalized_text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _sort_events(rows):
+    parsed_rows = []
+    unparsed_rows = []
+
+    for row in rows:
+        tanggal_waktu = row[6] if len(row) > 6 else ""
+        parsed = _parse_event_datetime(tanggal_waktu)
+        if parsed is None:
+            unparsed_rows.append(row)
+        else:
+            parsed_rows.append((parsed, tanggal_waktu, row))
+
+    parsed_rows.sort(key=lambda item: (item[0], str(item[1]).strip().lower()), reverse=True)
+    unparsed_rows.sort(key=lambda row: str(row[6]).strip().lower() if len(row) > 6 else "")
+    return [row for _, _, row in parsed_rows] + unparsed_rows
 
 # =========================
 # INIT DATABASE
@@ -77,17 +159,12 @@ def upsert_event(event):
 def get_all_events():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    # Pake event_id sebagai acuan. Kalau bukan SCR-, taruh di paling depan!
     cursor.execute("""
-        SELECT * FROM events 
-        ORDER BY 
-            CASE WHEN event_id NOT LIKE 'SCR-%' THEN 0 ELSE 1 END ASC,
-            CASE WHEN event_id NOT LIKE 'SCR-%' THEN id END DESC,
-            CASE WHEN event_id LIKE 'SCR-%' THEN id END ASC
+        SELECT * FROM events
     """)
     rows = cursor.fetchall()
     conn.close()
-    return rows
+    return _sort_events(rows)
 
 # =========================
 # GET EVENTS BY STATUS
@@ -96,16 +173,12 @@ def get_events_by_status(status):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT * FROM events 
-        WHERE status = ? 
-        ORDER BY 
-            CASE WHEN event_id NOT LIKE 'SCR-%' THEN 0 ELSE 1 END ASC,
-            CASE WHEN event_id NOT LIKE 'SCR-%' THEN id END DESC,
-            CASE WHEN event_id LIKE 'SCR-%' THEN id END ASC
+        SELECT * FROM events
+        WHERE status = ?
     """, (status,))
     rows = cursor.fetchall()
     conn.close()
-    return rows
+    return _sort_events(rows)
 
 
 # =========================

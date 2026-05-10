@@ -126,8 +126,11 @@ class MainWindow(QMainWindow):
         
         # Mulai timer: 15 menit = 15 * 60 detik * 1000 milidetik = 900000 ms
         self.timer_update.start(900000)
-        
-        self.jalankan_auto_update()
+
+        # NOTE: initial synchronization is performed by `main._sync_scraped_events_to_db()`
+        # during application startup. To avoid running the scraper twice in quick
+        # succession, do not trigger `jalankan_auto_update()` here immediately.
+        # The periodic timer will run the first auto-update after its interval.
         
     def jalankan_auto_update(self):
         print("[AUTO UPDATE] Memulai sinkronisasi data di latar belakang...")
@@ -168,28 +171,29 @@ class MainWindow(QMainWindow):
             from main import _cache_image
         except ImportError:
             _cache_image = lambda x: x
-            
-        # 1. CARA BRUTAL & ANTI BUG: Copot kanvas lama dan buang ke tong sampah!
-        old_widget = self.scroll.takeWidget()
-        if old_widget:
-            old_widget.deleteLater()
-            
-        # 2. Buat kanvas baru yang 100% Fresh
-        self.scroll_content = QWidget()
-        self.scroll_content.setStyleSheet("background: transparent;") 
-        self.card_layout = QHBoxLayout(self.scroll_content)
-        self.card_layout.setSpacing(25)
-        self.card_layout.setContentsMargins(10, 0, 10, 10)
-        self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        
-        # 3. Pasang kanvas baru ke Scroll Area
-        self.scroll.setWidget(self.scroll_content)
-        self.scroll_content.installEventFilter(self)
 
-        # 4. Ambil data terbaru dari database
-        data_db_terbaru = db_manager.get_events_by_status("approved")
+        # Reuse kanvas scroll yang sudah ada, lalu bersihkan isi lamanya.
+        if self.scroll.widget() is None:
+            self.scroll_content = QWidget()
+            self.scroll_content.setStyleSheet("background: transparent;")
+            self.card_layout = QHBoxLayout(self.scroll_content)
+            self.card_layout.setSpacing(25)
+            self.card_layout.setContentsMargins(10, 0, 10, 10)
+            self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+            self.scroll.setWidget(self.scroll_content)
+            self.scroll_content.installEventFilter(self)
+
+        while self.card_layout.count():
+            item = self.card_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+        # 1. Ambil data terbaru dari database tanpa membatasi status,
+        # agar homepage tetap konsisten dengan tampilan awal aplikasi.
+        data_db_terbaru = db_manager.get_all_events()
         
-        # 5. Format ulang data
+        # 2. Format ulang data
         data_untuk_ui = []
         for row in data_db_terbaru:
             event_dict = {
@@ -202,7 +206,7 @@ class MainWindow(QMainWindow):
             }
             data_untuk_ui.append(event_dict)
             
-        # 6. Cetak ulang kartu di kanvas yang baru
+        # 3. Cetak ulang kartu di kanvas yang sudah dibersihkan
         self.render_event_cards(data_untuk_ui)
         
     def show_home_page(self):
@@ -410,6 +414,12 @@ class MainWindow(QMainWindow):
 
     def render_event_cards(self, data):
         """Membuat dan menampilkan objek kartu berdasarkan list data"""
+        while self.card_layout.count():
+            item = self.card_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
         for e in data:
             card = EventCard(e)
             card.setCursor(Qt.PointingHandCursor)
