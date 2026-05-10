@@ -10,6 +10,8 @@ import sys
 import os
 import scraper
 import db_manager
+import account_db
+
 from worker_thread import ScraperThread
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -20,7 +22,9 @@ from add_event_page import AddEventPage # ← TAMBAHAN
 from success_page import SuccessPage # ← TAMBAHAN
 from crud_events import prepare_create, save_payload
 from login_page import LoginPage
-import account_db
+from admin_page import AdminPage
+
+
 
 
 # --- INTEGRASI COMPONENT ---
@@ -109,6 +113,7 @@ class MainWindow(QMainWindow):
         self.success_page = None  # ← TAMBAHAN
         self.settings_page = None
         self.login_page = None
+        self.admin_page = None
         self.current_user_role = "guest"
         self.update_navbar_berdasarkan_role()
         
@@ -121,6 +126,8 @@ class MainWindow(QMainWindow):
         
         # Mulai timer: 15 menit = 15 * 60 detik * 1000 milidetik = 900000 ms
         self.timer_update.start(900000)
+        
+        self.jalankan_auto_update()
         
     def jalankan_auto_update(self):
         print("[AUTO UPDATE] Memulai sinkronisasi data di latar belakang...")
@@ -148,6 +155,7 @@ class MainWindow(QMainWindow):
         
         # 1. Update Database (Menggunakan fungsi INSERT OR IGNORE dari db_manager)
         for event in hasil_scraping:
+            event["status"] = "approved" # Beri stempel otomatis karena ini dari website resmi
             db_manager.upsert_event(event)
             
         # 2. Refresh Tampilan UI Layar Utama
@@ -167,7 +175,7 @@ class MainWindow(QMainWindow):
                 widget.deleteLater()
                 
         # B. Ambil data terbaru dari database
-        data_db_terbaru = db_manager.get_all_events()
+        data_db_terbaru = db_manager.get_events_by_status("approved")
         
         # C. Format ulang data dari bentuk baris Database ke bentuk Dictionary untuk UI
         data_untuk_ui = []
@@ -252,6 +260,8 @@ class MainWindow(QMainWindow):
             self.settings_page.hide()
         if self.login_page:
             self.login_page.hide()
+        if self.admin_page:
+            self.admin_page.hide()
 
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
@@ -496,6 +506,41 @@ class MainWindow(QMainWindow):
             self.layout_utama.setStretchFactor(self.login_page, 1)
 
         self.login_page.show()
+        
+    def show_admin_page(self):
+        self._hide_all_pages()
+        self.navbar_container.hide()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        
+        if self.admin_page is None:
+            self.admin_page = AdminPage()
+            # Hubungkan sinyal
+            self.admin_page.kembali_diklik.connect(self.show_home_page)
+            # Nanti kita buat fungsi proses_validasi untuk mengupdate database
+            # Hubungkan tombol Approve/Decline ke database
+            self.admin_page.validasi_diklik.connect(self.proses_validasi_admin)
+            
+            self.layout_utama.insertWidget(4, self.admin_page)
+            self.layout_utama.setStretchFactor(self.admin_page, 1)
+
+        # Muat ulang data setiap kali halaman dibuka
+        self.admin_page.load_data_antrean()
+        self.admin_page.show()
+        
+    def proses_validasi_admin(self, event_id, status_baru):
+        """Mengeksekusi persetujuan atau penolakan event dari Admin"""
+        # 1. Ubah status di database
+        db_manager.update_event_status(event_id, status_baru)
+        
+        # 2. Beri notifikasi ke Admin
+        aksi = "Disetujui" if status_baru == "approved" else "Ditolak"
+        QMessageBox.information(self, "Berhasil", f"Event {event_id} berhasil {aksi}!")
+        
+        # 3. Refresh tabel di halaman admin (nanti kita buat fungsi ini di admin_page.py)
+        self.admin_page.load_data_antrean()
+        
+        # 4. Refresh layar utama agar event yang di-approve langsung muncul di depan!
+        self.refresh_tampilan_homepage()
     
     def on_login_diklik(self, email, password):
             import account_db # Pastikan ini sudah di-import di atas
@@ -563,7 +608,7 @@ class MainWindow(QMainWindow):
             self.btn_login.clicked.connect(self.proses_logout)
 
             # Menu khusus Admin
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Dashboard Validasi")
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Dashboard Validasi").triggered.connect(self.show_admin_page)
             self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
             
