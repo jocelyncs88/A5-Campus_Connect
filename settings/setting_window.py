@@ -21,6 +21,7 @@ from PyQt5.QtGui import *
 from toggle_widget import ToggleSwitch
 from setting_item_widget import SettingItem
 from settings.account_window import AccountPanel
+from settings.your_events_window import YourEventsPanel
   
 
 # ==============================================================
@@ -177,7 +178,11 @@ class SettingsWindow(QWidget):
             user_data=self.user_data,
             stacked_widget=self.stacked_widget
         )
-        self.panel_your_events = self.buat_panel_your_events()
+        self.panel_your_events = YourEventsPanel(
+            user_data=self.user_data,
+            stacked_widget=self.stacked_widget
+        )
+        self.panel_your_events.minta_edit_event.connect(self.buka_halaman_edit_event)
         self.panel_notif       = self.buat_panel_notif()
         self.panel_appearance  = self.buat_panel_appearance()
         self.panel_language    = self.buat_panel_language()
@@ -380,63 +385,6 @@ class SettingsWindow(QWidget):
 
 
     # ----------------------------------------------------------
-    # FUNGSI buat_panel_your_events()
-    # Membangun panel "Your Events" yang BERBEDA sesuai role:
-    #
-    #   ROLE_ORGANIZER → daftar event yang pernah dibuat + tombol tambah event
-    #   ROLE_MAHASISWA → daftar event yang pernah didaftarkan / di-RSVP
-    #   ROLE_UMUM      → pesan bahwa fitur ini tidak tersedia + ajakan login
-    # ----------------------------------------------------------
-    def buat_panel_your_events(self):
-        panel = QWidget()
-        panel.setStyleSheet("background: transparent;")
-
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(50, 40, 50, 40)
-        layout.setSpacing(16)
-
-        lbl_judul = QLabel("Your Events")
-        lbl_judul.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
-        layout.addWidget(lbl_judul)
-
-        if self.role == ROLE_ORGANIZER:
-            lbl_info = QLabel("Event yang pernah kamu buat akan muncul di sini.")
-            lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
-            layout.addWidget(lbl_info)
-
-            btn_tambah = QPushButton("+ Tambah Event Baru")
-            btn_tambah.setCursor(Qt.PointingHandCursor)
-            btn_tambah.setFixedWidth(200)
-            btn_tambah.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: #ff99aa;
-                    color: white;
-                    border-radius: 20px;
-                    padding: 10px 20px;
-                    font-weight: bold;
-                    font-size: 13px;
-                    border: none;
-                }}
-                QPushButton:hover {{ background-color: #ff7799; }}
-            """)
-            layout.addWidget(btn_tambah)
-
-        elif self.role == ROLE_MAHASISWA:
-            lbl_info = QLabel("Event yang pernah kamu ikuti akan muncul di sini.")
-            lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
-            layout.addWidget(lbl_info)
-
-        else:
-            lbl_info = QLabel("Fitur ini hanya tersedia untuk pengguna terdaftar.\nSilakan login untuk mengakses riwayat event kamu.")
-            lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
-            lbl_info.setWordWrap(True)
-            layout.addWidget(lbl_info)
-
-        layout.addStretch()
-        return panel
-
-
-    # ----------------------------------------------------------
     # FUNGSI buat_panel_notif()
     # Membangun panel "Notifications" yang BERBEDA sesuai role:
     #
@@ -528,6 +476,18 @@ class SettingsWindow(QWidget):
 
         layout.addStretch()
         return panel
+
+    def buka_halaman_edit_event(self, data_event):
+        from add_event_page import AddEventPage
+        panel_edit = AddEventPage(data_event=data_event)
+        panel_edit.dibatalkan.connect(lambda: self._tutup_edit_event(panel_edit))
+        self.stacked_widget.addWidget(panel_edit)
+        self.stacked_widget.setCurrentWidget(panel_edit)
+
+    def _tutup_edit_event(self, panel):
+        self.stacked_widget.setCurrentIndex(1)  # kembali ke Your Events
+        self.stacked_widget.removeWidget(panel)
+        panel.deleteLater()
 
 
 # ==============================================================

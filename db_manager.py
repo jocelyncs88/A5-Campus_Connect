@@ -9,6 +9,14 @@ from datetime import datetime
 
 DB_NAME = "database.db"
 
+# =========================================================
+# SQLITE ROW -> DICTIONARY
+# =========================================================
+def row_to_dict(cursor, row):
+
+    columns = [col[0] for col in cursor.description]
+
+    return dict(zip(columns, row))
 
 _MONTH_TRANSLATIONS = {
     "januari": "January",
@@ -78,7 +86,7 @@ def _sort_events(rows):
     unparsed_rows = []
 
     for row in rows:
-        tanggal_waktu = row[6] if len(row) > 6 else ""
+        tanggal_waktu = row.get("tanggal_waktu", "") if isinstance(row, dict) else (row[6] if len(row) > 6 else "")
         parsed = _parse_event_datetime(tanggal_waktu)
         if parsed is None:
             unparsed_rows.append(row)
@@ -86,7 +94,7 @@ def _sort_events(rows):
             parsed_rows.append((parsed, tanggal_waktu, row))
 
     parsed_rows.sort(key=lambda item: (item[0], str(item[1]).strip().lower()), reverse=True)
-    unparsed_rows.sort(key=lambda row: str(row[6]).strip().lower() if len(row) > 6 else "")
+    unparsed_rows.sort(key=lambda row: str(row.get("tanggal_waktu", "")).strip().lower() if isinstance(row, dict) else (str(row[6]).strip().lower() if len(row) > 6 else ""))
     return [row for _, _, row in parsed_rows] + unparsed_rows
 
 def init_db():
@@ -218,12 +226,20 @@ def upsert_event(event):
 def get_all_events():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+
     cursor.execute("""
         SELECT * FROM events
     """)
+
     rows = cursor.fetchall()
+
+    sorted_rows = _sort_events(rows)
+
+    result = [row_to_dict(cursor, row) for row in sorted_rows]
+
     conn.close()
-    return _sort_events(rows)
+
+    return result
 
 # =========================
 # GET EVENTS BY STATUS
@@ -231,13 +247,21 @@ def get_all_events():
 def get_events_by_status(status):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+
     cursor.execute("""
         SELECT * FROM events
         WHERE status = ?
     """, (status,))
+
     rows = cursor.fetchall()
+
+    sorted_rows = _sort_events(rows)
+
+    result = [row_to_dict(cursor, row) for row in sorted_rows]
+
     conn.close()
-    return _sort_events(rows)
+
+    return result
 
 # =========================================================
 # GET EVENTS BY ORGANIZER
@@ -255,9 +279,11 @@ def get_events_by_organizer(organizer_id):
 
     rows = cursor.fetchall()
 
+    result = [row_to_dict(cursor, row) for row in rows]
+
     conn.close()
 
-    return rows
+    return result
 
 
 # =========================================================
@@ -277,9 +303,11 @@ def get_booked_events(user_id):
 
     rows = cursor.fetchall()
 
+    result = [row_to_dict(cursor, row) for row in rows]
+
     conn.close()
 
-    return rows
+    return result
 
 
 # =========================================================
@@ -298,9 +326,11 @@ def get_liked_events(user_id):
 
     rows = cursor.fetchall()
 
+    result = [row_to_dict(cursor, row) for row in rows]
+
     conn.close()
 
-    return rows
+    return result
 
 # =========================
 # UPDATE EVENT STATUS (FUNGSI BARU)
