@@ -110,6 +110,7 @@ class MainWindow(QMainWindow):
         self.settings_page = None
         self.login_page = None
         self.current_user_role = "guest"
+        self.update_navbar_berdasarkan_role()
         
         # === FITUR AUTO UPDATE 15 MENIT ===
         # QTimer sudah di-import melalui 'from PyQt5.QtCore import *'
@@ -301,11 +302,13 @@ class MainWindow(QMainWindow):
             QMenu::item:selected {{ background-color: #BDD7D8; color: #5D6B6B; }}
         """)
         
-        # Aksi di dalam Hamburger Menu
-        self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
-        # ← TAMBAHAN: connect FAQ ke show_faq_page
-        self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
-        self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+        #hamburger menu udh ada di self.hamburger_menu.addAction (update navbar berdasarkan role)
+        
+        # # Aksi di dalam Hamburger Menu
+        # self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
+        # # ← TAMBAHAN: connect FAQ ke show_faq_page
+        # self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+        # self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
         self.btn_menu.setMenu(self.hamburger_menu)
 
         # Masukkan semua ke layout navbar
@@ -515,6 +518,67 @@ class MainWindow(QMainWindow):
                 self.show_home_page()
             else:
                 QMessageBox.warning(self, "Gagal", "Email atau Password salah!")
+                
+    def update_navbar_berdasarkan_role(self):
+        """Mengubah tampilan Navbar dan isi Menu secara dinamis sesuai role"""
+        
+        # 1. Bersihkan menu agar tidak terjadi penumpukan (duplikat)
+        self.hamburger_menu.clear()
+
+        if self.current_user_role == "guest":
+            # --- TAMPILAN GUEST ---
+            self.btn_login.setText("  Login")
+            self.btn_login.setStyleSheet("background-color: #ff99aa; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+            
+            try: self.btn_login.clicked.disconnect() 
+            except: pass
+            self.btn_login.clicked.connect(self.show_login_page)
+
+            # Guest BISA melihat FAQ dan Setting, tapi TIDAK ADA Add Event
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+
+        elif self.current_user_role == "eo":
+            # --- TAMPILAN EVENT ORGANIZER ---
+            self.btn_login.setText("  Hi, Event Organizer!")
+            self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+            
+            try: self.btn_login.clicked.disconnect() 
+            except: pass
+            self.btn_login.clicked.connect(self.proses_logout)
+
+            # EO punya akses lengkap
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input) 
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events")
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+
+        elif self.current_user_role == "admin":
+            # --- TAMPILAN ADMIN ---
+            self.btn_login.setText("  Admin Panel")
+            self.btn_login.setStyleSheet("background-color: #516465; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+            
+            try: self.btn_login.clicked.disconnect() 
+            except: pass
+            self.btn_login.clicked.connect(self.proses_logout)
+
+            # Menu khusus Admin
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Dashboard Validasi")
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+            
+    def proses_logout(self):
+        # Konfirmasi logout
+        jawaban = QMessageBox.question(self, "Logout", "Apakah Anda yakin ingin keluar?", QMessageBox.Yes | QMessageBox.No)
+        
+        if jawaban == QMessageBox.Yes:
+            # Kembalikan state ke guest
+            self.current_user_role = "guest"
+            # Kembalikan tampilan navbar
+            self.update_navbar_berdasarkan_role()
+            # Buka ulang halaman home
+            self.show_home_page()
+            QMessageBox.information(self, "Logout", "Berhasil logout.")
         
     def proses_login(self, email, password):
     # Cek ke database
