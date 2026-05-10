@@ -593,6 +593,7 @@ class MainWindow(QMainWindow):
             if user_role:
                 # 1. Ubah state role aplikasi
                 self.current_user_role = user_role
+                self.settings_page = None
                 
                 # 2. Beri notifikasi sukses
                 QMessageBox.information(self, "Berhasil", f"Login Sukses sebagai {user_role.upper()}!")
@@ -660,6 +661,7 @@ class MainWindow(QMainWindow):
         if jawaban == QMessageBox.Yes:
             # Kembalikan state ke guest
             self.current_user_role = "guest"
+            self.settings_page = None
             # Kembalikan tampilan navbar
             self.update_navbar_berdasarkan_role()
             # Buka ulang halaman home
@@ -687,7 +689,7 @@ class MainWindow(QMainWindow):
             self.settings_page = SettingsWindow(
                 user_data={
                     "nama": "", "bio": "", "email": "",
-                    "kontak": "", "role": "umum", "inisial": ""
+                    "kontak": "", "role": self.current_user_role, "inisial": ""
                 }
             )
             self.settings_page.btn_home.clicked.connect(self.show_home_page)

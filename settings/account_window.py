@@ -145,9 +145,9 @@ class AccountPanel(QWidget):
         # ---- Judul halaman ----
         lbl_judul = QLabel("Account Settings")
         lbl_judul.setStyleSheet(f"""
-            font-size: 28px;
+            font-size: 55px;
             font-weight: bold;
-            color: {COLOR_TEXT_PRIMARY};
+            color: black;
             margin-bottom: 24px;
         """)
         layout.addWidget(lbl_judul)
@@ -156,9 +156,9 @@ class AccountPanel(QWidget):
         # ---- Sub-judul "Basic info" ----
         lbl_basic = QLabel("Basic info")
         lbl_basic.setStyleSheet(f"""
-            font-size: 16px;
+            font-size: 37px;
             font-weight: bold;
-            color: {COLOR_TEXT_PRIMARY};
+            color: black;
             margin-bottom: 12px;
         """)
         layout.addWidget(lbl_basic)
@@ -207,7 +207,7 @@ class AccountPanel(QWidget):
 
         # Label nama field di kiri
         lbl_field = QLabel("Profile picture")
-        lbl_field.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
+        lbl_field.setStyleSheet("color: #828282; font-size: 25px;")
         lbl_field.setFixedWidth(220)
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -216,14 +216,14 @@ class AccountPanel(QWidget):
         # Jika belum ada inisial, tampilkan "add photo" sebagai petunjuk
         inisial = self.user_data.get("inisial", "")
         avatar = QLabel(inisial if inisial else "add\nphoto")
-        avatar.setFixedSize(48, 48)
+        avatar.setFixedSize(78, 78)
         avatar.setAlignment(Qt.AlignCenter)
         avatar.setStyleSheet(f"""
             background-color: {COLOR_TEAL_DARK};
             color: white;
             font-weight: bold;
-            font-size: {"13px" if inisial else "8px"};
-            border-radius: 24px;
+            font-size: {"18px" if inisial else "10px"};
+            border-radius: 39px;
         """)
 
         # Kolom kanan: Upload dan Remove
@@ -235,12 +235,13 @@ class AccountPanel(QWidget):
 
         btn_upload = QLabel("Upload new picture")
         btn_upload.setCursor(Qt.PointingHandCursor)
-        btn_upload.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; font-size: 12px;")
+        btn_upload.setStyleSheet("color: black; font-size: 16px;")
+
 
         # Warna merah untuk aksi yang bersifat destruktif
         btn_remove = QLabel("Remove")
         btn_remove.setCursor(Qt.PointingHandCursor)
-        btn_remove.setStyleSheet("color: #E05C5C; font-size: 12px;")
+        btn_remove.setStyleSheet("color: #F60606; font-size: 16px;")
 
         action_layout.addWidget(btn_upload)
         action_layout.addWidget(btn_remove)
@@ -275,7 +276,7 @@ class AccountPanel(QWidget):
 
         # Nama field di kiri (warna muted)
         lbl_field = QLabel(field_label)
-        lbl_field.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
+        lbl_field.setStyleSheet("color: #828282; font-size: 25px;")
         lbl_field.setFixedWidth(220)
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -286,7 +287,7 @@ class AccountPanel(QWidget):
         is_placeholder = field_value.startswith("add ")
         lbl_value = QLabel(field_value)
         lbl_value.setStyleSheet(
-            f"color: {COLOR_TEXT_MUTED if is_placeholder else COLOR_TEXT_PRIMARY}; font-size: 13px;"
+            f"color: {'#828282' if is_placeholder else 'black'}; font-size: 25px;"
         )
         lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
