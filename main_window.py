@@ -163,37 +163,65 @@ class MainWindow(QMainWindow):
         print("[AUTO UPDATE] Tampilan homepage berhasil diperbarui dengan data terbaru!")
 
     def refresh_tampilan_homepage(self):
-        """Menghapus kartu lama dan me-render ulang kartu baru dari database."""
-        from main import _cache_image
+        """Membangun ulang kanvas kartu dari nol agar tidak ada bug UI nyangkut."""
+        try:
+            from main import _cache_image
+        except ImportError:
+            _cache_image = lambda x: x
+            
+        # 1. CARA BRUTAL & ANTI BUG: Copot kanvas lama dan buang ke tong sampah!
+        old_widget = self.scroll.takeWidget()
+        if old_widget:
+            old_widget.deleteLater()
+            
+        # 2. Buat kanvas baru yang 100% Fresh
+        self.scroll_content = QWidget()
+        self.scroll_content.setStyleSheet("background: transparent;") 
+        self.card_layout = QHBoxLayout(self.scroll_content)
+        self.card_layout.setSpacing(25)
+        self.card_layout.setContentsMargins(10, 0, 10, 10)
+        self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         
-        # A. Kosongkan layout kartu yang lama
-        while self.card_layout.count():
-            item = self.card_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                # Hapus widget dari memori dengan aman
-                widget.deleteLater()
-                
-        # B. Ambil data terbaru dari database
+        # 3. Pasang kanvas baru ke Scroll Area
+        self.scroll.setWidget(self.scroll_content)
+        self.scroll_content.installEventFilter(self)
+
+        # 4. Ambil data terbaru dari database
         data_db_terbaru = db_manager.get_events_by_status("approved")
         
-        # C. Format ulang data dari bentuk baris Database ke bentuk Dictionary untuk UI
+        # 5. Format ulang data
         data_untuk_ui = []
         for row in data_db_terbaru:
             event_dict = {
                 "event_id": row[1] if len(row) > 1 else "",
                 "nama_event": row[2] if len(row) > 2 and row[2] else "Tanpa Judul",
                 "deskripsi_singkat": row[3] if len(row) > 3 and row[3] else "...",
-                # Ganti baris gambar_poster menjadi ini:
                 "gambar_poster": _cache_image(row[4] if len(row) > 4 and row[4] else ""),
                 "jenis_event": (row[5] if len(row) > 5 and row[5] else "External").title(),
                 "tanggal_waktu": row[6] if len(row) > 6 and row[6] else "TBA",
             }
             data_untuk_ui.append(event_dict)
             
-        # D. Cetak ulang kartu-kartu baru ke layar
+        # 6. Cetak ulang kartu di kanvas yang baru
         self.render_event_cards(data_untuk_ui)
+        
+    def show_home_page(self):
+        self._hide_all_pages()
+        
+        # REFRESH DATA SETIAP KALI KE HOME (Biar langsung update tanpa close program!)
+        self.refresh_tampilan_homepage()
 
+        self.navbar_container.show()
+        self.spacing_after_navbar.show()
+        self.spacing_after_hero.show()
+
+        self.layout_utama.setContentsMargins(60, 20, 60, 40)
+        self.layout_utama.setSpacing(0)
+
+        self.hero_widget.show()
+        self.event_title.show()
+        self.scroll.show()
+        
     def _register_wheel_forwarding(self, widget):
         widget.installEventFilter(self)
         for child in widget.findChildren(QWidget):

@@ -75,23 +75,34 @@ def upsert_event(event):
 # GET ALL EVENTS
 # =========================
 def get_all_events():
-    """Mengambil SEMUA event tanpa terkecuali"""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM events ORDER BY id ASC")
+    # Pake event_id sebagai acuan. Kalau bukan SCR-, taruh di paling depan!
+    cursor.execute("""
+        SELECT * FROM events 
+        ORDER BY 
+            CASE WHEN event_id NOT LIKE 'SCR-%' THEN 0 ELSE 1 END ASC,
+            CASE WHEN event_id NOT LIKE 'SCR-%' THEN id END DESC,
+            CASE WHEN event_id LIKE 'SCR-%' THEN id END ASC
+    """)
     rows = cursor.fetchall()
     conn.close()
     return rows
 
-
 # =========================
-# GET EVENTS BY STATUS (FUNGSI BARU)
+# GET EVENTS BY STATUS
 # =========================
 def get_events_by_status(status):
-    """Mengambil event yang sesuai dengan status tertentu (approved/pending/rejected)"""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM events WHERE status = ? ORDER BY id ASC", (status,))
+    cursor.execute("""
+        SELECT * FROM events 
+        WHERE status = ? 
+        ORDER BY 
+            CASE WHEN event_id NOT LIKE 'SCR-%' THEN 0 ELSE 1 END ASC,
+            CASE WHEN event_id NOT LIKE 'SCR-%' THEN id END DESC,
+            CASE WHEN event_id LIKE 'SCR-%' THEN id END ASC
+    """, (status,))
     rows = cursor.fetchall()
     conn.close()
     return rows
