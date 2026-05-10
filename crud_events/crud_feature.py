@@ -6,11 +6,42 @@ Build payloads and orchestrate validation; keep DB writes via `db_manager`.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Tuple
 
 from .event_schema import get_event_form_schema, get_db_event_fields
 from .validation_crud import validate_payload
 import db_manager
+
+
+_INDONESIAN_MONTHS = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+]
+
+
+def _format_date_for_storage(date_value: str) -> str:
+    text = (date_value or "").strip()
+    if not text:
+        return ""
+
+    try:
+        parsed = datetime.strptime(text, "%Y-%m-%d")
+    except ValueError:
+        return text
+
+    month_name = _INDONESIAN_MONTHS[parsed.month - 1]
+    return f"{parsed.day:02d} {month_name} {parsed.year}"
 
 
 def build_event_payload(form_data: dict) -> dict:
@@ -21,8 +52,9 @@ def build_event_payload(form_data: dict) -> dict:
     tanggal = (form_data.get("tanggal") or "").strip()
     waktu = (form_data.get("waktu") or "").strip()
     poster = (form_data.get("poster_event") or "").strip()
+    tanggal_storage = _format_date_for_storage(tanggal)
 
-    tanggal_waktu = f"{tanggal} {waktu}".strip()
+    tanggal_waktu = f"{tanggal_storage} {waktu}".strip()
     event_id = (form_data.get("event_id") or "").strip() or f"MAN-{uuid.uuid4().hex[:10].upper()}"
 
     return {

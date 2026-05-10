@@ -14,11 +14,33 @@ from datetime import datetime
 
 VALID_EVENT_TYPES = {"Internal", "External"}
 
+_MONTH_TRANSLATIONS = {
+    "januari": "January",
+    "februari": "February",
+    "maret": "March",
+    "april": "April",
+    "mei": "May",
+    "juni": "June",
+    "juli": "July",
+    "agustus": "August",
+    "september": "September",
+    "oktober": "October",
+    "november": "November",
+    "desember": "December",
+}
+
 
 def _clean_text(value):
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _normalize_month_names(value):
+    text = _clean_text(value).lower()
+    for source, target in _MONTH_TRANSLATIONS.items():
+        text = text.replace(source, target)
+    return text
 
 
 def _is_valid_date(value: str) -> bool:
@@ -44,7 +66,17 @@ def _normalize_datetime_str(date_str: str, time_str: str) -> str:
     time_str = _clean_text(time_str)
     if not date_str and not time_str:
         return ""
-    return f"{date_str} {time_str}".strip()
+
+    normalized_date = _normalize_month_names(date_str)
+    for fmt in ("%Y-%m-%d", "%d %B %Y", "%d %b %Y", "%d/%m/%Y"):
+        try:
+            parsed = datetime.strptime(normalized_date, fmt)
+            date_text = parsed.strftime("%Y-%m-%d")
+            return f"{date_text} {time_str}".strip().lower()
+        except ValueError:
+            continue
+
+    return f"{date_str} {time_str}".strip().lower()
 
 
 def validate_payload(payload: dict, existing_events: list | None = None, exclude_event_id: str | None = None):

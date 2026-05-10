@@ -191,6 +191,8 @@ def main():
     app.setStyle("Fusion")
 
     window = MainWindow()
+    if db_events:
+        window.refresh_tampilan_homepage()
     window.show()
 
     sys.exit(app.exec_())
