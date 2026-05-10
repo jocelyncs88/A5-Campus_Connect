@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                               QLabel, QLineEdit, QPushButton,
                               QComboBox, QScrollArea, QMessageBox,
                               QSizePolicy, QDateEdit, QTimeEdit)
+                              QScrollArea, QMessageBox,
                               QSizePolicy, QDateEdit, QTimeEdit,  
                               QToolButton, QMenu)
 
