@@ -9,14 +9,6 @@ from datetime import datetime
 
 DB_NAME = "database.db"
 
-# =========================================================
-# SQLITE ROW -> DICTIONARY
-# =========================================================
-def row_to_dict(cursor, row):
-
-    columns = [col[0] for col in cursor.description]
-
-    return dict(zip(columns, row))
 
 _MONTH_TRANSLATIONS = {
     "januari": "January",
@@ -226,20 +218,12 @@ def upsert_event(event):
 def get_all_events():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-
     cursor.execute("""
         SELECT * FROM events
     """)
-
     rows = cursor.fetchall()
-
-    sorted_rows = _sort_events(rows)
-
-    result = [row_to_dict(cursor, row) for row in sorted_rows]
-
     conn.close()
-
-    return result
+    return _sort_events(rows)
 
 # =========================
 # GET EVENTS BY STATUS
@@ -247,21 +231,13 @@ def get_all_events():
 def get_events_by_status(status):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-
     cursor.execute("""
         SELECT * FROM events
         WHERE status = ?
     """, (status,))
-
     rows = cursor.fetchall()
-
-    sorted_rows = _sort_events(rows)
-
-    result = [row_to_dict(cursor, row) for row in sorted_rows]
-
     conn.close()
-
-    return result
+    return _sort_events(rows)
 
 # =========================================================
 # GET EVENTS BY ORGANIZER
@@ -279,11 +255,9 @@ def get_events_by_organizer(organizer_id):
 
     rows = cursor.fetchall()
 
-    result = [row_to_dict(cursor, row) for row in rows]
-
     conn.close()
 
-    return result
+    return rows
 
 
 # =========================================================
@@ -303,11 +277,9 @@ def get_booked_events(user_id):
 
     rows = cursor.fetchall()
 
-    result = [row_to_dict(cursor, row) for row in rows]
-
     conn.close()
 
-    return result
+    return rows
 
 
 # =========================================================
@@ -326,11 +298,9 @@ def get_liked_events(user_id):
 
     rows = cursor.fetchall()
 
-    result = [row_to_dict(cursor, row) for row in rows]
-
     conn.close()
 
-    return result
+    return rows
 
 # =========================
 # UPDATE EVENT STATUS (FUNGSI BARU)
