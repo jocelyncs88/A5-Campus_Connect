@@ -602,15 +602,38 @@ class AddEventPage(QWidget):
         # ---- SEMUA VALIDASI LULUS ----
         # Kumpulkan semua data form ke dalam dictionary
         # Dictionary ini yang dikirim ke main_window.py
+        # Build a tidy description by appending location, campus and ticket info
+        base_desc = self.input_deskripsi.text().strip()
+        extras = []
+        lokasi_text = self.input_lokasi.text().strip()
+        kampus_text = self.input_kampus.text().strip()
+        if lokasi_text:
+            extras.append(f"Lokasi: {lokasi_text}")
+        if kampus_text:
+            extras.append(f"Penyelenggara: {kampus_text}")
+        if self.toggle_tiket.is_on():
+            harga = self.input_harga.text().strip()
+            if harga:
+                extras.append(f"Tiket: Berbayar — Rp {harga}")
+            else:
+                extras.append("Tiket: Berbayar")
+        else:
+            extras.append("Tiket: Gratis")
+
+        if base_desc:
+            combined_desc = base_desc + "\n\n" + "\n".join(extras)
+        else:
+            combined_desc = "\n".join(extras)
+
         data_event = {
             "nama_event"       : self.input_nama.text().strip(),
             "jenis_event"      : self.input_jenis.currentText(),
-            "deskripsi_singkat": self.input_deskripsi.text().strip(),
+            "deskripsi_singkat": combined_desc,
             "kategori"         : self.input_kategori.text().strip(),
             "tanggal"          : tanggal,
             "waktu"            : waktu,
-            "lokasi"           : self.input_lokasi.text().strip(),
-            "penyelenggara"    : self.input_kampus.text().strip(),
+            "lokasi"           : lokasi_text,
+            "penyelenggara"    : kampus_text,
             "tipe_tiket"       : "Berbayar" if self.toggle_tiket.is_on() else "Gratis",
             "harga_tiket"      : self.input_harga.text().strip() if self.toggle_tiket.is_on() else "0",
             "gambar_poster"    : self.poster_path,
