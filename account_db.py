@@ -24,15 +24,15 @@ def hash_password(password):
 def create_table():
     conn = connect_db()
     cursor = conn.cursor()
-
+    # TAMBAH KOLOM role
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        role TEXT NOT NULL
     )
     """)
-
     conn.commit()
     conn.close()
 
@@ -40,7 +40,7 @@ def create_table():
 # =========================
 # REGISTER ACCOUNT
 # =========================
-def register_account(email, password):
+def register_account(email, password, role="eo"):
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -48,9 +48,9 @@ def register_account(email, password):
 
     try:
         cursor.execute("""
-        INSERT INTO accounts (email, password)
-        VALUES (?, ?)
-        """, (email, hashed_pw))
+        INSERT INTO accounts (email, password, role)
+        VALUES (?, ?, ?)
+        """, (email, hashed_pw, role))
 
         conn.commit()
         return True
@@ -79,16 +79,18 @@ def check_login(email, password):
     result = cursor.fetchone()
 
     conn.close()
-
-    return result is not None
+    if result:
+        return result[3]  # Mengembalikan role (indeks ke-3 dari database)
+    else:
+        return None       # Mengembalikan None jika email/password salah
 
 
 # =========================
 # CREATE DEMO ACCOUNT
 # =========================
 def create_demo_account():
-    register_account("admin@gmail.com", "123456")
-
+    register_account("admin@gmail.com", "123456", "admin")
+    register_account("eo@gmail.com", "123456", "eo")
 
 # =========================
 # MAIN

@@ -10,6 +10,8 @@ import sys
 import os
 import scraper
 import db_manager
+import account_db
+
 from worker_thread import ScraperThread
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -20,6 +22,9 @@ from add_event_page import AddEventPage # ← TAMBAHAN
 from success_page import SuccessPage # ← TAMBAHAN
 from crud_events import prepare_create, save_payload
 from login_page import LoginPage
+from admin_page import AdminPage
+
+
 
 
 # --- INTEGRASI COMPONENT ---
@@ -108,6 +113,9 @@ class MainWindow(QMainWindow):
         self.success_page = None  # ← TAMBAHAN
         self.settings_page = None
         self.login_page = None
+        self.admin_page = None
+        self.current_user_role = "guest"
+        self.update_navbar_berdasarkan_role()
         
         # === FITUR AUTO UPDATE 15 MENIT ===
         # QTimer sudah di-import melalui 'from PyQt5.QtCore import *'
@@ -118,6 +126,8 @@ class MainWindow(QMainWindow):
         
         # Mulai timer: 15 menit = 15 * 60 detik * 1000 milidetik = 900000 ms
         self.timer_update.start(900000)
+        
+        self.jalankan_auto_update()
         
     def jalankan_auto_update(self):
         print("[AUTO UPDATE] Memulai sinkronisasi data di latar belakang...")
@@ -145,6 +155,7 @@ class MainWindow(QMainWindow):
         
         # 1. Update Database (Menggunakan fungsi INSERT OR IGNORE dari db_manager)
         for event in hasil_scraping:
+            event["status"] = "approved" # Beri stempel otomatis karena ini dari website resmi
             db_manager.upsert_event(event)
             
         # 2. Refresh Tampilan UI Layar Utama
@@ -152,37 +163,65 @@ class MainWindow(QMainWindow):
         print("[AUTO UPDATE] Tampilan homepage berhasil diperbarui dengan data terbaru!")
 
     def refresh_tampilan_homepage(self):
-        """Menghapus kartu lama dan me-render ulang kartu baru dari database."""
-        from main import _cache_image
+        """Membangun ulang kanvas kartu dari nol agar tidak ada bug UI nyangkut."""
+        try:
+            from main import _cache_image
+        except ImportError:
+            _cache_image = lambda x: x
+            
+        # 1. CARA BRUTAL & ANTI BUG: Copot kanvas lama dan buang ke tong sampah!
+        old_widget = self.scroll.takeWidget()
+        if old_widget:
+            old_widget.deleteLater()
+            
+        # 2. Buat kanvas baru yang 100% Fresh
+        self.scroll_content = QWidget()
+        self.scroll_content.setStyleSheet("background: transparent;") 
+        self.card_layout = QHBoxLayout(self.scroll_content)
+        self.card_layout.setSpacing(25)
+        self.card_layout.setContentsMargins(10, 0, 10, 10)
+        self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         
-        # A. Kosongkan layout kartu yang lama
-        while self.card_layout.count():
-            item = self.card_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                # Hapus widget dari memori dengan aman
-                widget.deleteLater()
-                
-        # B. Ambil data terbaru dari database
-        data_db_terbaru = db_manager.get_all_events()
+        # 3. Pasang kanvas baru ke Scroll Area
+        self.scroll.setWidget(self.scroll_content)
+        self.scroll_content.installEventFilter(self)
+
+        # 4. Ambil data terbaru dari database
+        data_db_terbaru = db_manager.get_events_by_status("approved")
         
-        # C. Format ulang data dari bentuk baris Database ke bentuk Dictionary untuk UI
+        # 5. Format ulang data
         data_untuk_ui = []
         for row in data_db_terbaru:
             event_dict = {
                 "event_id": row[1] if len(row) > 1 else "",
                 "nama_event": row[2] if len(row) > 2 and row[2] else "Tanpa Judul",
                 "deskripsi_singkat": row[3] if len(row) > 3 and row[3] else "...",
-                # Ganti baris gambar_poster menjadi ini:
                 "gambar_poster": _cache_image(row[4] if len(row) > 4 and row[4] else ""),
                 "jenis_event": (row[5] if len(row) > 5 and row[5] else "External").title(),
                 "tanggal_waktu": row[6] if len(row) > 6 and row[6] else "TBA",
             }
             data_untuk_ui.append(event_dict)
             
-        # D. Cetak ulang kartu-kartu baru ke layar
+        # 6. Cetak ulang kartu di kanvas yang baru
         self.render_event_cards(data_untuk_ui)
+        
+    def show_home_page(self):
+        self._hide_all_pages()
+        
+        # REFRESH DATA SETIAP KALI KE HOME (Biar langsung update tanpa close program!)
+        self.refresh_tampilan_homepage()
 
+        self.navbar_container.show()
+        self.spacing_after_navbar.show()
+        self.spacing_after_hero.show()
+
+        self.layout_utama.setContentsMargins(60, 20, 60, 40)
+        self.layout_utama.setSpacing(0)
+
+        self.hero_widget.show()
+        self.event_title.show()
+        self.scroll.show()
+        
     def _register_wheel_forwarding(self, widget):
         widget.installEventFilter(self)
         for child in widget.findChildren(QWidget):
@@ -249,6 +288,8 @@ class MainWindow(QMainWindow):
             self.settings_page.hide()
         if self.login_page:
             self.login_page.hide()
+        if self.admin_page:
+            self.admin_page.hide()
 
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
@@ -299,11 +340,13 @@ class MainWindow(QMainWindow):
             QMenu::item:selected {{ background-color: #BDD7D8; color: #5D6B6B; }}
         """)
         
-        # Aksi di dalam Hamburger Menu
-        self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
-        # ← TAMBAHAN: connect FAQ ke show_faq_page
-        self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
-        self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+        #hamburger menu udh ada di self.hamburger_menu.addAction (update navbar berdasarkan role)
+        
+        # # Aksi di dalam Hamburger Menu
+        # self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
+        # # ← TAMBAHAN: connect FAQ ke show_faq_page
+        # self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+        # self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
         self.btn_menu.setMenu(self.hamburger_menu)
 
         # Masukkan semua ke layout navbar
@@ -491,11 +534,133 @@ class MainWindow(QMainWindow):
             self.layout_utama.setStretchFactor(self.login_page, 1)
 
         self.login_page.show()
+        
+    def show_admin_page(self):
+        self._hide_all_pages()
+        self.navbar_container.hide()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        
+        if self.admin_page is None:
+            self.admin_page = AdminPage()
+            # Hubungkan sinyal
+            self.admin_page.kembali_diklik.connect(self.show_home_page)
+            # Nanti kita buat fungsi proses_validasi untuk mengupdate database
+            # Hubungkan tombol Approve/Decline ke database
+            self.admin_page.validasi_diklik.connect(self.proses_validasi_admin)
+            
+            self.layout_utama.insertWidget(4, self.admin_page)
+            self.layout_utama.setStretchFactor(self.admin_page, 1)
+
+        # Muat ulang data setiap kali halaman dibuka
+        self.admin_page.load_data_antrean()
+        self.admin_page.show()
+        
+    def proses_validasi_admin(self, event_id, status_baru):
+        """Mengeksekusi persetujuan atau penolakan event dari Admin"""
+        # 1. Ubah status di database
+        db_manager.update_event_status(event_id, status_baru)
+        
+        # 2. Beri notifikasi ke Admin
+        aksi = "Disetujui" if status_baru == "approved" else "Ditolak"
+        QMessageBox.information(self, "Berhasil", f"Event {event_id} berhasil {aksi}!")
+        
+        # 3. Refresh tabel di halaman admin (nanti kita buat fungsi ini di admin_page.py)
+        self.admin_page.load_data_antrean()
+        
+        # 4. Refresh layar utama agar event yang di-approve langsung muncul di depan!
+        self.refresh_tampilan_homepage()
     
     def on_login_diklik(self, email, password):
-        # Nanti diisi logic cek database oleh Rafi/Salman
-        # Sementara print dulu untuk test pagenya
-        print(f"Login dengan email: {email}, password: {password}")
+            import account_db # Pastikan ini sudah di-import di atas
+
+            # Cek ke database (ingat, account_db.py temanmu harus sudah ditambah return role-nya)
+            # Asumsikan check_login sekarang mengembalikan role (misal: "eo", "admin", atau None)
+            user_role = account_db.check_login(email, password)
+
+            if user_role:
+                # 1. Ubah state role aplikasi
+                self.current_user_role = user_role
+                
+                # 2. Beri notifikasi sukses
+                QMessageBox.information(self, "Berhasil", f"Login Sukses sebagai {user_role.upper()}!")
+                
+                # 3. Panggil fungsi untuk mengubah tampilan navbar (kita buat setelah ini)
+                self.update_navbar_berdasarkan_role()
+                
+                # 4. Kembali ke halaman utama
+                self.show_home_page()
+            else:
+                QMessageBox.warning(self, "Gagal", "Email atau Password salah!")
+                
+    def update_navbar_berdasarkan_role(self):
+        """Mengubah tampilan Navbar dan isi Menu secara dinamis sesuai role"""
+        
+        # 1. Bersihkan menu agar tidak terjadi penumpukan (duplikat)
+        self.hamburger_menu.clear()
+
+        if self.current_user_role == "guest":
+            # --- TAMPILAN GUEST ---
+            self.btn_login.setText("  Login")
+            self.btn_login.setStyleSheet("background-color: #ff99aa; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+            
+            try: self.btn_login.clicked.disconnect() 
+            except: pass
+            self.btn_login.clicked.connect(self.show_login_page)
+
+            # Guest BISA melihat FAQ dan Setting, tapi TIDAK ADA Add Event
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+
+        elif self.current_user_role == "eo":
+            # --- TAMPILAN EVENT ORGANIZER ---
+            self.btn_login.setText("  Hi, Event Organizer!")
+            self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+            
+            try: self.btn_login.clicked.disconnect() 
+            except: pass
+            self.btn_login.clicked.connect(self.proses_logout)
+
+            # EO punya akses lengkap
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input) 
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events")
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+
+        elif self.current_user_role == "admin":
+            # --- TAMPILAN ADMIN ---
+            self.btn_login.setText("  Admin Panel")
+            self.btn_login.setStyleSheet("background-color: #516465; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+            
+            try: self.btn_login.clicked.disconnect() 
+            except: pass
+            self.btn_login.clicked.connect(self.proses_logout)
+
+            # Menu khusus Admin
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Dashboard Validasi").triggered.connect(self.show_admin_page)
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+            
+    def proses_logout(self):
+        # Konfirmasi logout
+        jawaban = QMessageBox.question(self, "Logout", "Apakah Anda yakin ingin keluar?", QMessageBox.Yes | QMessageBox.No)
+        
+        if jawaban == QMessageBox.Yes:
+            # Kembalikan state ke guest
+            self.current_user_role = "guest"
+            # Kembalikan tampilan navbar
+            self.update_navbar_berdasarkan_role()
+            # Buka ulang halaman home
+            self.show_home_page()
+            QMessageBox.information(self, "Logout", "Berhasil logout.")
+        
+    def proses_login(self, email, password):
+    # Cek ke database
+        if account_db.check_login(email, password):
+        #   TODO: Nanti kita buat logika ganti tampilan Navbar di sini
+            QMessageBox.information(self, "Berhasil", "Login Sukses!")
+            self.show_home_page()
+        else:
+            QMessageBox.warning(self, "Gagal", "Email atau Password salah!")
     
     def buka_settings(self):
         from settings.setting_window import SettingsWindow

@@ -1,3 +1,8 @@
+# ==============================================================
+# FILE: db_manager.py
+# TUGAS: Pengelola database SQLite untuk Event
+# ==============================================================
+
 import sqlite3
 
 DB_NAME = "database.db"
@@ -5,12 +10,12 @@ DB_NAME = "database.db"
 # =========================
 # INIT DATABASE
 # =========================
-
 def init_db():
     # Buka koneksi ke file database SQLite.
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
+    # TAMBAHAN: Kolom 'status' ditambahkan di baris terakhir sebelum UNIQUE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,6 +27,7 @@ def init_db():
         tanggal_waktu TEXT,
         source TEXT,
         kategori TEXT,
+        status TEXT,
         UNIQUE(nama_event, tanggal_waktu)
     )
     """)
@@ -39,12 +45,15 @@ def upsert_event(event):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
+    # TAMBAHAN: Menangkap status. Jika tidak ada, anggap "pending" (untuk form EO)
+    status_event = event.get("status", "pending")
+
     # Insert event baru, atau ignore jika event sudah ada berdasarkan UNIQUE constraint.
     cursor.execute("""
     INSERT OR IGNORE INTO events
     (event_id, nama_event, deskripsi_singkat, gambar_poster,
-     jenis_event, tanggal_waktu, source, kategori)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     jenis_event, tanggal_waktu, source, kategori, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         event.get("event_id"),
         event.get("nama_event"),
@@ -53,7 +62,8 @@ def upsert_event(event):
         event.get("jenis_event"),
         event.get("tanggal_waktu"),
         event.get("source"),
-        event.get("kategori")
+        event.get("kategori"),
+        status_event
     ))
 
     # Commit agar data benar-benar tersimpan, lalu tutup koneksi.
@@ -67,10 +77,47 @@ def upsert_event(event):
 def get_all_events():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM events ORDER BY id ASC")
+    # Pake event_id sebagai acuan. Kalau bukan SCR-, taruh di paling depan!
+    cursor.execute("""
+        SELECT * FROM events 
+        ORDER BY 
+            CASE WHEN event_id NOT LIKE 'SCR-%' THEN 0 ELSE 1 END ASC,
+            CASE WHEN event_id NOT LIKE 'SCR-%' THEN id END DESC,
+            CASE WHEN event_id LIKE 'SCR-%' THEN id END ASC
+    """)
     rows = cursor.fetchall()
     conn.close()
     return rows
+
+# =========================
+# GET EVENTS BY STATUS
+# =========================
+def get_events_by_status(status):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT * FROM events 
+        WHERE status = ? 
+        ORDER BY 
+            CASE WHEN event_id NOT LIKE 'SCR-%' THEN 0 ELSE 1 END ASC,
+            CASE WHEN event_id NOT LIKE 'SCR-%' THEN id END DESC,
+            CASE WHEN event_id LIKE 'SCR-%' THEN id END ASC
+    """, (status,))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+
+# =========================
+# UPDATE EVENT STATUS (FUNGSI BARU)
+# =========================
+def update_event_status(event_id, new_status):
+    """Mengubah status validasi event (Approve/Decline)"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE events SET status = ? WHERE event_id = ?", (new_status, event_id))
+    conn.commit()
+    conn.close()
 
 
 # =========================
@@ -81,6 +128,7 @@ if __name__ == "__main__":
     init_db()
 
     # Contoh data event yang akan dimasukkan ke database untuk pengujian.
+    # Karena ini dummy untuk ngetes Homepage, kita set statusnya "approved"
     dummy_event = {
         "event_id": "SCR-TEST",
         "nama_event": "Seminar AI",
@@ -89,12 +137,14 @@ if __name__ == "__main__":
         "jenis_event": "Internal",
         "tanggal_waktu": "2026-05-20",
         "source": "test.com",
-        "kategori": "Seminar"
+        "kategori": "Seminar",
+        "status": "approved" 
     }
 
     # Simpan data contoh ke database.
     upsert_event(dummy_event)
 
-    # Ambil semua data event yang ada dan tampilkan ke layar.
-    for e in get_all_events():
+    # Tampilkan ke terminal
+    print("Daftar Event Approved:")
+    for e in get_events_by_status("approved"):
         print(e)
