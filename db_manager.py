@@ -9,6 +9,14 @@ from datetime import datetime
 
 DB_NAME = "database.db"
 
+# =========================================================
+# SQLITE ROW -> DICTIONARY
+# =========================================================
+def row_to_dict(cursor, row):
+
+    columns = [col[0] for col in cursor.description]
+
+    return dict(zip(columns, row))
 
 _MONTH_TRANSLATIONS = {
     "januari": "January",
@@ -89,15 +97,14 @@ def _sort_events(rows):
     unparsed_rows.sort(key=lambda row: str(row[6]).strip().lower() if len(row) > 6 else "")
     return [row for _, _, row in parsed_rows] + unparsed_rows
 
-# =========================
-# INIT DATABASE
-# =========================
 def init_db():
-    # Buka koneksi ke file database SQLite.
+
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
-    # TAMBAHAN: Kolom 'status' ditambahkan di baris terakhir sebelum UNIQUE
+    # =========================================================
+    # TABEL EVENTS
+    # =========================================================
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,14 +114,74 @@ def init_db():
         gambar_poster TEXT,
         jenis_event TEXT,
         tanggal_waktu TEXT,
+
+        tanggal_display TEXT,
+        waktu_display TEXT,
+        lokasi TEXT,
+
+        tipe_tiket TEXT DEFAULT 'Gratis',
+        harga_tiket TEXT DEFAULT '0',
+
+        overview TEXT,
+
+        phone_eo TEXT,
+        email_eo TEXT,
+        nama_eo TEXT,
+        inisial_eo TEXT,
+
+        organizer_id INTEGER,
+
         source TEXT,
         kategori TEXT,
         status TEXT,
+
         UNIQUE(nama_event, tanggal_waktu)
     )
     """)
 
-    # Simpan struktur tabel ke database dan tutup koneksi.
+    # =========================================================
+    # TABEL USERS
+    # =========================================================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama TEXT,
+        bio TEXT,
+        email TEXT UNIQUE,
+        kontak TEXT,
+        role TEXT DEFAULT 'mahasiswa',
+        inisial TEXT,
+        password TEXT
+    )
+    """)
+
+    # =========================================================
+    # TABEL BOOKINGS
+    # =========================================================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS bookings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        event_id TEXT,
+        created_at TEXT,
+
+        UNIQUE(user_id, event_id)
+    )
+    """)
+
+    # =========================================================
+    # TABEL LIKES
+    # =========================================================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS likes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        event_id TEXT,
+
+        UNIQUE(user_id, event_id)
+    )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -159,12 +226,20 @@ def upsert_event(event):
 def get_all_events():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+
     cursor.execute("""
         SELECT * FROM events
     """)
+
     rows = cursor.fetchall()
+
+    sorted_rows = _sort_events(rows)
+
+    result = [row_to_dict(cursor, row) for row in sorted_rows]
+
     conn.close()
-    return _sort_events(rows)
+
+    return result
 
 # =========================
 # GET EVENTS BY STATUS
@@ -172,14 +247,90 @@ def get_all_events():
 def get_events_by_status(status):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+
     cursor.execute("""
         SELECT * FROM events
         WHERE status = ?
     """, (status,))
-    rows = cursor.fetchall()
-    conn.close()
-    return _sort_events(rows)
 
+    rows = cursor.fetchall()
+
+    sorted_rows = _sort_events(rows)
+
+    result = [row_to_dict(cursor, row) for row in sorted_rows]
+
+    conn.close()
+
+    return result
+
+# =========================================================
+# GET EVENTS BY ORGANIZER
+# =========================================================
+def get_events_by_organizer(organizer_id):
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM events
+        WHERE organizer_id = ?
+        ORDER BY tanggal_waktu ASC
+    """, (organizer_id,))
+
+    rows = cursor.fetchall()
+
+    result = [row_to_dict(cursor, row) for row in rows]
+
+    conn.close()
+
+    return result
+
+
+# =========================================================
+# GET BOOKED EVENTS
+# =========================================================
+def get_booked_events(user_id):
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT e.* FROM events e
+        JOIN bookings b ON e.event_id = b.event_id
+        WHERE b.user_id = ?
+        ORDER BY e.tanggal_waktu ASC
+    """, (user_id,))
+
+    rows = cursor.fetchall()
+
+    result = [row_to_dict(cursor, row) for row in rows]
+
+    conn.close()
+
+    return result
+
+
+# =========================================================
+# GET LIKED EVENTS
+# =========================================================
+def get_liked_events(user_id):
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT e.* FROM events e
+        JOIN likes l ON e.event_id = l.event_id
+        WHERE l.user_id = ?
+    """, (user_id,))
+
+    rows = cursor.fetchall()
+
+    result = [row_to_dict(cursor, row) for row in rows]
+
+    conn.close()
+
+    return result
 
 # =========================
 # UPDATE EVENT STATUS (FUNGSI BARU)
