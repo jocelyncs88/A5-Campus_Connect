@@ -20,6 +20,7 @@ from add_event_page import AddEventPage # ← TAMBAHAN
 from success_page import SuccessPage # ← TAMBAHAN
 from crud_events import prepare_create, save_payload
 from login_page import LoginPage
+import account_db
 
 
 # --- INTEGRASI COMPONENT ---
@@ -108,6 +109,7 @@ class MainWindow(QMainWindow):
         self.success_page = None  # ← TAMBAHAN
         self.settings_page = None
         self.login_page = None
+        self.current_user_role = "guest"
         
         # === FITUR AUTO UPDATE 15 MENIT ===
         # QTimer sudah di-import melalui 'from PyQt5.QtCore import *'
@@ -493,9 +495,35 @@ class MainWindow(QMainWindow):
         self.login_page.show()
     
     def on_login_diklik(self, email, password):
-        # Nanti diisi logic cek database oleh Rafi/Salman
-        # Sementara print dulu untuk test pagenya
-        print(f"Login dengan email: {email}, password: {password}")
+            import account_db # Pastikan ini sudah di-import di atas
+
+            # Cek ke database (ingat, account_db.py temanmu harus sudah ditambah return role-nya)
+            # Asumsikan check_login sekarang mengembalikan role (misal: "eo", "admin", atau None)
+            user_role = account_db.check_login(email, password)
+
+            if user_role:
+                # 1. Ubah state role aplikasi
+                self.current_user_role = user_role
+                
+                # 2. Beri notifikasi sukses
+                QMessageBox.information(self, "Berhasil", f"Login Sukses sebagai {user_role.upper()}!")
+                
+                # 3. Panggil fungsi untuk mengubah tampilan navbar (kita buat setelah ini)
+                self.update_navbar_berdasarkan_role()
+                
+                # 4. Kembali ke halaman utama
+                self.show_home_page()
+            else:
+                QMessageBox.warning(self, "Gagal", "Email atau Password salah!")
+        
+    def proses_login(self, email, password):
+    # Cek ke database
+        if account_db.check_login(email, password):
+        #   TODO: Nanti kita buat logika ganti tampilan Navbar di sini
+            QMessageBox.information(self, "Berhasil", "Login Sukses!")
+            self.show_home_page()
+        else:
+            QMessageBox.warning(self, "Gagal", "Email atau Password salah!")
     
     def buka_settings(self):
         from settings.setting_window import SettingsWindow
