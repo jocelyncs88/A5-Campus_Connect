@@ -126,8 +126,11 @@ class MainWindow(QMainWindow):
         
         # Mulai timer: 15 menit = 15 * 60 detik * 1000 milidetik = 900000 ms
         self.timer_update.start(900000)
-        
-        self.jalankan_auto_update()
+
+        # NOTE: initial synchronization is performed by `main._sync_scraped_events_to_db()`
+        # during application startup. To avoid running the scraper twice in quick
+        # succession, do not trigger `jalankan_auto_update()` here immediately.
+        # The periodic timer will run the first auto-update after its interval.
         
     def jalankan_auto_update(self):
         print("[AUTO UPDATE] Memulai sinkronisasi data di latar belakang...")
