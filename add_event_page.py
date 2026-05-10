@@ -62,10 +62,14 @@ class AddEventPage(QWidget):
         # Menyimpan path poster yang dipilih user
         # Kosong dulu sebelum user upload poster
         self.poster_path = ""
-
+        self.data_event = data_event
         self.setObjectName("add_event_page")
         self.setup_ui()
         self.apply_style()
+
+        # Pre-fill form jika mode edit
+        if self.data_event:
+            self._prefill_form(self.data_event)
 
 
     # ----------------------------------------------------------
@@ -856,3 +860,38 @@ class AddEventPage(QWidget):
                 color: #888888;
             }
         """)
+
+    def _prefill_form(self, data):
+        # Ubah judul halaman
+        self.judul_label.setText("Edit Event")
+        self.sub_judul.setText("Perbarui detail event yang sudah dipublikasi")
+        self.btn_publikasi.setText("✓  Simpan Perubahan")
+
+        # Pre-fill semua field
+        self.input_nama.setText(data.get("nama_event", ""))
+        self.input_deskripsi.setText(data.get("deskripsi_singkat", ""))
+        self.input_kategori.setText(data.get("kategori", ""))
+        self.input_tanggal.setText(data.get("tanggal_waktu", "")[:10])
+        self.input_waktu.setText(data.get("waktu_display", ""))
+        self.input_lokasi.setText(data.get("lokasi", ""))
+
+        # Jenis event (dropdown)
+        jenis = data.get("jenis_event", "")
+        idx = self.input_jenis.findText(jenis)
+        if idx >= 0:
+            self.input_jenis.setCurrentIndex(idx)
+
+        # Tipe tiket
+        if data.get("tipe_tiket", "Gratis") != "Gratis":
+            self.toggle_tiket.set_on(True)
+            self.input_harga.setText(data.get("harga_tiket", ""))
+
+        # Preview poster jika ada
+        poster = data.get("gambar_poster", "")
+        if poster and os.path.exists(poster):
+            self.poster_path = poster
+            pixmap = QPixmap(poster)
+            self.poster_preview_img.setPixmap(pixmap)
+            self.poster_preview_icon.hide()
+            self.poster_preview_text.hide()
+            self.poster_preview_img.show()
