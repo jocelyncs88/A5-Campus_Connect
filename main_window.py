@@ -336,7 +336,17 @@ class MainWindow(QMainWindow):
         self.btn_menu.setIcon(QIcon("assets/menu.png"))
         self.btn_menu.setIconSize(QSize(24, 24))
         self.btn_menu.setCursor(Qt.PointingHandCursor)
-        self.btn_menu.setStyleSheet("background: transparent; border: none;")
+        self.btn_menu.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+            }
+            QPushButton::menu-indicator {
+                image: none;
+                width: 0px;
+                height: 0px;
+            }
+        """)
 
         # Dropdown Menu Styling
         self.hamburger_menu = QMenu(self)
