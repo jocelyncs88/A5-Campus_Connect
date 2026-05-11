@@ -289,7 +289,7 @@ class YourEventsPanel(QWidget):
         # Judul panel
         lbl_judul = QLabel("Your Events Settings")
         lbl_judul.setFont(QFont(self.font_bold, 24))
-        lbl_judul.setStyleSheet("color: black; font-weight: bold;")
+        lbl_judul.setStyleSheet("color: #516465; font-weight: bold;")
         layout.addWidget(lbl_judul)
 
         # Render konten sesuai role
