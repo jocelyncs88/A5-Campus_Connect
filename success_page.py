@@ -88,8 +88,7 @@ class SuccessPage(QWidget):
         # Card putih yang membungkus semua konten sukses
         self.card = QWidget()
         self.card.setObjectName("success_card")
-        self.card.setFixedWidth(460)
-        self.card.setMinimumHeight(500)
+        self.card.setFixedSize(460, 500)
 
         card_layout = QVBoxLayout()
         card_layout.setContentsMargins(40, 40, 40, 40)
@@ -112,7 +111,7 @@ class SuccessPage(QWidget):
 
         # ---- JUDUL SUKSES ----
 
-        self.judul_label = QLabel("Event berhasil dikirim!")
+        self.judul_label = QLabel("Event submitted successfully!")
         self.judul_label.setObjectName("judul_label")
         self.judul_label.setAlignment(Qt.AlignCenter)
 
@@ -126,9 +125,9 @@ class SuccessPage(QWidget):
         # ---- TEKS PENJELASAN ----
 
         self.deskripsi_label = QLabel(
-            "Event kamu sedang menunggu validasi admin."
-            "Kami akan memberitahu melalui email setelah"
-            "proses pemeriksaan selesai dilakukan."
+            "Your event is currently awaiting admin validation."
+            " We will notify you via email once the review process"
+            " has been completed."
         )
         self.deskripsi_label.setObjectName("deskripsi_label")
         self.deskripsi_label.setAlignment(Qt.AlignCenter)
@@ -157,15 +156,15 @@ class SuccessPage(QWidget):
         info_layout.setSpacing(10)
 
         # Baris Nama Event
-        self.baris_nama = self._buat_baris_info("Nama Event", "-")
+        self.baris_nama = self._buat_baris_info("Event Name", "-")
         info_layout.addLayout(self.baris_nama)
 
         # Baris Tanggal
-        self.baris_tanggal = self._buat_baris_info("Tanggal", "-")
+        self.baris_tanggal = self._buat_baris_info("Date", "-")
         info_layout.addLayout(self.baris_tanggal)
 
         # Baris Status
-        self.baris_status = self._buat_baris_info("Status", "Menunggu Validasi")
+        self.baris_status = self._buat_baris_info("Status", "Awaiting Validation")
         info_layout.addLayout(self.baris_status)
 
         self.info_box.setLayout(info_layout)
@@ -182,7 +181,7 @@ class SuccessPage(QWidget):
         btn_layout.setSpacing(12)
 
         # Tombol Lihat Event (outline)
-        self.btn_lihat = QPushButton("Lihat Event")
+        self.btn_lihat = QPushButton("View Event")
         self.btn_lihat.setObjectName("btn_lihat")
         self.btn_lihat.setFixedHeight(48)
 
@@ -195,7 +194,7 @@ class SuccessPage(QWidget):
         self.btn_lihat.setCursor(Qt.PointingHandCursor) 
 
         # Tombol Buat Event Lain (teal gelap)
-        self.btn_buat_lain = QPushButton("Buat Event Lain")
+        self.btn_buat_lain = QPushButton("Create Another Event")
         self.btn_buat_lain.setObjectName("btn_buat_lain")
         self.btn_buat_lain.setFixedHeight(48)
         self.btn_buat_lain.setFont(font_btn)
@@ -270,9 +269,9 @@ class SuccessPage(QWidget):
 
         # Update teks di kotak info sesuai data event
         # getattr() = ambil atribut berdasarkan nama string
-        self.nilai_nama_event.setText(data.get("nama_event", "-"))
-        self.nilai_tanggal.setText(data.get("tanggal", "-"))
-        self.nilai_status.setText(data.get("status", "Menunggu Validasi"))
+        self.nilai_event_name.setText(data.get("nama_event", "-"))
+        self.nilai_date.setText(data.get("tanggal", "-"))
+        self.nilai_status.setText(data.get("status", "Awaiting Validation"))
 
 
     # ----------------------------------------------------------

@@ -143,7 +143,7 @@ class AddEventPage(QWidget):
         nama_layout.addWidget(self.input_nama)
 
         jenis_layout = QVBoxLayout()
-        self.label_jenis = QLabel("Event Type")
+        self.label_jenis = QLabel("Event Type *")
         self.label_jenis.setObjectName("label_field")
 
         self.input_jenis = QPushButton("Select event type")

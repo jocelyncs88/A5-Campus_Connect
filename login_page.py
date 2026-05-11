@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
 # Qt         = konstanta PyQt5
 # pyqtSignal = sinyal komunikasi antar komponen
 # QUrl       = untuk membuka link
-from PyQt5.QtCore import QSize, Qt, pyqtSignal, QUrl
+from PyQt5.QtCore import QSize, Qt, pyqtSignal, QUrl, QEvent
 
 # QFont  = class untuk mengatur font
 # QDesktopServices = untuk membuka aplikasi eksternal (WhatsApp)
@@ -220,9 +220,11 @@ class LoginPage(QWidget):
 
         # Menyembunyikan teks password dengan titik-titik
         self.input_password.setEchoMode(QLineEdit.Password)
+        self.input_password.installEventFilter(self)
 
         # Tombol mata untuk show/hide password
         self.btn_mata = QPushButton()
+        self.btn_mata.installEventFilter(self)
         self.btn_mata.setIcon(QIcon("assets/eye_outline.png"))
         self.btn_mata.setIconSize(QSize(20, 20))
         self.btn_mata.setObjectName("btn_mata")
@@ -374,6 +376,38 @@ class LoginPage(QWidget):
             self.btn_mata.setIcon(QIcon("assets/eye_filled.png"))
             self.password_visible = True
 
+    def eventFilter(self, source, event):
+        if source in (self.input_password, self.btn_mata):
+            if event.type() == QEvent.FocusIn:
+                self.input_password.setStyleSheet(
+                    "background-color: white;"
+                    "border: 1.5px solid #2D6A6A;"
+                    "border-top-left-radius: 10px;"
+                    "border-bottom-left-radius: 10px;"
+                    "border-top-right-radius: 0px;"
+                    "border-bottom-right-radius: 0px;"
+                    "border-right: none;"
+                    "padding: 10px 14px;"
+                    "font-size: 14px;"
+                    "color: #1a1a1a;"
+                )
+                self.btn_mata.setStyleSheet(
+                    "background-color: white;"
+                    "border: 1.5px solid #2D6A6A;"
+                    "border-top-right-radius: 10px;"
+                    "border-bottom-right-radius: 10px;"
+                    "border-top-left-radius: 0px;"
+                    "border-bottom-left-radius: 0px;"
+                    "border-left: none;"
+                    "color: #888780;"
+                )
+            elif event.type() == QEvent.FocusOut:
+                # Pastikan style kembali default hanya jika tidak ada focus di keduanya
+                if not (self.input_password.hasFocus() or self.btn_mata.hasFocus()):
+                    self.input_password.setStyleSheet("")
+                    self.btn_mata.setStyleSheet("")
+        return super().eventFilter(source, event)
+
 
     # ----------------------------------------------------------
     # FUNGSI on_continue_diklik()
@@ -490,15 +524,25 @@ class LoginPage(QWidget):
                 color: #1a1a1a;
             }
 
-            QLineEdit#input_password:focus {
+            QLineEdit#input_password:focus,
+            QLineEdit#input_password:focus + QPushButton#btn_mata,
+            QPushButton#btn_mata:focus {
                 border: 1.5px solid #2D6A6A;
+            }
+
+            QLineEdit#input_password:focus {
                 border-right: none;
+            }
+
+            QLineEdit#input_password:focus + QPushButton#btn_mata,
+            QPushButton#btn_mata:focus {
+                border-left: none;
             }
 
             /* Tombol mata show/hide password */
             QPushButton#btn_mata {
                 background-color: white;
-                border: 1px solid #CBD5E0;
+                border: 1.5px solid #CBD5E0;
                 border-top-right-radius: 10px;
                 border-bottom-right-radius: 10px;
                 border-top-left-radius: 0px;
