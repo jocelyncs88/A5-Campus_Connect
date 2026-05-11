@@ -18,14 +18,17 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                               QLabel, QLineEdit, QPushButton,
                               QComboBox, QScrollArea, QMessageBox,
                               QSizePolicy, QDateEdit, QTimeEdit)
+                              QScrollArea, QMessageBox,
+                              QSizePolicy, QDateEdit, QTimeEdit,  
+                              QToolButton, QMenu)
 
 # Qt         = konstanta PyQt5
 # pyqtSignal = sinyal komunikasi antar komponen
-from PyQt5.QtCore import Qt, pyqtSignal, QDate, QTime
+from PyQt5.QtCore import Qt, pyqtSignal, QDate, QTime, QSize
 
 # QFont  = class untuk mengatur font
 # QColor = class untuk warna
-from PyQt5.QtGui import QFont, QColor, QPixmap
+from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon
 
 # Import komponen toggle dan upload poster yang sudah dibuat
 from toggle_widget import ToggleSwitch
@@ -66,6 +69,7 @@ class AddEventPage(QWidget):
         self.setObjectName("add_event_page")
         self.setup_ui()
         self.apply_style()
+        self.jenis_terpilih = ""  # kosong sebelum dipilih
 
         # Pre-fill form jika mode edit
         if self.data_event:
@@ -84,14 +88,14 @@ class AddEventPage(QWidget):
         outer_layout.setSpacing(12)
 
         # ---- JUDUL DAN SUBJUDUL (di luar card) ----
-        self.judul_label = QLabel("Tambah Event Baru")
+        self.judul_label = QLabel("Add New Event")
         self.judul_label.setObjectName("judul_label")
         font_judul = QFont("Inter", 24)
         font_judul.setWeight(QFont.ExtraBold)
         self.judul_label.setFont(font_judul)
         outer_layout.addWidget(self.judul_label)
 
-        self.sub_judul = QLabel("Isi detail event kamu dengan lengkap agar mudah ditemukan peserta")
+        self.sub_judul = QLabel("Fill in the event details completely so participants can find it easily")
         self.sub_judul.setObjectName("sub_judul")
         font_sub = QFont("Inter", 12)
         font_sub.setWeight(QFont.Normal)
@@ -113,7 +117,7 @@ class AddEventPage(QWidget):
         form_layout.setSpacing(16)
 
         # ---- LABEL INFORMASI UTAMA ----
-        self.label_info = QLabel("INFORMASI UTAMA")
+        self.label_info = QLabel("MAIN INFORMATION")
         self.label_info.setObjectName("label_section")
         font_section = QFont("Inter SemiBold", 11)
         font_section.setWeight(QFont.DemiBold)
@@ -130,35 +134,62 @@ class AddEventPage(QWidget):
         baris1_layout.setSpacing(16)
 
         nama_layout = QVBoxLayout()
-        self.label_nama = QLabel("Nama Event *")
+        self.label_nama = QLabel("Event Name *")
         self.label_nama.setObjectName("label_field")
         self.input_nama = QLineEdit()
-        self.input_nama.setPlaceholderText("Masukkan nama event")
+        self.input_nama.setPlaceholderText("Enter event name")
         self.input_nama.setObjectName("input_field")
         nama_layout.addWidget(self.label_nama)
         nama_layout.addWidget(self.input_nama)
 
         jenis_layout = QVBoxLayout()
-        self.label_jenis = QLabel("Jenis Event *")
+        self.label_jenis = QLabel("Event Type *")
         self.label_jenis.setObjectName("label_field")
 
-        # QComboBox = dropdown pilihan Internal/External
-        self.input_jenis = QComboBox()
+        self.input_jenis = QPushButton("Select event type")
         self.input_jenis.setObjectName("input_combo")
         self.input_jenis.setFixedHeight(42)
         self.input_jenis.setCursor(Qt.PointingHandCursor)
-        
-        # Placeholder yang tampil sebelum user memilih
-        # Tidak perlu item dummy yang di-disable lagi
-        self.input_jenis.addItem("Masukkan jenis event")
-        self.input_jenis.addItem("Internal")
-        self.input_jenis.insertSeparator(1)  # garis tipis antara Internal dan External
-        self.input_jenis.addItem("External")
-        self.input_jenis.view().setCursor(Qt.PointingHandCursor)
 
-        # Menonaktifkan item pertama (placeholder)
-        # agar user tidak bisa memilih placeholder
-        self.input_jenis.model().item(0).setEnabled(False)
+        self.menu_jenis = QMenu(self)
+        self.menu_jenis.setCursor(Qt.PointingHandCursor)
+        self.menu_jenis.setFixedWidth(140)
+        self.menu_jenis.setStyleSheet("""
+            QMenu {
+                background-color: white;
+                border: 1px solid #CBD5E0;
+                border-radius: 8px;
+                padding: 2px;
+            }
+            QMenu::item {
+                padding: 4px 10px;
+                border-radius: 4px;
+                margin: 0px;
+                color: #1a1a1a;
+            }
+            QMenu::item:selected {
+                background-color: #D2E6E5;
+                color: #2D6A6A;
+            }
+
+            QMenu::separator {
+                height: 1px;
+                background: #E5E7EB;
+                margin: 2px 6px;
+            }                                                   
+        """)
+
+        self.action_internal = self.menu_jenis.addAction("Internal")
+        self.menu_jenis.addSeparator()
+        self.action_external = self.menu_jenis.addAction("External")
+
+        self.action_internal.triggered.connect(lambda: self.pilih_jenis("Internal"))
+        self.action_external.triggered.connect(lambda: self.pilih_jenis("External"))
+
+        self.input_jenis.clicked.connect(lambda: self.menu_jenis.exec_(
+            self.input_jenis.mapToGlobal(self.input_jenis.rect().bottomLeft())
+        ))
+        
         jenis_layout.addWidget(self.label_jenis)
         jenis_layout.addWidget(self.input_jenis)
 
@@ -171,22 +202,22 @@ class AddEventPage(QWidget):
         baris2_layout.setSpacing(16)
 
         deskripsi_layout = QVBoxLayout()
-        self.label_deskripsi = QLabel("Deskripsi Event *")
+        self.label_deskripsi = QLabel("Event Description *")
         self.label_deskripsi.setObjectName("label_field")
         self.input_deskripsi = QLineEdit()
-        self.input_deskripsi.setPlaceholderText("Masukkan deskripsi event")
+        self.input_deskripsi.setPlaceholderText("Enter event description")
         self.input_deskripsi.setObjectName("input_field")
         deskripsi_layout.addWidget(self.label_deskripsi)
         deskripsi_layout.addWidget(self.input_deskripsi)
 
         # Kategori Event (input teks biasa)
         kategori_layout = QVBoxLayout()
-        self.label_kategori = QLabel("Kategori Event *")
+        self.label_kategori = QLabel("Event Category *")
         self.label_kategori.setObjectName("label_field")
         self.input_kategori = QLineEdit()
 
         # Placeholder menunjukkan contoh kategori yang bisa diisi
-        self.input_kategori.setPlaceholderText("Seminar/Lomba/Workshop/Rekrutmen/dll")
+        self.input_kategori.setPlaceholderText("Seminar/Competition/Workshop/Recruitment/etc")
         self.input_kategori.setObjectName("input_field")
         kategori_layout.addWidget(self.label_kategori)
         kategori_layout.addWidget(self.input_kategori)
@@ -196,7 +227,7 @@ class AddEventPage(QWidget):
         form_layout.addLayout(baris2_layout)
 
         # ---- LABEL WAKTU & TEMPAT ----
-        self.label_waktu_tempat = QLabel("Waktu & Tempat")
+        self.label_waktu_tempat = QLabel("Time & Venue")
         self.label_waktu_tempat.setObjectName("label_section")
         self.label_waktu_tempat.setFont(font_section)
         form_layout.addWidget(self.label_waktu_tempat)
@@ -211,19 +242,39 @@ class AddEventPage(QWidget):
         baris3_layout.setSpacing(16)
 
         tanggal_layout = QVBoxLayout()
-        self.label_tanggal = QLabel("Tanggal *")
+        self.label_tanggal = QLabel("Date *")
         self.label_tanggal.setObjectName("label_field")
+
         self.input_tanggal = QDateEdit()
         self.input_tanggal.setCalendarPopup(True)
         self.input_tanggal.setDisplayFormat("dd/MM/yyyy")
         self.input_tanggal.setDate(QDate.currentDate())
         self.input_tanggal.setObjectName("input_field")
         self.input_tanggal.setFixedHeight(42)
+        self.input_tanggal.setCursor(Qt.PointingHandCursor)
+
+        # Konfigurasi tampilan kalender popup
+        cal = self.input_tanggal.calendarWidget()
+        cal.setGridVisible(False)                              # hapus garis grid
+        cal.setVerticalHeaderFormat(cal.NoVerticalHeader)      # hapus nomor minggu
+        cal.setCursor(Qt.PointingHandCursor)                   # cursor area tanggal
+
+        # Cursor untuk tombol navigasi next/prev/bulan/tahun
+        for btn in cal.findChildren(QToolButton):
+            btn.setCursor(Qt.PointingHandCursor)
+
+        # Membuat dropdown bulan punya sudut membulat sempurna
+        cal.findChild(QToolButton, "qt_calendar_monthbutton")
+        menu = cal.findChildren(QMenu) 
+        for m in cal.findChildren(QMenu):
+            m.setAttribute(Qt.WA_TranslucentBackground)
+            m.setWindowFlags(m.windowFlags() | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+
         tanggal_layout.addWidget(self.label_tanggal)
         tanggal_layout.addWidget(self.input_tanggal)
 
         waktu_layout = QVBoxLayout()
-        self.label_waktu = QLabel("Waktu *")
+        self.label_waktu = QLabel("Time *")
         self.label_waktu.setObjectName("label_field")
         self.input_waktu = QTimeEdit()
         self.input_waktu.setDisplayFormat("HH:mm")
@@ -243,6 +294,8 @@ class AddEventPage(QWidget):
             pass
         self.input_waktu.setObjectName("input_field")
         self.input_waktu.setFixedHeight(42)
+        self.input_waktu.setCursor(Qt.PointingHandCursor)
+
         waktu_layout.addWidget(self.label_waktu)
         waktu_layout.addWidget(self.input_waktu)
 
@@ -255,19 +308,19 @@ class AddEventPage(QWidget):
         baris4_layout.setSpacing(16)
 
         lokasi_layout = QVBoxLayout()
-        self.label_lokasi = QLabel("Lokasi *")
+        self.label_lokasi = QLabel("Location *")
         self.label_lokasi.setObjectName("label_field")
         self.input_lokasi = QLineEdit()
-        self.input_lokasi.setPlaceholderText("Masukkan nama alamat event")
+        self.input_lokasi.setPlaceholderText("Enter event location")
         self.input_lokasi.setObjectName("input_field")
         lokasi_layout.addWidget(self.label_lokasi)
         lokasi_layout.addWidget(self.input_lokasi)
 
         kampus_layout = QVBoxLayout()
-        self.label_kampus = QLabel("Nama Kampus *")
+        self.label_kampus = QLabel("Campus Name *")
         self.label_kampus.setObjectName("label_field")
         self.input_kampus = QLineEdit()
-        self.input_kampus.setPlaceholderText("Masukkan nama kampus")
+        self.input_kampus.setPlaceholderText("Enter campus name")
         self.input_kampus.setObjectName("input_field")
         kampus_layout.addWidget(self.label_kampus)
         kampus_layout.addWidget(self.input_kampus)
@@ -279,7 +332,7 @@ class AddEventPage(QWidget):
         # ---- TIPE TIKET (TOGGLE) ----
         tiket_layout = QHBoxLayout()
 
-        self.label_tiket = QLabel("Tipe tiket *")
+        self.label_tiket = QLabel("Ticket Type *")
         self.label_tiket.setObjectName("label_field")
 
         # Toggle untuk memilih Gratis atau Berbayar
@@ -290,7 +343,7 @@ class AddEventPage(QWidget):
         self.toggle_tiket.set_on(False)
 
         # Label status tiket (Gratis/Berbayar)
-        self.label_status_tiket = QLabel("Gratis")
+        self.label_status_tiket = QLabel("free")
         self.label_status_tiket.setObjectName("label_status_tiket")
 
         # Saat toggle diubah, label status berubah
@@ -309,11 +362,11 @@ class AddEventPage(QWidget):
         harga_layout = QVBoxLayout()
         harga_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.label_harga = QLabel("Harga tiket (Rp) *")
+        self.label_harga = QLabel("Ticket Price (Rp) *")
         self.label_harga.setObjectName("label_field")
 
         self.input_harga = QLineEdit()
-        self.input_harga.setPlaceholderText("Masukkan harga tiket")
+        self.input_harga.setPlaceholderText("Enter ticket price")
         self.input_harga.setObjectName("input_field")
 
         harga_layout.addWidget(self.label_harga)
@@ -356,7 +409,7 @@ class AddEventPage(QWidget):
         self.poster_preview_icon.setObjectName("poster_preview_icon")
         self.poster_preview_icon.setAlignment(Qt.AlignCenter)
 
-        self.poster_preview_text = QLabel("Klik untuk\nupload poster")
+        self.poster_preview_text = QLabel("Click to\nupload poster")
         self.poster_preview_text.setObjectName("poster_preview_text")
         self.poster_preview_text.setAlignment(Qt.AlignCenter)
 
@@ -393,7 +446,7 @@ class AddEventPage(QWidget):
         btn_layout.addStretch()
 
         # Tombol Batal
-        self.btn_batal = QPushButton("Batal")
+        self.btn_batal = QPushButton("Cancel")
         self.btn_batal.setObjectName("btn_batal")
         self.btn_batal.setFixedSize(120, 45)
         self.btn_batal.setCursor(Qt.PointingHandCursor)
@@ -405,7 +458,7 @@ class AddEventPage(QWidget):
         self.btn_batal.clicked.connect(self.dibatalkan.emit)
 
         # Tombol Publikasi Event
-        self.btn_publikasi = QPushButton("✓  Dipublikasi!")
+        self.btn_publikasi = QPushButton("✓  Publish Event!")
         self.btn_publikasi.setObjectName("btn_publikasi")
         self.btn_publikasi.setFixedSize(160, 45)
         self.btn_publikasi.setCursor(Qt.PointingHandCursor)
@@ -457,12 +510,12 @@ class AddEventPage(QWidget):
         if is_on:
             # Toggle ON = Berbayar
             # Tampilkan field harga tiket
-            self.label_status_tiket.setText("Berbayar")
+            self.label_status_tiket.setText("Paid")
             self.harga_widget.show()
         else:
             # Toggle OFF = Gratis
             # Sembunyikan field harga tiket
-            self.label_status_tiket.setText("Gratis")
+            self.label_status_tiket.setText("Free")
             self.harga_widget.hide()
 
     # ----------------------------------------------------------
@@ -476,7 +529,7 @@ class AddEventPage(QWidget):
         self.input_nama.clear()
         self.input_deskripsi.clear()
         self.input_kategori.clear()
-        self.input_tanggal.setDate(QDate.currentDate())
+        self.input_tanggal.clear()
         # reset time to nearest half hour
         now = QTime.currentTime()
         minute = 30 if now.minute() >= 30 else 0
@@ -486,12 +539,16 @@ class AddEventPage(QWidget):
         self.input_harga.clear()
 
         # Reset dropdown jenis event ke placeholder
-        self.input_jenis.setCurrentIndex(0)
+        self.jenis_terpilih = ""
+        self.input_jenis.setText("Select event type")
+        self.input_jenis.setLayoutDirection(Qt.RightToLeft)
+        self.input_jenis.setIcon(QIcon("assets/arrow_down.png"))
+        self.input_jenis.setIconSize(QSize(12, 12))
 
         # Reset toggle tiket ke Gratis (OFF)
         self.toggle_tiket.set_on(False)
         self.toggle_tiket.setCursor(Qt.PointingHandCursor)
-        self.label_status_tiket.setText("Gratis")
+        self.label_status_tiket.setText("Free")
         self.harga_widget.hide()
 
         # Reset poster ke kondisi awal
@@ -568,9 +625,8 @@ class AddEventPage(QWidget):
         # ---- VALIDASI SEMUA FIELD WAJIB ----
 
         # Cek apakah Jenis Event sudah dipilih
-        # Index 0 = placeholder "Masukkan jenis event" yang tidak valid
-        if self.input_jenis.currentIndex() == 0:
-            self.tampilkan_error("Jenis Event belum dipilih!")
+        if not self.jenis_terpilih:
+            self.tampilkan_error("Please select the Event Type!")
             return
 
         # Validasi field teks biasa
@@ -582,9 +638,11 @@ class AddEventPage(QWidget):
             ("Nama Kampus", self.input_kampus),
         ]
 
-        for nama, widget in text_fields:
-            if not widget.text().strip():
-                self.tampilkan_error(f"{nama} belum diisi!")
+        # Loop semua field wajib
+        # Jika ada yang kosong → tampilkan error dan berhenti
+        for nama, field in text_fields:
+            if not field.text().strip():
+                self.tampilkan_error(f"{nama} is required!")
                 return
 
         # Validasi tanggal dan waktu dari picker
@@ -600,7 +658,7 @@ class AddEventPage(QWidget):
         # Cek harga tiket jika Berbayar
         if self.toggle_tiket.is_on():
             if not self.input_harga.text().strip():
-                self.tampilkan_error("Harga tiket belum diisi!")
+                self.tampilkan_error("Please enter the ticket price!")
                 return
 
         # ---- SEMUA VALIDASI LULUS ----
@@ -631,18 +689,18 @@ class AddEventPage(QWidget):
 
         data_event = {
             "nama_event"       : self.input_nama.text().strip(),
-            "jenis_event"      : self.input_jenis.currentText(),
+            "jenis_event"      : self.jenis_terpilih,
             "deskripsi_singkat": combined_desc,
             "kategori"         : self.input_kategori.text().strip(),
             "tanggal"          : tanggal,
             "waktu"            : waktu,
             "lokasi"           : lokasi_text,
             "penyelenggara"    : kampus_text,
-            "tipe_tiket"       : "Berbayar" if self.toggle_tiket.is_on() else "Gratis",
+            "tipe_tiket"       : "Paid" if self.toggle_tiket.is_on() else "Free",
             "harga_tiket"      : self.input_harga.text().strip() if self.toggle_tiket.is_on() else "0",
             "gambar_poster"    : self.poster_path,
-            "status"           : "Menunggu Validasi",
-            "source"           : "Manual",
+            "status"           : "Pending Validation",
+            "source"           : "Manual Input",
         }
 
         # Pancarkan sinyal event_dipublikasi membawa data event
@@ -659,9 +717,14 @@ class AddEventPage(QWidget):
         # QMessageBox.warning = popup pesan peringatan
         QMessageBox.warning(
             self,
-            "Form Belum Lengkap",  # judul popup
+            "Incomplete Form",  # judul popup
             pesan                  # isi pesan error
         )
+    
+    def pilih_jenis(self, jenis):
+        # Update teks tombol saat dipilih
+        self.input_jenis.setText(f"{jenis}  ▾")
+        self.jenis_terpilih = jenis  # simpan nilai terpilih
 
     # ----------------------------------------------------------
     # FUNGSI apply_style()
@@ -703,7 +766,7 @@ class AddEventPage(QWidget):
 
             /* Judul halaman */
             QLabel#judul_label {
-                color: #1A202C;
+                color: #516465;
                 font-size: 24px;
             }
 
@@ -759,54 +822,19 @@ class AddEventPage(QWidget):
             }
 
             /* Dropdown Jenis Event */
-            QComboBox#input_combo {
+            QPushButton#input_combo {
                 background-color: white;
                 border: 1px solid #CBD5E0;
                 border-radius: 8px;
-                padding: 10px 12px;
+                padding: 10px 14px;
+                text-align: left;
                 font-size: 13px;
                 color: #1a1a1a;
             }
 
-            QComboBox#input_combo:focus {
+            QPushButton#input_combo:focus {
                 border: 1px solid #2D6A6A;
-            }
-
-            QComboBox#input_combo::drop-down {
-                border: none;
-                width: 30px;
-            }
-
-            QComboBox#input_combo::down-arrow {
-                image: url(assets/arrow_down.png);
-                width: 12px;
-                height: 12px;
-            }
-
-            QComboBox#input_combo QAbstractItemView {
-                background-color: white;
-                border: 1px solid #CBD5E0;
-                border-radius: 8px;
-                padding: 4px;
-                outline: none;           
-                selection-background-color: #D2E6E5;
-                selection-color: #1a1a1a;
-            }
-                           
-            QComboBox#input_combo QAbstractItemView::item {
-                padding: 8px 12px;
-                border-radius: 6px;        
-                margin: 2px 4px;
-            }
-
-            QComboBox#input_combo QAbstractItemView::item:selected {
-                background-color: #D2E6E5;
-            }                             
-
-            QComboBox#input_combo QAbstractItemView::separator {
-                height: 1px;
-                background-color: #E5E7EB; /* garis tipis pemisah */
-            }           
+            }  
 
             /* Label status tiket (Gratis/Berbayar) */
             QLabel#label_status_tiket {
