@@ -137,8 +137,11 @@ class MainWindow(QMainWindow):
         
         # 1. Ambil data yang sudah ada di database untuk jadi acuan
         data_db = db_manager.get_all_events()
-        existing_keys = { (row[2].strip().lower(), row[6].strip().lower()) for row in data_db }
-        
+        existing_keys = {
+            (str(row.get("nama_event") or "").strip().lower(),
+            str(row.get("tanggal_waktu") or "").strip().lower())
+            for row in data_db
+        }
         # 2. Bungkus fungsi scraper + parameternya menggunakan lambda
         fungsi_scraper = lambda: scraper.ambil_event_polban(limit=100, existing_keys=existing_keys)
         
@@ -197,12 +200,12 @@ class MainWindow(QMainWindow):
         data_untuk_ui = []
         for row in data_db_terbaru:
             event_dict = {
-                "event_id": row[1] if len(row) > 1 else "",
-                "nama_event": row[2] if len(row) > 2 and row[2] else "Tanpa Judul",
-                "deskripsi_singkat": row[3] if len(row) > 3 and row[3] else "...",
-                "gambar_poster": _cache_image(row[4] if len(row) > 4 and row[4] else ""),
-                "jenis_event": (row[5] if len(row) > 5 and row[5] else "External").title(),
-                "tanggal_waktu": row[6] if len(row) > 6 and row[6] else "TBA",
+                "event_id": row.get("event_id", ""),
+                "nama_event": row.get("nama_event") or "Tanpa Judul",
+                "deskripsi_singkat": row.get("deskripsi_singkat") or "...",
+                "gambar_poster": _cache_image(row.get("gambar_poster") or ""),
+                "jenis_event": (row.get("jenis_event") or "External").title(),
+                "tanggal_waktu": row.get("tanggal_waktu") or "TBA",
             }
             data_untuk_ui.append(event_dict)
             
@@ -590,6 +593,7 @@ class MainWindow(QMainWindow):
             if user_role:
                 # 1. Ubah state role aplikasi
                 self.current_user_role = user_role
+                self.settings_page = None
                 
                 # 2. Beri notifikasi sukses
                 QMessageBox.information(self, "Berhasil", f"Login Sukses sebagai {user_role.upper()}!")
@@ -657,6 +661,7 @@ class MainWindow(QMainWindow):
         if jawaban == QMessageBox.Yes:
             # Kembalikan state ke guest
             self.current_user_role = "guest"
+            self.settings_page = None
             # Kembalikan tampilan navbar
             self.update_navbar_berdasarkan_role()
             # Buka ulang halaman home
@@ -684,7 +689,7 @@ class MainWindow(QMainWindow):
             self.settings_page = SettingsWindow(
                 user_data={
                     "nama": "", "bio": "", "email": "",
-                    "kontak": "", "role": "umum", "inisial": ""
+                    "kontak": "", "role": self.current_user_role, "inisial": ""
                 }
             )
             self.settings_page.btn_home.clicked.connect(self.show_home_page)

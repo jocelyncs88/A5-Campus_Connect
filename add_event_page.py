@@ -59,17 +59,21 @@ class AddEventPage(QWidget):
     # ----------------------------------------------------------
     # FUNGSI __init__ (Konstruktor)
     # ----------------------------------------------------------
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, data_event=None):
         super().__init__(parent)
 
         # Menyimpan path poster yang dipilih user
         # Kosong dulu sebelum user upload poster
         self.poster_path = ""
-
+        self.data_event = data_event
         self.setObjectName("add_event_page")
         self.setup_ui()
         self.apply_style()
         self.jenis_terpilih = ""  # kosong sebelum dipilih
+
+        # Pre-fill form jika mode edit
+        if self.data_event:
+            self._prefill_form(self.data_event)
 
 
     # ----------------------------------------------------------
@@ -883,125 +887,60 @@ class AddEventPage(QWidget):
                 font-size: 11px;
                 color: #888888;
             }
-                           
-            /* Kalender popup */
-            QCalendarWidget {
-                background-color: white;
-                border-radius: 10px;
-                border: 1px solid #CBD5E0;
-            }
-
-            /* Header bulan/tahun */
-            QCalendarWidget QWidget#qt_calendar_navigationbar {
-                background-color: #2D6A6A;
-                border-radius: 8px;
-                padding: 4px;
-            }
-
-            /* Tombol prev/next bulan */
-            QCalendarWidget QToolButton {
-                background-color: transparent;
-                color: white;
-                font-size: 13px;
-                font-weight: bold;
-                border: none;
-                border-radius: 6px;
-                padding: 4px 8px;
-            }
-
-            QCalendarWidget QToolButton:hover {
-                background-color: rgba(255, 255, 255, 0.2);
-            }
-
-            /* Teks bulan dan tahun di tengah */
-            QCalendarWidget QToolButton#qt_calendar_monthbutton,
-            QCalendarWidget QToolButton#qt_calendar_yearbutton {
-                color: white;
-                font-size: 14px;
-                font-weight: bold;
-            }
-
-            /* Header hari (Sun, Mon, ...) */
-            QCalendarWidget QHeaderView {
-                background-color: #D2E6E5;
-            }
-
-            QCalendarWidget QHeaderView::section {
-                background-color: #D2E6E5;
-                color: #516465;
-                font-size: 12px;
-                font-weight: bold;
-                padding: 4px;
-                border: none;
-            }
-
-            /* Sel tanggal normal */
-            QCalendarWidget QAbstractItemView {
-                background-color: white;
-                color: #1a1a1a;
-                font-size: 13px;
-                selection-background-color: #2D6A6A;
-                selection-color: white;
-                outline: none;
-            }
-
-            /* Tanggal yang dipilih */
-            QCalendarWidget QAbstractItemView:enabled {
-                color: #1a1a1a;
-            }
-
-            /* Tanggal hari ini */
-            QCalendarWidget QAbstractItemView::item:selected {
-                background-color: #2D6A6A;
-                color: white;
-                border-radius: 6px;
-            }
-
-            QCalendarWidget QAbstractItemView::item:hover {
-                background-color: #D2E6E5;
-                border-radius: 6px;
-            }
-
-            /* Tanggal di luar bulan ini (abu-abu) */
-            QCalendarWidget QAbstractItemView:disabled {
-                color: #CBD5E0;
-            }
-
-            /* Dropdown menu bulan di kalender */
-            QCalendarWidget QMenu {
-                background-color: white;
-                border: 1px solid #CBD5E0;
-                border-radius: 8px;
-                padding: 4px;
-                font-size: 13px;
-                color: #1a1a1a;
-            }
-
-            QCalendarWidget QMenu::item {
-                padding: 6px 12px;
-                border-radius: 6px;
-                margin: 2px 4px;
-            }
-
-            QCalendarWidget QMenu::item:selected {
-                background-color: #D2E6E5;
-                color: #2D6A6A;
-            }
-
-            /* SpinBox tahun */
-            QCalendarWidget QSpinBox {
-                background-color: transparent;
-                color: white;
-                border: none;
-                font-size: 13px;
-                font-weight: bold;
-                padding: 0px 4px;
-            }
-
-            QCalendarWidget QSpinBox::up-button,
-            QCalendarWidget QSpinBox::down-button {
-                width: 0px;
-                height: 0px;
-                border: none;
-            }                              
         """)
+
+    def _prefill_form(self, data):
+        # Ubah judul halaman
+        self.judul_label.setText("Edit Event")
+        self.sub_judul.setText("Perbarui detail event yang sudah dipublikasi")
+        self.btn_publikasi.setText("✓  Simpan Perubahan")
+
+        # Pre-fill semua field
+        self.input_nama.setText(data.get("nama_event", ""))
+        self.input_deskripsi.setText(data.get("deskripsi_singkat", ""))
+        self.input_kategori.setText(data.get("kategori", ""))
+        
+        tanggal_str = data.get("tanggal_waktu", "")[:10]
+        if tanggal_str:
+            try:
+                from PyQt5.QtCore import QDate
+                tgl = QDate.fromString(tanggal_str, "yyyy-MM-dd")
+                if tgl.isValid():
+                    self.input_tanggal.setDate(tgl)
+            except Exception:
+                pass
+
+        waktu_str = data.get("waktu_display", "")
+        if waktu_str:
+            try:
+                from PyQt5.QtCore import QTime
+                wkt = QTime.fromString(waktu_str, "HH:mm")
+                if not wkt.isValid():
+                    wkt = QTime.fromString(waktu_str, "h AP")
+                if wkt.isValid():
+                    self.input_waktu.setTime(wkt)
+            except Exception:
+                pass
+
+        self.input_lokasi.setText(data.get("lokasi", ""))
+
+        # Jenis event (dropdown)
+        jenis = data.get("jenis_event", "")
+        idx = self.input_jenis.findText(jenis)
+        if idx >= 0:
+            self.input_jenis.setCurrentIndex(idx)
+
+        # Tipe tiket
+        if data.get("tipe_tiket", "Gratis") != "Gratis":
+            self.toggle_tiket.set_on(True)
+            self.input_harga.setText(data.get("harga_tiket", ""))
+
+        # Preview poster jika ada
+        poster = data.get("gambar_poster", "")
+        if poster and os.path.exists(poster):
+            self.poster_path = poster
+            pixmap = QPixmap(poster)
+            self.poster_preview_img.setPixmap(pixmap)
+            self.poster_preview_icon.hide()
+            self.poster_preview_text.hide()
+            self.poster_preview_img.show()

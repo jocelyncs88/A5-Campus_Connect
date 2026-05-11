@@ -84,10 +84,10 @@ class AdminPage(QWidget):
         # 4:poster, 5:jenis_event, 6:waktu, 7:source, 8:kategori, 9:status)
         
         for row_idx, row in enumerate(data_pending):
-            evt_id = row[1]
-            nama_event = row[2]
-            jenis = row[5]
-            waktu = row[6]
+            evt_id = row.get("event_id", "")
+            nama_event = row.get("nama_event", "")
+            jenis = row.get("jenis_event", "")
+            waktu = row.get("tanggal_waktu", "")
 
             # Masukkan teks ke sel tabel
             kolom_data = [evt_id, nama_event, jenis, waktu]
