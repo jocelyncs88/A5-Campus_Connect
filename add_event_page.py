@@ -14,13 +14,13 @@
 # QComboBox    = dropdown pilihan
 # QScrollArea  = area scroll jika konten panjang
 # QMessageBox  = popup pesan error/info
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
-                              QLabel, QLineEdit, QPushButton,
-                              QComboBox, QScrollArea, QMessageBox,
-                              QSizePolicy, QDateEdit, QTimeEdit)
-                              QScrollArea, QMessageBox,
-                              QSizePolicy, QDateEdit, QTimeEdit,  
-                              QToolButton, QMenu)
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QLineEdit, QPushButton,
+    QComboBox, QScrollArea, QMessageBox,
+    QSizePolicy, QDateEdit, QTimeEdit,
+    QToolButton, QMenu,
+)
 
 # Qt         = konstanta PyQt5
 # pyqtSignal = sinyal komunikasi antar komponen
@@ -143,7 +143,7 @@ class AddEventPage(QWidget):
         nama_layout.addWidget(self.input_nama)
 
         jenis_layout = QVBoxLayout()
-        self.label_jenis = QLabel("Event Type *")
+        self.label_jenis = QLabel("Event Type")
         self.label_jenis.setObjectName("label_field")
 
         self.input_jenis = QPushButton("Select event type")
@@ -723,7 +723,7 @@ class AddEventPage(QWidget):
     
     def pilih_jenis(self, jenis):
         # Update teks tombol saat dipilih
-        self.input_jenis.setText(f"{jenis}  ▾")
+        self.input_jenis.setText(jenis)
         self.jenis_terpilih = jenis  # simpan nilai terpilih
 
     # ----------------------------------------------------------
@@ -827,6 +827,7 @@ class AddEventPage(QWidget):
                 border: 1px solid #CBD5E0;
                 border-radius: 8px;
                 padding: 10px 14px;
+                padding-right: 28px;
                 text-align: left;
                 font-size: 13px;
                 color: #1a1a1a;
@@ -886,6 +887,127 @@ class AddEventPage(QWidget):
             QLabel#poster_preview_text {
                 font-size: 11px;
                 color: #888888;
+            }
+
+            /* Kalender popup */
+            QCalendarWidget {
+                background-color: white;
+                border-radius: 10px;
+                border: 1px solid #CBD5E0;
+            }
+
+            /* Header bulan/tahun */
+            QCalendarWidget QWidget#qt_calendar_navigationbar {
+                background-color: #2D6A6A;
+                border-radius: 8px;
+                padding: 4px;
+            }
+
+            /* Tombol prev/next bulan */
+            QCalendarWidget QToolButton {
+                background-color: transparent;
+                color: white;
+                font-size: 13px;
+                font-weight: bold;
+                border: none;
+                border-radius: 6px;
+                padding: 4px 8px;
+            }
+
+            QCalendarWidget QToolButton:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+
+            /* Teks bulan dan tahun di tengah */
+            QCalendarWidget QToolButton#qt_calendar_monthbutton,
+            QCalendarWidget QToolButton#qt_calendar_yearbutton {
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+            }
+
+            /* Header hari (Sun, Mon, ...) */
+            QCalendarWidget QHeaderView {
+                background-color: #D2E6E5;
+            }
+
+            QCalendarWidget QHeaderView::section {
+                background-color: #D2E6E5;
+                color: #516465;
+                font-size: 12px;
+                font-weight: bold;
+                padding: 4px;
+                border: none;
+            }
+
+            /* Sel tanggal normal */
+            QCalendarWidget QAbstractItemView {
+                background-color: white;
+                color: #1a1a1a;
+                font-size: 13px;
+                selection-background-color: #2D6A6A;
+                selection-color: white;
+                outline: none;
+            }
+
+            /* Tanggal yang dipilih */
+            QCalendarWidget QAbstractItemView:enabled {
+                color: #1a1a1a;
+            }
+
+            /* Tanggal hari ini */
+            QCalendarWidget QAbstractItemView::item:selected {
+                background-color: #2D6A6A;
+                color: white;
+                border-radius: 6px;
+            }
+
+            QCalendarWidget QAbstractItemView::item:hover {
+                background-color: #D2E6E5;
+                border-radius: 6px;
+            }
+
+            /* Tanggal di luar bulan ini (abu-abu) */
+            QCalendarWidget QAbstractItemView:disabled {
+                color: #CBD5E0;
+            }
+
+            /* Dropdown menu bulan di kalender */
+            QCalendarWidget QMenu {
+                background-color: white;
+                border: 1px solid #CBD5E0;
+                border-radius: 8px;
+                padding: 4px;
+                font-size: 13px;
+                color: #1a1a1a;
+            }
+
+            QCalendarWidget QMenu::item {
+                padding: 6px 12px;
+                border-radius: 6px;
+                margin: 2px 4px;
+            }
+
+            QCalendarWidget QMenu::item:selected {
+                background-color: #D2E6E5;
+                color: #2D6A6A;
+            }
+
+            /* SpinBox tahun */
+            QCalendarWidget QSpinBox {
+                background-color: transparent;
+                color: white;
+                border: none;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 0px 4px;
+            }
+
+            QCalendarWidget QSpinBox::up-button,
+            QCalendarWidget QSpinBox::down-button {
+                width: 0px;
+                height: 0px;
+                border: none;
             }
         """)
 
