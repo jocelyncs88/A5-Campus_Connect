@@ -320,7 +320,7 @@ class MainWindow(QMainWindow):
         
         nav_style = f"font-family: \"{self.font_sans}\"; background: transparent; color: {COLOR_TEXT_PRIMARY}; border: none; font-size: 14px;"
         self.btn_home.setStyleSheet(nav_style + "font-weight: bold;")
-        self.btn_about.setStyleSheet(nav_style)
+        self.btn_about.setStyleSheet(nav_style + "margin-left: 30px;")
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
         navbar_layout.addWidget(self.btn_about)
         navbar_layout.addSpacerItem(spacer)
         navbar_layout.addWidget(self.btn_login)
-        navbar_layout.addSpacing(10)
+        navbar_layout.addSpacing(30)
         navbar_layout.addWidget(self.btn_menu)
         self.layout_utama.addWidget(navbar_container)
         self.btn_about.clicked.connect(self.show_about_page)
@@ -517,6 +517,7 @@ class MainWindow(QMainWindow):
             self.success_page.lihat_event_diklik.connect(self.show_home_page)
             self.success_page.buat_event_lain_diklik.connect(self.buka_form_input)
             self.layout_utama.insertWidget(4, self.success_page)
+            self.layout_utama.setStretchFactor(self.success_page, 1)
 
         self.success_page.set_data(data)
         self.success_page.show()
@@ -524,7 +525,7 @@ class MainWindow(QMainWindow):
     # ↓ TAMBAHAN: method untuk buka success page setelah event dipublikasi
     def show_success_page(self):
         self._hide_all_pages()
-        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        self.layout_utama.setContentsMargins(60, 20, 60, 40)
 
         if self.success_page:
             self.success_page.show()
