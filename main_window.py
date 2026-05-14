@@ -30,7 +30,7 @@ from admin_page import AdminPage
 # --- INTEGRASI COMPONENT ---
 # Mencoba mengimport EventCard dari file card_widget.py
 try:
-    from card_widget import EventCard 
+    from components.card_widget import EventCard 
 except ImportError:
     # Cadangan jika file card_widget.py belum tersedia agar program tetap jalan
     class EventCard(QWidget):
@@ -548,15 +548,25 @@ class MainWindow(QMainWindow):
         self._hide_all_pages()
         self.navbar_container.hide()
         self.layout_utama.setContentsMargins(0, 0, 0, 0)
-        self.layout_utama.setSpacing(0) 
+        self.layout_utama.setSpacing(0)
 
-        if self.login_page is None:
-            self.login_page = LoginPage()
-            self.login_page.login_diklik.connect(self.on_login_diklik)
-            self.login_page.kembali_diklik.connect(self.show_home_page)
-            self.layout_utama.insertWidget(4, self.login_page)
-            self.layout_utama.setStretchFactor(self.login_page, 1)
+        # Jika login_page sudah pernah dibuat sebelumnya, hapus dulu
+        # agar tidak ada duplikat widget di layout
+        if self.login_page is not None:
+            self.layout_utama.removeWidget(self.login_page)
+            self.login_page.deleteLater()
+            self.login_page = None
 
+        # Buat objek LoginPage baru yang fresh
+        self.login_page = LoginPage()
+        # Hubungkan sinyal login_diklik ke fungsi yang mengecek email & password ke database
+        self.login_page.login_diklik.connect(self.on_login_diklik)
+        # saat user klik tombol kembali di halaman login, apllikasi akan kembali ke homepage
+        self.login_page.kembali_diklik.connect(self.show_home_page)
+
+        self.layout_utama.insertWidget(4, self.login_page)
+        self.layout_utama.setStretchFactor(self.login_page, 1)
+        # tampilkan login page ke layar
         self.login_page.show()
         
     def show_admin_page(self):

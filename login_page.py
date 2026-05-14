@@ -221,6 +221,7 @@ class LoginPage(QWidget):
         # Menyembunyikan teks password dengan titik-titik
         self.input_password.setEchoMode(QLineEdit.Password)
         self.input_password.installEventFilter(self)
+        self.input_password.returnPressed.connect(self.on_continue_diklik)
 
         # Tombol mata untuk show/hide password
         self.btn_mata = QPushButton()
@@ -250,6 +251,7 @@ class LoginPage(QWidget):
         font_lupa = QFont("Inter", 12)
         font_lupa.setWeight(QFont.Normal)
         self.teks_lupa.setFont(font_lupa)
+        self.teks_lupa.installEventFilter(self)
         main_layout.addWidget(self.teks_lupa)
         main_layout.addSpacing(20)
 
@@ -377,36 +379,43 @@ class LoginPage(QWidget):
             self.password_visible = True
 
     def eventFilter(self, source, event):
-        if source in (self.input_password, self.btn_mata):
-            if event.type() == QEvent.FocusIn:
-                self.input_password.setStyleSheet(
-                    "background-color: white;"
-                    "border: 1.5px solid #2D6A6A;"
-                    "border-top-left-radius: 10px;"
-                    "border-bottom-left-radius: 10px;"
-                    "border-top-right-radius: 0px;"
-                    "border-bottom-right-radius: 0px;"
-                    "border-right: none;"
-                    "padding: 10px 14px;"
-                    "font-size: 14px;"
-                    "color: #1a1a1a;"
-                )
-                self.btn_mata.setStyleSheet(
-                    "background-color: white;"
-                    "border: 1.5px solid #2D6A6A;"
-                    "border-top-right-radius: 10px;"
-                    "border-bottom-right-radius: 10px;"
-                    "border-top-left-radius: 0px;"
-                    "border-bottom-left-radius: 0px;"
-                    "border-left: none;"
-                    "color: #888780;"
-                )
-            elif event.type() == QEvent.FocusOut:
-                # Pastikan style kembali default hanya jika tidak ada focus di keduanya
-                if not (self.input_password.hasFocus() or self.btn_mata.hasFocus()):
-                    self.input_password.setStyleSheet("")
-                    self.btn_mata.setStyleSheet("")
-        return super().eventFilter(source, event)
+             # Handle klik pada "Forgot password?"
+             # Saat diklik → buka WhatsApp admin
+            if hasattr(self, 'teks_lupa') and source == self.teks_lupa:
+                if event.type() == QEvent.MouseButtonPress:
+                    self.buka_whatsapp()
+                    return True
+                
+            if source in (self.input_password, self.btn_mata):
+                if event.type() == QEvent.FocusIn:
+                    self.input_password.setStyleSheet(
+                        "background-color: white;"
+                        "border: 1.5px solid #2D6A6A;"
+                        "border-top-left-radius: 10px;"
+                        "border-bottom-left-radius: 10px;"
+                        "border-top-right-radius: 0px;"
+                        "border-bottom-right-radius: 0px;"
+                        "border-right: none;"
+                        "padding: 10px 14px;"
+                        "font-size: 14px;"
+                        "color: #1a1a1a;"
+                    )
+                    self.btn_mata.setStyleSheet(
+                        "background-color: white;"
+                        "border: 1.5px solid #2D6A6A;"
+                        "border-top-right-radius: 10px;"
+                        "border-bottom-right-radius: 10px;"
+                        "border-top-left-radius: 0px;"
+                        "border-bottom-left-radius: 0px;"
+                        "border-left: none;"
+                        "color: #888780;"
+                    )
+                elif event.type() == QEvent.FocusOut:
+                    # Pastikan style kembali default hanya jika tidak ada focus di keduanya
+                    if not (self.input_password.hasFocus() or self.btn_mata.hasFocus()):
+                        self.input_password.setStyleSheet("")
+                        self.btn_mata.setStyleSheet("")
+            return super().eventFilter(source, event)
 
 
     # ----------------------------------------------------------
