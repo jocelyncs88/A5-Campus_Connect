@@ -147,7 +147,7 @@ class AccountPanel(QWidget):
         lbl_judul.setStyleSheet(f"""
             font-size: 55px;
             font-weight: bold;
-            color: black;
+            color: {COLOR_TEAL_DARK};
             margin-bottom: 24px;
         """)
         layout.addWidget(lbl_judul)
@@ -158,7 +158,7 @@ class AccountPanel(QWidget):
         lbl_basic.setStyleSheet(f"""
             font-size: 37px;
             font-weight: bold;
-            color: black;
+            color: {COLOR_TEAL_DARK};
             margin-bottom: 12px;
         """)
         layout.addWidget(lbl_basic)
