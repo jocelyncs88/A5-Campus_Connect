@@ -23,6 +23,7 @@ from success_page import SuccessPage # ← TAMBAHAN
 from crud_events import prepare_create, save_payload
 from login_page import LoginPage
 from admin_page import AdminPage
+from detail_event_page import DetailEventPage
 
 
 
@@ -30,7 +31,7 @@ from admin_page import AdminPage
 # --- INTEGRASI COMPONENT ---
 # Mencoba mengimport EventCard dari file card_widget.py
 try:
-    from components.card_widget import EventCard 
+    from card_widget import EventCard 
 except ImportError:
     # Cadangan jika file card_widget.py belum tersedia agar program tetap jalan
     class EventCard(QWidget):
@@ -109,11 +110,12 @@ class MainWindow(QMainWindow):
         # Page references — dibuat lazy (None dulu, baru dibuat saat pertama dibuka)
         self.about_page = None
         self.faq_page = None  # ← TAMBAHAN
-        self.add_event_page = None  # ← TAMBAHAN
-        self.success_page = None  # ← TAMBAHAN
+        self.add_event_page = None  
+        self.success_page = None 
         self.settings_page = None
         self.login_page = None
         self.admin_page = None
+        self.detail_event_page = None  
         self.current_user_role = "guest"
         self.update_navbar_berdasarkan_role()
         
@@ -297,6 +299,8 @@ class MainWindow(QMainWindow):
             self.login_page.hide()
         if self.admin_page:
             self.admin_page.hide()
+        if self.detail_event_page:
+            self.detail_event_page.hide()
 
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
@@ -449,8 +453,40 @@ class MainWindow(QMainWindow):
         self.card_layout.addStretch()
 
     def handle_card_click(self, event_id):
-        """Respon saat kartu event diklik"""
-        QMessageBox.information(self, "Detail Event", f"Membuka detail untuk ID: {event_id}")
+        print(f"Card diklik: {event_id}")
+        # Ambil data event dari database berdasarkan event_id
+        import db_manager
+        data_list = db_manager.get_all_events()
+        print(f"Jumlah data: {len(data_list)}")
+        print(f"Contoh data: {data_list[0] if data_list else 'kosong'}")
+        
+        # Cari event yang sesuai dengan event_id
+        data_event = None
+        for row in data_list:
+            if str(row.get("event_id")) == str(event_id):
+                data_event = row
+                break
+        
+        print(f"Data ditemukan: {data_event}")
+
+        if not data_event:
+            print("Event tidak ditemukan!")
+            return
+
+        self._hide_all_pages()
+        self.navbar_container.hide()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        self.layout_utama.setSpacing(0)
+
+        if self.detail_event_page is None:
+            from detail_event_page import DetailEventPage
+            self.detail_event_page = DetailEventPage()
+            self.detail_event_page.kembali_diklik.connect(self.show_home_page)
+            self.layout_utama.insertWidget(4, self.detail_event_page)
+            self.layout_utama.setStretchFactor(self.detail_event_page, 1)
+
+        self.detail_event_page.set_data(data_event)
+        self.detail_event_page.show()
 
     def buka_form_input(self):
         self._hide_all_pages()
