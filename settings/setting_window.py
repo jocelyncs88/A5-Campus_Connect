@@ -15,6 +15,7 @@
 
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -22,6 +23,7 @@ from toggle_widget import ToggleSwitch
 from setting_item_widget import SettingItem
 from settings.account_window import AccountPanel
 from settings.your_events_window import YourEventsPanel
+from settings.notifications_window import NotificationsPanel
   
 
 # ==============================================================
@@ -188,7 +190,10 @@ class SettingsWindow(QWidget):
         )
         self.panel_your_events.minta_edit_event.connect(self.buka_halaman_edit_event)
         self.panel_your_events.minta_buka_add_event.connect(self.buka_add_event)
-        self.panel_notif       = self.buat_panel_notif()
+        self.panel_notif = NotificationsPanel(
+            user_data=self.user_data,
+            stacked_widget=self.stacked_widget
+        )
         self.panel_appearance  = self.buat_panel_appearance()
         self.panel_language    = self.buat_panel_language()
 

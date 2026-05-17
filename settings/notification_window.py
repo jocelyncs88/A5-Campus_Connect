@@ -45,13 +45,11 @@ from toggle_widget import ToggleSwitch
 
 # ==============================================================
 # KONSTANTA WARNA
-# Sesuai dengan spesifikasi dari mockup dan konsisten dengan
-# file settings lainnya
+# Sesuai spesifikasi mockup
 # ==============================================================
-COLOR_TEAL_DARK      = "#516465"   # Judul utama & sub-judul kategori
-COLOR_TEXT_MUTED     = "#828282"   # Keterangan judul & deskripsi item
-COLOR_DIVIDER        = "#888780"   # Garis pembatas antar item
-COLOR_WHITE          = "#FFFFFF"   # Background sidebar
+COLOR_TEAL_DARK  = "#516465"   # Judul utama, sub-judul kategori, judul item
+COLOR_TEXT_MUTED = "#828282"   # Keterangan judul & deskripsi item
+COLOR_DIVIDER    = "#888780"   # Garis pembatas antar item
 
 
 # ==============================================================
@@ -64,22 +62,9 @@ ROLE_UMUM      = "umum"
 
 # ==============================================================
 # CLASS NotificationsPanel
-# Mewarisi QWidget — dimasukkan ke stacked_widget settings_window
-#
-# Menampilkan panel berbeda berdasarkan role:
-#   EO      → Registration & Tickets notifications
-#   Student/Umum → My Schedule + Discovery notifications
 # ==============================================================
 class NotificationsPanel(QWidget):
 
-    # ----------------------------------------------------------
-    # FUNGSI __init__
-    #
-    # Parameter:
-    #   user_data      = dictionary data user yang login
-    #   stacked_widget = QStackedWidget milik settings_window
-    #   parent         = komponen induk
-    # ----------------------------------------------------------
     def __init__(self, user_data=None, stacked_widget=None, parent=None):
         super().__init__(parent)
 
@@ -95,9 +80,7 @@ class NotificationsPanel(QWidget):
         # Key: nama_setting, Value: bool (True=ON, False=OFF)
         self.notif_states = {}
 
-        # Memuat font Inter dari assets
         self._load_fonts()
-
         self.setStyleSheet("background: transparent;")
         self._render()
 
@@ -105,22 +88,20 @@ class NotificationsPanel(QWidget):
     # ----------------------------------------------------------
     # FUNGSI _load_fonts()
     # Memuat font Inter dari folder assets
-    # Sesuai spesifikasi mockup yang menggunakan font Inter
     # ----------------------------------------------------------
     def _load_fonts(self):
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         assets = os.path.join(BASE_DIR, "assets")
 
-        # Coba load Inter, fallback ke GoogleSans jika tidak ada
-        id_inter = QFontDatabase.addApplicationFont(
-            os.path.join(assets, "Inter_28pt-Regular.ttf")
+        id_regular = QFontDatabase.addApplicationFont(
+            os.path.join(assets, "Inter_18pt-Regular.ttf")
         )
-        id_inter_semi = QFontDatabase.addApplicationFont(
-            os.path.join(assets, "Inter_28pt-SemiBold.ttf")
+        id_semi = QFontDatabase.addApplicationFont(
+            os.path.join(assets, "Inter_18pt-Bold.ttf")
         )
 
-        families_regular = QFontDatabase.applicationFontFamilies(id_inter)
-        families_semi    = QFontDatabase.applicationFontFamilies(id_inter_semi)
+        families_regular = QFontDatabase.applicationFontFamilies(id_regular)
+        families_semi    = QFontDatabase.applicationFontFamilies(id_semi)
 
         # Fallback ke GoogleSans jika Inter tidak tersedia
         if not families_regular:
@@ -135,8 +116,8 @@ class NotificationsPanel(QWidget):
             )
             families_semi = QFontDatabase.applicationFontFamilies(id_fallback_bold)
 
-        self.font_regular = families_regular[0] if families_regular else "sans-serif"
-        self.font_semi    = families_semi[0]    if families_semi    else "sans-serif"
+        self.font_regular = families_regular[0] if families_regular else "Inter"
+        self.font_semi    = families_semi[0]    if families_semi    else "Inter"
 
 
     # ----------------------------------------------------------
@@ -154,7 +135,6 @@ class NotificationsPanel(QWidget):
             QWidget().setLayout(self.layout())
 
         # Bungkus seluruh konten dalam QScrollArea
-        # agar bisa di-scroll jika konten melebihi tinggi layar
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
@@ -173,15 +153,15 @@ class NotificationsPanel(QWidget):
         layout.setSpacing(0)
 
         # ---- JUDUL UTAMA ----
-        # Ukuran 55, warna #516465, font Inter
+        # Ukuran 55, warna #516465, font Inter SemiBold
         lbl_judul = QLabel("Notification Settings")
         lbl_judul.setFont(QFont(self.font_semi, 30))
-        lbl_judul.setStyleSheet(f"color: {COLOR_TEAL_DARK};")
+        lbl_judul.setStyleSheet(f"color: {COLOR_TEAL_DARK}; font-weight: bold;")
         layout.addWidget(lbl_judul)
         layout.addSpacing(8)
 
         # ---- KETERANGAN JUDUL ----
-        # Ukuran 23, warna #828282, font Inter
+        # Ukuran 23, warna #828282, font Inter Regular
         lbl_ket = QLabel(
             "We may still send you important notifications about your "
             "account outside of your notification settings."
@@ -207,14 +187,6 @@ class NotificationsPanel(QWidget):
     # ---- TAMPILAN EVENT ORGANIZER ----
     # ==========================================================
 
-    # ----------------------------------------------------------
-    # FUNGSI _render_eo()
-    # Membangun tampilan notifikasi untuk Event Organizer:
-    #   Kategori "Registration & Tickets":
-    #   - New registrant
-    #   - Quota alerts
-    #   - Registration cancellations
-    # ----------------------------------------------------------
     def _render_eo(self, layout):
 
         # ---- KATEGORI: Registration & Tickets ----
@@ -275,16 +247,6 @@ class NotificationsPanel(QWidget):
     # ---- TAMPILAN STUDENT / UMUM ----
     # ==========================================================
 
-    # ----------------------------------------------------------
-    # FUNGSI _render_student()
-    # Membangun tampilan notifikasi untuk mahasiswa/umum:
-    #   Kategori "My Schedule":
-    #   - Event reminder
-    #   - Critical updates
-    #   Kategori "Discovery":
-    #   - Interest match
-    #   - Campus Spotlight
-    # ----------------------------------------------------------
     def _render_student(self, layout):
 
         # ---- KATEGORI: My Schedule ----
@@ -366,41 +328,26 @@ class NotificationsPanel(QWidget):
     # ---- HELPER FUNCTIONS ----
     # ==========================================================
 
-    # ----------------------------------------------------------
-    # FUNGSI _buat_label_kategori()
-    # Membuat label sub-judul kategori notifikasi
-    # Ukuran 27, warna #516465, font Inter
-    #
-    # Parameter:
-    #   teks   = teks kategori, contoh: "My Schedule"
-    #   layout = layout tempat label ditambahkan
-    # ----------------------------------------------------------
     def _buat_label_kategori(self, teks, layout):
+        """
+        Membuat label sub-judul kategori notifikasi.
+        Ukuran 27, warna #516465, font Inter SemiBold
+        """
         lbl = QLabel(teks)
         lbl.setFont(QFont(self.font_semi, 15))
-        lbl.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
+        lbl.setStyleSheet(f"color: {COLOR_TEAL_DARK}; font-weight: bold;")
         layout.addWidget(lbl)
 
 
-    # ----------------------------------------------------------
-    # FUNGSI _buat_item_notif()
-    # Membuat satu baris item notifikasi yang terdiri dari:
-    #   - Judul notifikasi (kiri atas)
-    #   - Deskripsi notifikasi (kiri bawah)
-    #   - Label "Push" + ToggleSwitch (kanan)
-    #   - Garis pembatas di bawah
-    #
-    # Parameter:
-    #   layout        = layout tempat item ditambahkan
-    #   nama_setting  = key unik untuk menyimpan status toggle
-    #   judul         = nama notifikasi, contoh: "Event reminder"
-    #   deskripsi     = penjelasan singkat notifikasi
-    #   default_on    = status awal toggle (True=ON, False=OFF)
-    #   pesan_default = contoh pesan notifikasi yang akan dikirim
-    #                   (untuk referensi developer, tidak ditampilkan di UI)
-    # ----------------------------------------------------------
     def _buat_item_notif(self, layout, nama_setting, judul, deskripsi,
                           default_on=True, pesan_default=""):
+        """
+        Membuat satu baris item notifikasi:
+          - Judul notifikasi (kiri atas): ukuran 30, warna #516465
+          - Deskripsi notifikasi (kiri bawah): ukuran 23, warna #828282
+          - Toggle + label "Push" (kanan)
+          - Garis pembatas bawah: warna #888780
+        """
 
         # Simpan status awal ke dictionary
         self.notif_states[nama_setting] = default_on
@@ -423,7 +370,7 @@ class NotificationsPanel(QWidget):
         # Ukuran 30, warna #516465, font Inter SemiBold
         lbl_judul = QLabel(judul)
         lbl_judul.setFont(QFont(self.font_semi, 16))
-        lbl_judul.setStyleSheet(f"color: {COLOR_TEAL_DARK};")
+        lbl_judul.setStyleSheet(f"color: {COLOR_TEAL_DARK}; font-weight: bold;")
         kiri_layout.addWidget(lbl_judul)
 
         # Deskripsi notifikasi
@@ -436,7 +383,7 @@ class NotificationsPanel(QWidget):
 
         item_layout.addWidget(kiri, stretch=1)
 
-        # ---- KOLOM KANAN: Label "Push" + Toggle ----
+        # ---- KOLOM KANAN: Toggle + Label "Push" ----
         kanan = QWidget()
         kanan.setStyleSheet("background: transparent;")
         kanan_layout = QHBoxLayout(kanan)
@@ -449,8 +396,7 @@ class NotificationsPanel(QWidget):
         toggle.set_on(default_on)
         toggle.setCursor(Qt.PointingHandCursor)
 
-        # Label "Push" yang mengikuti status toggle
-        # Warna teks menyesuaikan status ON/OFF
+        # Label "Push" — warna mengikuti status toggle
         lbl_push = QLabel("Push")
         lbl_push.setFont(QFont(self.font_regular, 11))
         lbl_push.setStyleSheet(
@@ -475,24 +421,21 @@ class NotificationsPanel(QWidget):
         layout.addWidget(item_widget)
 
         # ---- GARIS PEMBATAS ----
-        # Warna #888780 sesuai spesifikasi mockup
         divider = QFrame()
         divider.setFrameShape(QFrame.HLine)
         divider.setFixedHeight(1)
-        divider.setStyleSheet(f"color: {COLOR_DIVIDER}; background-color: {COLOR_DIVIDER};")
+        divider.setStyleSheet(
+            f"color: {COLOR_DIVIDER}; background-color: {COLOR_DIVIDER};"
+        )
         layout.addWidget(divider)
 
 
-    # ----------------------------------------------------------
-    # FUNGSI get_notif_states()
-    # Mengembalikan dictionary status semua toggle notifikasi
-    # Berguna untuk menyimpan preferensi user ke database
-    #
-    # Return:
-    #   dict { nama_setting: bool }
-    #   contoh: { "notif_event_reminder": True, ... }
-    # ----------------------------------------------------------
     def get_notif_states(self):
+        """
+        Mengembalikan dictionary status semua toggle notifikasi.
+        Berguna untuk menyimpan preferensi user ke database.
+        Return: dict { nama_setting: bool }
+        """
         return self.notif_states.copy()
 
 
