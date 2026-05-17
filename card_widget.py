@@ -70,8 +70,16 @@ class EventCard(QWidget):
         # Bisa diakses dari fungsi manapun dalam class ini
         self.event_data = event_data
 
-        # Mengambil event_id dari dictionary, default "" jika tidak ada
-        # Disimpan tersendiri agar mudah diakses saat kartu diklik
+        # Mengambil identitas unik kartu dari database jika tersedia.
+        # db_id lebih stabil daripada event_id karena event_id bisa berulang.
+        self.event_key = str(
+            event_data.get("db_id")
+            or event_data.get("id")
+            or event_data.get("event_id")
+            or ""
+        )
+
+        # Simpan juga event_id asli untuk kebutuhan lain di UI.
         self.event_id = event_data.get("event_id", "")
 
         # Mencari lokasi absolut folder tempat file card_widget.py berada
@@ -330,10 +338,10 @@ class EventCard(QWidget):
     # ----------------------------------------------------------
     def mousePressEvent(self, event):
 
-        # Memancarkan sinyal 'diklik' sambil membawa event_id kartu ini
+        # Memancarkan sinyal 'diklik' sambil membawa key unik kartu ini
         # main_window.py yang sudah connect() akan menerima event_id ini
         # dan membuka halaman detail event yang diklik
-        self.diklik.emit(self.event_id)
+        self.diklik.emit(self.event_key)
 
 
     # ----------------------------------------------------------

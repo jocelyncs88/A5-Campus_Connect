@@ -374,23 +374,33 @@ class DetailEventPage(QWidget):
                 }
             """)
 
+        # ---- BADGE JENIS EVENT ----
+        jenis_event = data.get("jenis_event", "External")
+        self.badge_jenis.setText(jenis_event)
+        # Update styling class berdasarkan jenis event
+        if jenis_event.lower() == "internal":
+            self.badge_jenis.setObjectName("badge_internal")
+        else:
+            self.badge_jenis.setObjectName("badge_external")
+
         # ---- NAMA EVENT ----
         self.nama_label.setText(data.get("nama_event", "Nama Event"))
 
         # ---- LOKASI ----
-        lokasi = data.get("lokasi", "") or data.get("penyelenggara", "")
+        lokasi = data.get("lokasi", "")
         self.lokasi_label.setText(lokasi if lokasi else "Lokasi belum tersedia")
 
         # ---- TANGGAL & WAKTU ----
         tanggal_waktu = data.get("tanggal_waktu", "")
         if not tanggal_waktu:
-            tanggal = data.get("tanggal", "")
-            waktu = data.get("waktu", "")
+            tanggal = data.get("tanggal_display", "")
+            waktu = data.get("waktu_display", "")
             tanggal_waktu = f"{tanggal} {waktu}".strip()
         self.waktu_label.setText(tanggal_waktu if tanggal_waktu else "Tanggal belum tersedia")
 
         # ---- PENYELENGGARA ----
-        penyelenggara = data.get("penyelenggara", "")
+        # Database menyimpan nama_eo, bukan penyelenggara
+        penyelenggara = data.get("nama_eo", "")
         self.penyelenggara_label.setText(
             penyelenggara if penyelenggara else "Penyelenggara belum tersedia"
         )

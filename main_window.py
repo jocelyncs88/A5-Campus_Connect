@@ -203,6 +203,7 @@ class MainWindow(QMainWindow):
         data_untuk_ui = []
         for row in data_db_terbaru:
             event_dict = {
+                "db_id": str(row.get("id", "")),
                 "event_id": row.get("event_id", ""),
                 "nama_event": row.get("nama_event") or "Tanpa Judul",
                 "deskripsi_singkat": row.get("deskripsi_singkat") or "...",
@@ -456,10 +457,10 @@ class MainWindow(QMainWindow):
                 with open(path_poster, "rb") as f:
                     card.set_poster(f.read())
             
-            # Simpan data event ke map pakai event_id sebagai key
-            event_id = e.get("event_id", "")
-            if event_id:
-                self.event_data_map[event_id] = e
+            # Simpan data event ke map pakai key unik dari database.
+            event_key = str(e.get("db_id") or e.get("id") or e.get("event_id") or "")
+            if event_key:
+                self.event_data_map[event_key] = e
 
             self.card_layout.addWidget(card)
         self.card_layout.addStretch()
@@ -467,14 +468,15 @@ class MainWindow(QMainWindow):
     def handle_card_click(self, event_id):
         print(f"Card diklik: {event_id}")
 
-        # Cari dari in-memory map dulu (cepat, sudah pasti ada)
+        # OPTIMASI: Ambil dari cache yang sudah diisi dari database saat refresh.
+        # Ini lebih cepat daripada query seluruh tabel setiap kali kartu diklik.
         data_event = self.event_data_map.get(event_id)
 
-        # Fallback ke database jika tidak ketemu di map
+        # Fallback hanya untuk kondisi cache belum sinkron atau event belum termuat.
         if not data_event:
             data_list = db_manager.get_all_events()
             for row in data_list:
-                if str(row.get("event_id")) == str(event_id):
+                if str(row.get("id")) == str(event_id) or str(row.get("event_id")) == str(event_id):
                     data_event = row
                     break
 
