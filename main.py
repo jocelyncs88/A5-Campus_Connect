@@ -152,8 +152,8 @@ def _sync_scraped_events_to_db():
         cursor.execute("""
         INSERT OR IGNORE INTO events
         (event_id, nama_event, deskripsi_singkat, gambar_poster,
-         jenis_event, tanggal_waktu, source, kategori)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         jenis_event, tanggal_waktu, source, kategori, lokasi, nama_eo, tipe_tiket, harga_tiket)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             event.get("event_id"),
             event.get("nama_event"),
@@ -163,6 +163,10 @@ def _sync_scraped_events_to_db():
             event.get("tanggal_waktu"),
             event.get("source"),
             event.get("kategori"),
+            event.get("lokasi", "Jawa Barat"),      # ← TAMBAH
+            event.get("penyelenggara", "Polban"),             # ← TAMBAH
+            event.get("tipe_tiket", "Free"),                 # ← TAMBAH
+            event.get("harga_tiket", "0"),  
         ))
         inserted_count += 1
         existing_keys.add(event_key)

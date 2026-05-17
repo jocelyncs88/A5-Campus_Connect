@@ -181,7 +181,21 @@ def init_db():
         UNIQUE(user_id, event_id)
     )
     """)
-
+    # ← TAMBAHAN: Migration - tambah kolom baru kalau belum ada
+    kolom_baru = [
+        ("lokasi",      "TEXT DEFAULT ''"),
+        ("tipe_tiket",  "TEXT DEFAULT 'Free'"),
+        ("harga_tiket", "TEXT DEFAULT '0'"),
+        ("nama_eo",     "TEXT DEFAULT ''"),
+    ]
+    
+    for nama_kolom, tipe in kolom_baru:
+        try:
+            cursor.execute(f"ALTER TABLE events ADD COLUMN {nama_kolom} {tipe}")
+            print(f"[DB] Kolom '{nama_kolom}' berhasil ditambahkan.")
+        except Exception:
+            pass  # Kolom sudah ada, skip
+    
     conn.commit()
     conn.close()
 
@@ -190,19 +204,17 @@ def init_db():
 # UPSERT EVENT
 # =========================
 def upsert_event(event):
-    # Buka koneksi untuk menyimpan data event baru.
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
-    # TAMBAHAN: Menangkap status. Jika tidak ada, anggap "pending" (untuk form EO)
     status_event = event.get("status", "pending")
 
-    # Insert event baru, atau ignore jika event sudah ada berdasarkan UNIQUE constraint.
     cursor.execute("""
     INSERT OR IGNORE INTO events
     (event_id, nama_event, deskripsi_singkat, gambar_poster,
-     jenis_event, tanggal_waktu, source, kategori, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     jenis_event, tanggal_waktu, source, kategori, status,
+     lokasi, tipe_tiket, harga_tiket, nama_eo)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         event.get("event_id"),
         event.get("nama_event"),
@@ -212,10 +224,13 @@ def upsert_event(event):
         event.get("tanggal_waktu"),
         event.get("source"),
         event.get("kategori"),
-        status_event
+        status_event,
+        event.get("lokasi", ""),
+        event.get("tipe_tiket", "Free"),
+        event.get("harga_tiket", "0"),
+        event.get("penyelenggara", ""),
     ))
 
-    # Commit agar data benar-benar tersimpan, lalu tutup koneksi.
     conn.commit()
     conn.close()
 
