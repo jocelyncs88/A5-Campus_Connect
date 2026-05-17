@@ -623,13 +623,10 @@ class AddEventPage(QWidget):
     def publikasi_event(self):
 
         # ---- VALIDASI SEMUA FIELD WAJIB ----
-
-        # Cek apakah Jenis Event sudah dipilih
         if not self.jenis_terpilih:
             self.tampilkan_error("Please select the Event Type!")
             return
 
-        # Validasi field teks biasa
         text_fields = [
             ("Nama Event", self.input_nama),
             ("Deskripsi Event", self.input_deskripsi),
@@ -638,14 +635,11 @@ class AddEventPage(QWidget):
             ("Nama Kampus", self.input_kampus),
         ]
 
-        # Loop semua field wajib
-        # Jika ada yang kosong → tampilkan error dan berhenti
         for nama, field in text_fields:
             if not field.text().strip():
                 self.tampilkan_error(f"{nama} is required!")
                 return
 
-        # Validasi tanggal dan waktu dari picker
         tanggal = self.input_tanggal.date().toString("yyyy-MM-dd")
         waktu = self.input_waktu.time().toString("HH:mm")
         if not tanggal or tanggal.strip() == "":
@@ -655,57 +649,29 @@ class AddEventPage(QWidget):
             self.tampilkan_error("Waktu belum diisi!")
             return
 
-        # Cek harga tiket jika Berbayar
         if self.toggle_tiket.is_on():
             if not self.input_harga.text().strip():
                 self.tampilkan_error("Please enter the ticket price!")
                 return
 
         # ---- SEMUA VALIDASI LULUS ----
-        # Kumpulkan semua data form ke dalam dictionary
-        # Dictionary ini yang dikirim ke main_window.py
-        # Build a tidy description by appending location, campus and ticket info
-        base_desc = self.input_deskripsi.text().strip()
-        extras = []
-        lokasi_text = self.input_lokasi.text().strip()
-        kampus_text = self.input_kampus.text().strip()
-        if lokasi_text:
-            extras.append(f"Lokasi: {lokasi_text}")
-        if kampus_text:
-            extras.append(f"Penyelenggara: {kampus_text}")
-        if self.toggle_tiket.is_on():
-            harga = self.input_harga.text().strip()
-            if harga:
-                extras.append(f"Tiket: Berbayar — Rp {harga}")
-            else:
-                extras.append("Tiket: Berbayar")
-        else:
-            extras.append("Tiket: Gratis")
-
-        if base_desc:
-            combined_desc = base_desc + "\n\n" + "\n".join(extras)
-        else:
-            combined_desc = "\n".join(extras)
-
         data_event = {
             "nama_event"       : self.input_nama.text().strip(),
             "jenis_event"      : self.jenis_terpilih,
-            "deskripsi_singkat": combined_desc,
+            "deskripsi_singkat": self.input_deskripsi.text().strip(),
             "kategori"         : self.input_kategori.text().strip(),
             "tanggal"          : tanggal,
             "waktu"            : waktu,
-            "lokasi"           : lokasi_text,
-            "penyelenggara"    : kampus_text,
+            "lokasi"           : self.input_lokasi.text().strip(),
+            "penyelenggara"    : self.input_kampus.text().strip(),
             "tipe_tiket"       : "Paid" if self.toggle_tiket.is_on() else "Free",
             "harga_tiket"      : self.input_harga.text().strip() if self.toggle_tiket.is_on() else "0",
             "gambar_poster"    : self.poster_path,
-            "status"           : "Pending Validation",
+            "status"           : "pending",
             "source"           : "Manual Input",
         }
-
-        # Pancarkan sinyal event_dipublikasi membawa data event
-        # main_window.py yang menerima akan menyimpan ke database
         self.event_dipublikasi.emit(data_event)
+
 
 
     # ----------------------------------------------------------
@@ -1046,11 +1012,11 @@ class AddEventPage(QWidget):
 
         self.input_lokasi.setText(data.get("lokasi", ""))
 
-        # Jenis event (dropdown)
+        # Jenis event (QPushButton bukan QComboBox, pakai setText)
         jenis = data.get("jenis_event", "")
-        idx = self.input_jenis.findText(jenis)
-        if idx >= 0:
-            self.input_jenis.setCurrentIndex(idx)
+        if jenis:
+            self.input_jenis.setText(jenis)
+            self.jenis_terpilih = jenis
 
         # Tipe tiket
         if data.get("tipe_tiket", "Gratis") != "Gratis":
