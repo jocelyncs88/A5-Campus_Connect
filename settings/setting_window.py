@@ -64,6 +64,10 @@ ROLE_UMUM      = "umum"
 # ==============================================================
 class SettingsWindow(QWidget):
 
+    # Sinyal yang dipancarkan ke main_window.py saat EO klik
+    # "Create your first event now!" di panel Your Events
+    minta_buka_add_event = pyqtSignal()
+
     # ----------------------------------------------------------
     # FUNGSI __init__ (Konstruktor)
     # Dipanggil otomatis saat objek SettingsWindow dibuat
@@ -202,8 +206,11 @@ class SettingsWindow(QWidget):
 
 
     def buka_add_event(self):
-        # Tutup settings, buka add event di main window
-        self.btn_home.clicked.emit()  # kembali ke homepage dulu
+        # 1. Kembali ke homepage dulu (sembunyikan settings)
+        self.btn_home.clicked.emit()
+        # 2. Pancarkan sinyal ke main_window.py agar Add Event page dibuka
+        # main_window.py yang sudah connect ke sinyal ini akan memanggil buka_form_input()
+        self.minta_buka_add_event.emit()
 
 
     # ----------------------------------------------------------

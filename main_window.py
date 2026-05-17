@@ -804,6 +804,9 @@ class MainWindow(QMainWindow):
                 }
             )
             self.settings_page.btn_home.clicked.connect(self.show_home_page)
+            # Hubungkan sinyal Add Event dari Settings ke fungsi buka_form_input
+            # Dipancarkan saat EO klik "Create your first event now!" di Your Events
+            self.settings_page.minta_buka_add_event.connect(self.buka_form_input)
             self.layout_utama.insertWidget(4, self.settings_page)
             self.layout_utama.setStretchFactor(self.settings_page, 1)
 
