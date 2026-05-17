@@ -118,6 +118,7 @@ class MainWindow(QMainWindow):
         self.detail_event_page = None
         self.event_data_map = {}    
         self.current_user_role = "guest"
+        self.current_user_email = ""  # Email user yang sedang login
         self.update_navbar_berdasarkan_role()
         
         # === FITUR AUTO UPDATE 15 MENIT ===
@@ -569,13 +570,15 @@ class MainWindow(QMainWindow):
                     lokasi      = ?,
                     tipe_tiket  = ?,
                     harga_tiket = ?,
-                    nama_eo     = ?
+                    nama_eo     = ?,
+                    email_eo    = ?
                 WHERE event_id = ?
             """, (
                 data.get("lokasi", ""),
                 data.get("tipe_tiket", "Free"),
                 data.get("harga_tiket", "0"),
                 data.get("penyelenggara", ""),
+                getattr(self, "current_user_email", ""),  # ← email EO yang sedang login
                 payload.get("event_id", ""),
             ))
             print(f"[DEBUG] rows updated: {cursor.rowcount}")
@@ -683,19 +686,22 @@ class MainWindow(QMainWindow):
     def on_login_diklik(self, email, password):
             import account_db # Pastikan ini sudah di-import di atas
 
-            # Cek ke database (ingat, account_db.py temanmu harus sudah ditambah return role-nya)
-            # Asumsikan check_login sekarang mengembalikan role (misal: "eo", "admin", atau None)
             user_role = account_db.check_login(email, password)
 
             if user_role:
                 # 1. Ubah state role aplikasi
                 self.current_user_role = user_role
+
+                # Simpan email user yang login agar bisa dikirim ke settings
+                # dan dipakai oleh YourEventsPanel untuk query event per EO
+                self.current_user_email = email
+
                 self.settings_page = None
                 
                 # 2. Beri notifikasi sukses
                 QMessageBox.information(self, "Berhasil", f"Login Sukses sebagai {user_role.upper()}!")
                 
-                # 3. Panggil fungsi untuk mengubah tampilan navbar (kita buat setelah ini)
+                # 3. Panggil fungsi untuk mengubah tampilan navbar
                 self.update_navbar_berdasarkan_role()
                 
                 # 4. Kembali ke halaman utama
@@ -758,6 +764,7 @@ class MainWindow(QMainWindow):
         if jawaban == QMessageBox.Yes:
             # Kembalikan state ke guest
             self.current_user_role = "guest"
+            self.current_user_email = ""  # Reset email saat logout
             self.settings_page = None
             # Kembalikan tampilan navbar
             self.update_navbar_berdasarkan_role()
@@ -783,10 +790,17 @@ class MainWindow(QMainWindow):
         self.layout_utama.setSpacing(0)
 
         if self.settings_page is None:
+            # Kirim email user yang sedang login ke user_data
+            # agar YourEventsPanel bisa query event berdasarkan email_eo
+            # Email disimpan saat login di self.current_user_email
             self.settings_page = SettingsWindow(
                 user_data={
-                    "nama": "", "bio": "", "email": "",
-                    "kontak": "", "role": self.current_user_role, "inisial": ""
+                    "nama"   : "",
+                    "bio"    : "",
+                    "email"  : getattr(self, "current_user_email", ""),
+                    "kontak" : "",
+                    "role"   : self.current_user_role,
+                    "inisial": ""
                 }
             )
             self.settings_page.btn_home.clicked.connect(self.show_home_page)
