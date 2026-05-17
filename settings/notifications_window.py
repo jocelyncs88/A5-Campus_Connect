@@ -331,11 +331,11 @@ class NotificationsPanel(QWidget):
     def _buat_label_kategori(self, teks, layout):
         """
         Membuat label sub-judul kategori notifikasi.
-        Ukuran 27, warna #516465, font Inter SemiBold
+        Ukuran 27, warna #828282, font Inter SemiBold
         """
         lbl = QLabel(teks)
         lbl.setFont(QFont(self.font_semi, 15))
-        lbl.setStyleSheet(f"color: {COLOR_TEAL_DARK}; font-weight: bold;")
+        lbl.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-weight: bold;")
         layout.addWidget(lbl)
 
 
