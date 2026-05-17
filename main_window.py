@@ -198,7 +198,7 @@ class MainWindow(QMainWindow):
 
         # 1. Ambil data terbaru dari database tanpa membatasi status,
         # agar homepage tetap konsisten dengan tampilan awal aplikasi.
-        data_db_terbaru = db_manager.get_all_events()
+        data_db_terbaru = db_manager.get_events_by_status("approved")
         
         # 2. Format ulang data
         data_untuk_ui = []
