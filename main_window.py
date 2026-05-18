@@ -391,29 +391,30 @@ class MainWindow(QMainWindow):
         navbar_layout.addSpacing(12)
 
         # ---- ICON LONCENG + BADGE ----
-        # Container untuk lonceng + badge angka merah
+        # Container fixed-size TANPA layout — badge di-overlay secara absolut
+        # agar tidak mempengaruhi ukuran navbar saat window di-resize.
         self.bell_container = QWidget()
         self.bell_container.setFixedSize(44, 44)
         self.bell_container.setStyleSheet("background: transparent;")
-        bell_stack = QStackedLayout(self.bell_container)
-        bell_stack.setStackingMode(QStackedLayout.StackAll)
-        bell_stack.setContentsMargins(0, 0, 0, 0)
 
-        self.btn_bell = QPushButton()
+        # Tombol lonceng — child langsung, posisi absolut
+        self.btn_bell = QPushButton(self.bell_container)
         self.btn_bell.setIcon(QIcon("assets/bell.png"))
         self.btn_bell.setIconSize(QSize(26, 26))
         self.btn_bell.setCursor(Qt.PointingHandCursor)
         self.btn_bell.setFixedSize(44, 44)
+        self.btn_bell.move(0, 0)
         self.btn_bell.setStyleSheet("""
             QPushButton { background: transparent; border: none; border-radius: 22px; }
             QPushButton:hover { background: rgba(255,255,255,120); }
         """)
         self.btn_bell.clicked.connect(self.show_notif_page)
 
-        # Badge angka merah (tersembunyi saat = 0)
-        self.lbl_badge = QLabel("0")
+        # Badge angka merah — overlay pojok kanan atas, tanpa layout
+        self.lbl_badge = QLabel("0", self.bell_container)
         self.lbl_badge.setAlignment(Qt.AlignCenter)
         self.lbl_badge.setFixedSize(18, 18)
+        self.lbl_badge.move(24, 2)
         self.lbl_badge.setStyleSheet("""
             QLabel {
                 background-color: #E53935;
@@ -424,12 +425,8 @@ class MainWindow(QMainWindow):
             }
         """)
         self.lbl_badge.hide()
-        # Posisikan badge di pojok kanan atas lonceng
-        self.lbl_badge.setParent(self.bell_container)
-        self.lbl_badge.move(24, 2)
         self.lbl_badge.raise_()
 
-        bell_stack.addWidget(self.btn_bell)
         navbar_layout.addWidget(self.bell_container)
         self.bell_container.hide()   # hanya tampil saat login sebagai EO
 

@@ -411,12 +411,6 @@ class SettingsWindow(QWidget):
             self.panel_your_events._render()
 
     # ----------------------------------------------------------
-<<<<<<< HEAD
-    # FUNGSI buat_panel_appearance()
-    # Membangun panel "Appearance" berisi pengaturan tampilan
-    # Tampilan panel ini SAMA untuk semua role user
-    # ----------------------------------------------------------
-=======
     # PANEL APPEARANCE & LANGUAGE
     # ----------------------------------------------------------
     def buat_panel_notif(self):
@@ -454,7 +448,6 @@ class SettingsWindow(QWidget):
         layout.addStretch()
         return panel
 
->>>>>>> 032adbb79f1235916c95995cf8c8b2c71797574b
     def buat_panel_appearance(self):
         panel = QWidget()
         panel.setStyleSheet("background: transparent;")
