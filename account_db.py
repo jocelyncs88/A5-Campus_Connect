@@ -91,6 +91,7 @@ def check_login(email, password):
 def create_demo_account():
     register_account("admin@gmail.com", "123456", "admin")
     register_account("eo@gmail.com", "123456", "eo")
+    register_account("mahasiswa@gmail.com", "123456", "mahasiswa")
 
 # =========================
 # MAIN
