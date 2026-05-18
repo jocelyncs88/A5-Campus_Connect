@@ -556,6 +556,7 @@ class AddEventPage(QWidget):
         jenis = data.get("jenis_event", "")
         if jenis:
             self.input_jenis.setText(jenis)
+            self.jenis_terpilih = jenis
 
         if data.get("tipe_tiket", "Free") not in ("Free", "Gratis", ""):
             self.toggle_tiket.set_on(True)
