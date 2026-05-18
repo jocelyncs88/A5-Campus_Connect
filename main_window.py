@@ -739,7 +739,7 @@ class MainWindow(QMainWindow):
 
             # EO punya akses lengkap
             self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input) 
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events")
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(self.buka_my_events)
             self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
 
@@ -826,6 +826,15 @@ class MainWindow(QMainWindow):
             self.layout_utama.setStretchFactor(self.settings_page, 1)
 
         self.settings_page.show()
+
+    def buka_my_events(self):
+        """Buka Settings dan navigasi langsung ke Your Events panel"""
+        # Buka settings terlebih dahulu
+        self.buka_settings()
+        
+        # Navigasi ke Your Events panel (index 1) dan update sidebar
+        if self.settings_page and hasattr(self.settings_page, 'switch_panel'):
+            self.settings_page.switch_panel(1)
 
 
 if __name__ == "__main__":
