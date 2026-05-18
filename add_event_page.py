@@ -1011,6 +1011,8 @@ class AddEventPage(QWidget):
                 pass
 
         self.input_lokasi.setText(data.get("lokasi", ""))
+        # Cek dua key karena ada dari database (nama_eo) dan dari form (penyelenggara)
+        self.input_kampus.setText(data.get("nama_eo", data.get("penyelenggara", "")))
 
         # Jenis event (QPushButton bukan QComboBox, pakai setText)
         jenis = data.get("jenis_event", "")
