@@ -181,6 +181,22 @@ def init_db():
         UNIQUE(user_id, event_id)
     )
     """)
+
+    # =========================================================
+    # TABEL NOTIFICATIONS  ← TAMBAHAN BARU
+    # Menyimpan notifikasi untuk EO saat admin approve/reject event
+    # =========================================================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email_user TEXT,
+        judul TEXT,
+        pesan TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT
+    )
+    """)
+
     # ← TAMBAHAN: Migration - tambah kolom baru kalau belum ada
     kolom_baru = [
         ("lokasi",      "TEXT DEFAULT ''"),
@@ -348,7 +364,7 @@ def get_liked_events(user_id):
     return result
 
 # =========================
-# UPDATE EVENT STATUS (FUNGSI BARU)
+# UPDATE EVENT STATUS
 # =========================
 def update_event_status(event_id, new_status):
     """Mengubah status validasi event (Approve/Decline)"""
@@ -359,15 +375,119 @@ def update_event_status(event_id, new_status):
     conn.close()
 
 
+# =========================================================
+# NOTIFICATIONS — FUNGSI-FUNGSI BARU
+# =========================================================
+
+def simpan_notifikasi(email_user, judul, pesan):
+    """
+    Menyimpan satu notifikasi baru ke tabel notifications.
+    Dipanggil dari main_window.py saat admin approve/reject event.
+
+    Parameter:
+        email_user : email EO pemilik event (str)
+        judul      : judul singkat notifikasi (str)
+        pesan      : isi pesan lengkap (str)
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO notifications (email_user, judul, pesan, is_read, created_at)
+        VALUES (?, ?, ?, 0, ?)
+    """, (
+        email_user,
+        judul,
+        pesan,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    ))
+    conn.commit()
+    conn.close()
+
+
+def get_notifikasi(email_user):
+    """
+    Mengambil semua notifikasi milik seorang EO, diurutkan
+    dari yang terbaru (created_at DESC).
+
+    Parameter:
+        email_user : email EO yang sedang login (str)
+
+    Return:
+        list of dict — setiap dict berisi kolom tabel notifications
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT * FROM notifications
+        WHERE email_user = ?
+        ORDER BY created_at DESC
+    """, (email_user,))
+    rows = cursor.fetchall()
+    result = [row_to_dict(cursor, row) for row in rows]
+    conn.close()
+    return result
+
+
+def hitung_notifikasi_belum_dibaca(email_user):
+    """
+    Menghitung jumlah notifikasi yang belum dibaca (is_read = 0)
+    milik EO tertentu. Dipakai untuk angka badge di lonceng navbar.
+
+    Return:
+        int — jumlah notifikasi belum dibaca
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT COUNT(*) FROM notifications
+        WHERE email_user = ? AND is_read = 0
+    """, (email_user,))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+
+def tandai_notifikasi_dibaca(notif_id):
+    """
+    Menandai satu notifikasi sebagai sudah dibaca (is_read = 1).
+    Dipanggil saat user mengklik item notifikasi di halaman notifikasi.
+
+    Parameter:
+        notif_id : id baris di tabel notifications (int)
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE notifications SET is_read = 1 WHERE id = ?
+    """, (notif_id,))
+    conn.commit()
+    conn.close()
+
+
+def tandai_semua_notifikasi_dibaca(email_user):
+    """
+    Menandai semua notifikasi milik EO sebagai sudah dibaca.
+    Opsional — bisa dipanggil saat EO membuka halaman notifikasi.
+
+    Parameter:
+        email_user : email EO (str)
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE notifications SET is_read = 1
+        WHERE email_user = ? AND is_read = 0
+    """, (email_user,))
+    conn.commit()
+    conn.close()
+
+
 # =========================
 # TEST MANUAL
 # =========================
 if __name__ == "__main__":
-    # Inisialisasi database untuk memastikan tabel events tersedia.
     init_db()
 
-    # Contoh data event yang akan dimasukkan ke database untuk pengujian.
-    # Karena ini dummy untuk ngetes Homepage, kita set statusnya "approved"
     dummy_event = {
         "event_id": "SCR-TEST",
         "nama_event": "Seminar AI",
@@ -377,13 +497,18 @@ if __name__ == "__main__":
         "tanggal_waktu": "2026-05-20",
         "source": "test.com",
         "kategori": "Seminar",
-        "status": "approved" 
+        "status": "approved"
     }
 
-    # Simpan data contoh ke database.
     upsert_event(dummy_event)
 
-    # Tampilkan ke terminal
     print("Daftar Event Approved:")
     for e in get_events_by_status("approved"):
         print(e)
+
+    # Test notifikasi
+    simpan_notifikasi("eo@test.com", "Event Disetujui ✅", "Seminar AI telah disetujui admin dan kini tampil di Campus Connect!")
+    print("\nNotifikasi EO:")
+    for n in get_notifikasi("eo@test.com"):
+        print(n)
+    print("Belum dibaca:", hitung_notifikasi_belum_dibaca("eo@test.com"))

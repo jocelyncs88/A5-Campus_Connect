@@ -24,6 +24,7 @@ from crud_events import prepare_create, save_payload
 from login_page import LoginPage
 from admin_page import AdminPage
 from detail_event_page import DetailEventPage
+from notification_page import NotificationPage
 
 
 
@@ -116,6 +117,7 @@ class MainWindow(QMainWindow):
         self.login_page = None
         self.admin_page = None
         self.detail_event_page = None
+        self.notif_page = None          # ← TAMBAHAN: halaman notifikasi
         self.event_data_map = {}    
         self.current_user_role = "guest"
         self.current_user_email = ""  # Email user yang sedang login
@@ -308,6 +310,8 @@ class MainWindow(QMainWindow):
             self.admin_page.hide()
         if self.detail_event_page:
             self.detail_event_page.hide()
+        if self.notif_page:                 # ← TAMBAHAN
+            self.notif_page.hide()
 
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
@@ -384,7 +388,52 @@ class MainWindow(QMainWindow):
         navbar_layout.addWidget(self.btn_about)
         navbar_layout.addSpacerItem(spacer)
         navbar_layout.addWidget(self.btn_login)
-        navbar_layout.addSpacing(30)
+        navbar_layout.addSpacing(12)
+
+        # ---- ICON LONCENG + BADGE ----
+        # Container untuk lonceng + badge angka merah
+        self.bell_container = QWidget()
+        self.bell_container.setFixedSize(44, 44)
+        self.bell_container.setStyleSheet("background: transparent;")
+        bell_stack = QStackedLayout(self.bell_container)
+        bell_stack.setStackingMode(QStackedLayout.StackAll)
+        bell_stack.setContentsMargins(0, 0, 0, 0)
+
+        self.btn_bell = QPushButton()
+        self.btn_bell.setIcon(QIcon("assets/bell.png"))
+        self.btn_bell.setIconSize(QSize(26, 26))
+        self.btn_bell.setCursor(Qt.PointingHandCursor)
+        self.btn_bell.setFixedSize(44, 44)
+        self.btn_bell.setStyleSheet("""
+            QPushButton { background: transparent; border: none; border-radius: 22px; }
+            QPushButton:hover { background: rgba(255,255,255,120); }
+        """)
+        self.btn_bell.clicked.connect(self.show_notif_page)
+
+        # Badge angka merah (tersembunyi saat = 0)
+        self.lbl_badge = QLabel("0")
+        self.lbl_badge.setAlignment(Qt.AlignCenter)
+        self.lbl_badge.setFixedSize(18, 18)
+        self.lbl_badge.setStyleSheet("""
+            QLabel {
+                background-color: #E53935;
+                color: white;
+                border-radius: 9px;
+                font-size: 9px;
+                font-weight: bold;
+            }
+        """)
+        self.lbl_badge.hide()
+        # Posisikan badge di pojok kanan atas lonceng
+        self.lbl_badge.setParent(self.bell_container)
+        self.lbl_badge.move(24, 2)
+        self.lbl_badge.raise_()
+
+        bell_stack.addWidget(self.btn_bell)
+        navbar_layout.addWidget(self.bell_container)
+        self.bell_container.hide()   # hanya tampil saat login sebagai EO
+
+        navbar_layout.addSpacing(12)
         navbar_layout.addWidget(self.btn_menu)
         self.layout_utama.addWidget(navbar_container)
         self.btn_about.clicked.connect(self.show_about_page)
@@ -673,15 +722,78 @@ class MainWindow(QMainWindow):
         # 1. Ubah status di database
         db_manager.update_event_status(event_id, status_baru)
         
-        # 2. Beri notifikasi ke Admin
+        # 2. Ambil info event untuk pesan notifikasi
+        semua_event = db_manager.get_all_events()
+        data_event = next((e for e in semua_event if e.get("event_id") == event_id), {})
+        nama_event = data_event.get("nama_event", event_id)
+        email_eo   = data_event.get("email_eo", "")
+
+        # 3. Simpan notifikasi ke database agar EO bisa lihat
+        if email_eo:
+            if status_baru == "approved":
+                judul = f"Event Disetujui ✅"
+                pesan = (
+                    f'"{nama_event}" telah disetujui admin dan kini tampil live '
+                    f"di Campus Connect! Event kamu siap menerima pendaftaran."
+                )
+            else:
+                judul = f"Event Ditolak ❌"
+                pesan = (
+                    f'"{nama_event}" tidak disetujui admin. '
+                    f"Silakan periksa kembali detail event atau hubungi admin untuk informasi lebih lanjut."
+                )
+            db_manager.simpan_notifikasi(email_eo, judul, pesan)
+
+        # 4. Beri notifikasi ke Admin
         aksi = "Disetujui" if status_baru == "approved" else "Ditolak"
         QMessageBox.information(self, "Berhasil", f"Event {event_id} berhasil {aksi}!")
         
-        # 3. Refresh tabel di halaman admin (nanti kita buat fungsi ini di admin_page.py)
+        # 5. Refresh tabel di halaman admin
         self.admin_page.load_data_antrean()
         
-        # 4. Refresh layar utama agar event yang di-approve langsung muncul di depan!
+        # 6. Refresh layar utama agar event yang di-approve langsung muncul di depan!
         self.refresh_tampilan_homepage()
+
+    # =========================================================
+    # BELL BADGE — FUNGSI PEMBANTU
+    # =========================================================
+    def _set_badge(self, count: int):
+        """Update tampilan angka badge pada icon lonceng."""
+        if not hasattr(self, "lbl_badge"):
+            return
+        if count > 0:
+            self.lbl_badge.setText(str(count) if count < 100 else "99+")
+            self.lbl_badge.show()
+            self.lbl_badge.raise_()
+        else:
+            self.lbl_badge.hide()
+
+    def _refresh_bell_badge(self):
+        """Hitung ulang notif belum-baca dari DB dan update badge."""
+        if self.current_user_role == "eo" and self.current_user_email:
+            count = db_manager.hitung_notifikasi_belum_dibaca(self.current_user_email)
+            self._set_badge(count)
+        else:
+            self._set_badge(0)
+
+    def show_notif_page(self):
+        """Buka halaman daftar notifikasi EO."""
+        self._hide_all_pages()
+        self.navbar_container.hide()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        self.layout_utama.setSpacing(0)
+
+        if self.notif_page is None:
+            self.notif_page = NotificationPage(email_eo=self.current_user_email)
+            self.notif_page.kembali_diklik.connect(self.show_home_page)
+            self.notif_page.badge_berubah.connect(self._set_badge)
+            self.layout_utama.insertWidget(4, self.notif_page)
+            self.layout_utama.setStretchFactor(self.notif_page, 1)
+        else:
+            # Update email kalau beda & muat ulang
+            self.notif_page.set_email(self.current_user_email)
+
+        self.notif_page.show()
     
     def on_login_diklik(self, email, password):
             import account_db # Pastikan ini sudah di-import di atas
@@ -714,6 +826,15 @@ class MainWindow(QMainWindow):
         
         # 1. Bersihkan menu agar tidak terjadi penumpukan (duplikat)
         self.hamburger_menu.clear()
+
+        # Tampilkan lonceng hanya untuk EO
+        if hasattr(self, "bell_container"):
+            if self.current_user_role == "eo":
+                self.bell_container.show()
+                self._refresh_bell_badge()
+            else:
+                self.bell_container.hide()
+                self._set_badge(0)
 
         if self.current_user_role == "guest":
             # --- TAMPILAN GUEST ---
@@ -781,6 +902,7 @@ class MainWindow(QMainWindow):
             self.current_user_role = "guest"
             self.current_user_email = ""  # Reset email saat logout
             self.settings_page = None
+            self.notif_page = None        # ← TAMBAHAN: reset halaman notifikasi
             # Kembalikan tampilan navbar
             self.update_navbar_berdasarkan_role()
             # Buka ulang halaman home
