@@ -411,50 +411,10 @@ class SettingsWindow(QWidget):
             self.panel_your_events._render()
 
     # ----------------------------------------------------------
-<<<<<<< HEAD
     # FUNGSI buat_panel_appearance()
     # Membangun panel "Appearance" berisi pengaturan tampilan
     # Tampilan panel ini SAMA untuk semua role user
     # ----------------------------------------------------------
-=======
-    # PANEL APPEARANCE & LANGUAGE
-    # ----------------------------------------------------------
-    def buat_panel_notif(self):
-        panel = QWidget()
-        panel.setStyleSheet("background: transparent;")
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(50, 40, 50, 40)
-        layout.setSpacing(16)
-
-        lbl_judul = QLabel("Notifications")
-        lbl_judul.setStyleSheet(
-            f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};"
-        )
-        layout.addWidget(lbl_judul)
-
-        if self.role == ROLE_ORGANIZER:
-            deskripsi = "Atur kapan kamu ingin mendapat notifikasi tentang pendaftar event yang kamu buat."
-        elif self.role == ROLE_MAHASISWA:
-            deskripsi = "Atur kapan kamu ingin mendapat pengingat untuk event yang kamu ikuti."
-        else:
-            deskripsi = "Atur preferensi notifikasi umum kamu di sini."
-
-        lbl_info = QLabel(deskripsi)
-        lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
-        lbl_info.setWordWrap(True)
-        layout.addWidget(lbl_info)
-
-        item = SettingItem(
-            judul="New registrant",
-            deskripsi="Get alerts every time a user registers",
-            nama_setting="notif_registrant",
-            default_on=True
-        )
-        layout.addWidget(item)
-        layout.addStretch()
-        return panel
-
->>>>>>> 032adbb79f1235916c95995cf8c8b2c71797574b
     def buat_panel_appearance(self):
         panel = QWidget()
         panel.setStyleSheet("background: transparent;")
