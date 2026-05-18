@@ -1018,7 +1018,6 @@ class AddEventPage(QWidget):
         jenis = data.get("jenis_event", "")
         if jenis:
             self.input_jenis.setText(jenis)
-            self.jenis_terpilih = jenis
 
         # Tipe tiket
         if data.get("tipe_tiket", "Gratis") != "Gratis":
