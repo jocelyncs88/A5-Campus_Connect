@@ -30,15 +30,15 @@ class AdminPage(QWidget):
         header_layout = QHBoxLayout()
         
         title_layout = QVBoxLayout()
-        self.judul_label = QLabel("Dashboard Validasi Event")
+        self.judul_label = QLabel("Event Validation Dashboard")
         self.judul_label.setObjectName("judul")
-        self.sub_judul = QLabel("Kelola antrean pengajuan event dari Event Organizer")
+        self.sub_judul = QLabel("Manage event validation queue from Event Organizers")
         self.sub_judul.setObjectName("sub_judul")
         
         title_layout.addWidget(self.judul_label)
         title_layout.addWidget(self.sub_judul)
         
-        self.btn_kembali = QPushButton("← Kembali ke Home")
+        self.btn_kembali = QPushButton("← Return to Homepage")
         self.btn_kembali.setObjectName("btn_kembali")
         self.btn_kembali.setCursor(Qt.PointingHandCursor)
         self.btn_kembali.clicked.connect(self.kembali_diklik.emit)
@@ -52,7 +52,7 @@ class AdminPage(QWidget):
         # ---- TABEL VALDASI ----
         self.tabel = QTableWidget()
         self.tabel.setColumnCount(5)
-        self.tabel.setHorizontalHeaderLabels(["ID Event", "Nama Event", "Tipe", "Waktu", "Aksi Validasi"])
+        self.tabel.setHorizontalHeaderLabels(["Event ID", "Event Name", "Type", "Time", "Validation Action"])
         
         # Pengaturan agar tabel responsif dan rapi
         header = self.tabel.horizontalHeader()

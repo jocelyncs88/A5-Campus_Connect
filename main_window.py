@@ -597,8 +597,8 @@ class MainWindow(QMainWindow):
 
         is_valid, errors, payload = prepare_create(form_data)
         if not is_valid:
-            pesan_error = "\n".join(errors.values()) if errors else "Data event tidak valid."
-            QMessageBox.warning(self, "Event Gagal Dipublikasi", pesan_error)
+            pesan_error = "\n".join(errors.values()) if errors else "Invalid event data."
+            QMessageBox.warning(self, "Failed to Publish Event", pesan_error)
             return
 
         save_payload(payload)
@@ -728,22 +728,22 @@ class MainWindow(QMainWindow):
         # 3. Simpan notifikasi ke database agar EO bisa lihat
         if email_eo:
             if status_baru == "approved":
-                judul = f"Event Disetujui ✅"
+                judul = f"Event Approved ✅"
                 pesan = (
-                    f'"{nama_event}" telah disetujui admin dan kini tampil live '
-                    f"di Campus Connect! Event kamu siap menerima pendaftaran."
+                    f'"{nama_event}" has been approved by the admin and is now live '
+                    f"on Campus Connect! Your event is ready to accept registration"
                 )
             else:
-                judul = f"Event Ditolak ❌"
+                judul = f"Event Rejected ❌"
                 pesan = (
-                    f'"{nama_event}" tidak disetujui admin. '
-                    f"Silakan periksa kembali detail event atau hubungi admin untuk informasi lebih lanjut."
+                    f'"{nama_event}" has been rejected by the admin. '
+                    f"Please double-check the event details or contact the admin for further information."
                 )
             db_manager.simpan_notifikasi(email_eo, judul, pesan)
 
         # 4. Beri notifikasi ke Admin
-        aksi = "Disetujui" if status_baru == "approved" else "Ditolak"
-        QMessageBox.information(self, "Berhasil", f"Event {event_id} berhasil {aksi}!")
+        aksi = "Approved" if status_baru == "Approved" else "Rejected"
+        QMessageBox.information(self, "Success", f"Event {event_id} successfully {aksi}!")
         
         # 5. Refresh tabel di halaman admin
         self.admin_page.load_data_antrean()
@@ -808,7 +808,7 @@ class MainWindow(QMainWindow):
                 self.settings_page = None
                 
                 # 2. Beri notifikasi sukses
-                QMessageBox.information(self, "Berhasil", f"Login Sukses sebagai {user_role.upper()}!")
+                QMessageBox.information(self, "Success", f"Successful Login as {user_role.upper()}!")
                 
                 # 3. Panggil fungsi untuk mengubah tampilan navbar
                 self.update_navbar_berdasarkan_role()
@@ -816,7 +816,7 @@ class MainWindow(QMainWindow):
                 # 4. Kembali ke halaman utama
                 self.show_home_page()
             else:
-                QMessageBox.warning(self, "Gagal", "Email atau Password salah!")
+                QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
                 
     def update_navbar_berdasarkan_role(self):
         """Mengubah tampilan Navbar dan isi Menu secara dinamis sesuai role"""
@@ -871,13 +871,13 @@ class MainWindow(QMainWindow):
             self.btn_login.clicked.connect(self.proses_logout)
 
             # Menu khusus Admin
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Dashboard Validasi").triggered.connect(self.show_admin_page)
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Validation Dashboard").triggered.connect(self.show_admin_page)
             self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
         
         elif self.current_user_role in ["mahasiswa"]:
             # --- TAMPILAN MAHASISWA / USER AUDIENCE ---
-            self.btn_login.setText("  Hi, mahasiswa!")
+            self.btn_login.setText("  Hi, Student!")
             self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
             
             try: self.btn_login.clicked.disconnect() 
@@ -892,7 +892,7 @@ class MainWindow(QMainWindow):
             
     def proses_logout(self):
         # Konfirmasi logout
-        jawaban = QMessageBox.question(self, "Logout", "Apakah Anda yakin ingin keluar?", QMessageBox.Yes | QMessageBox.No)
+        jawaban = QMessageBox.question(self, "Logout", "Are you sure you want to logout?", QMessageBox.Yes | QMessageBox.No)
         
         if jawaban == QMessageBox.Yes:
             # Kembalikan state ke guest
@@ -904,16 +904,16 @@ class MainWindow(QMainWindow):
             self.update_navbar_berdasarkan_role()
             # Buka ulang halaman home
             self.show_home_page()
-            QMessageBox.information(self, "Logout", "Berhasil logout.")
+            QMessageBox.information(self, "Logout", "Successfully logout.")
         
     def proses_login(self, email, password):
     # Cek ke database
         if account_db.check_login(email, password):
         #   TODO: Nanti kita buat logika ganti tampilan Navbar di sini
-            QMessageBox.information(self, "Berhasil", "Login Sukses!")
+            QMessageBox.information(self, "Success", "Login Successful!")
             self.show_home_page()
         else:
-            QMessageBox.warning(self, "Gagal", "Email atau Password salah!")
+            QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
     
     def buka_settings(self):
         from settings.setting_window import SettingsWindow

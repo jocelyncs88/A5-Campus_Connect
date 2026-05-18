@@ -122,7 +122,7 @@ class LoginPage(QWidget):
 
         # ---- TEKS "Enter your email to continue" ----
 
-        self.teks_sub = QLabel("Enter your email to continue")
+        self.teks_sub = QLabel("Enter your email address to continue")
         self.teks_sub.setObjectName("teks_sub")
         self.teks_sub.setAlignment(Qt.AlignCenter)
 
@@ -272,7 +272,7 @@ class LoginPage(QWidget):
 
         # ---- TOMBOL KEMBALI KE HOMEPAGE ----
 
-        self.btn_kembali = QPushButton("← Kembali ke Homepage")
+        self.btn_kembali = QPushButton("← Return to Homepage")
         self.btn_kembali.setObjectName("btn_kembali")
         self.btn_kembali.setFixedHeight(48)
         self.btn_kembali.setCursor(Qt.PointingHandCursor)
@@ -342,7 +342,7 @@ class LoginPage(QWidget):
 
         # ---- TEKS "Contact admin to register..." ----
 
-        self.teks_admin = QLabel("Contact admin to register as an Event Organizer")
+        self.teks_admin = QLabel("Contact the admin to register as an Event Organizer")
         self.teks_admin.setObjectName("teks_admin")
         self.teks_admin.setAlignment(Qt.AlignCenter)
 
@@ -439,7 +439,7 @@ class LoginPage(QWidget):
 
     # ----------------------------------------------------------
     # FUNGSI on_kembali_diklik()
-    # Dipanggil saat user klik tombol "Kembali ke Homepage"
+    # Dipanggil saat user klik tombol "Return to Homepage"
     # ----------------------------------------------------------
     def on_kembali_diklik(self):
         self.kembali_diklik.emit()
@@ -587,7 +587,7 @@ class LoginPage(QWidget):
                 background-color: #1a5a5a;
             }
 
-            /* Tombol Kembali ke Homepage */
+            /* Tombol Return to Homepage */
             QPushButton#btn_kembali {
                 background-color: transparent;
                 color: #5D6B6B;
