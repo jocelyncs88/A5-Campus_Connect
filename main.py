@@ -93,7 +93,7 @@ def _cache_image(image_url):
 
 def _load_ui_events_from_db():
     """Mengambil event dari DB, normalisasi field, lalu siapkan path gambar untuk UI."""
-    rows = db_manager.get_all_events()
+    rows = db_manager.get_events_by_status("approved")
     events = []
 
     for row in rows:
@@ -152,8 +152,8 @@ def _sync_scraped_events_to_db():
         cursor.execute("""
         INSERT OR IGNORE INTO events
         (event_id, nama_event, deskripsi_singkat, gambar_poster,
-         jenis_event, tanggal_waktu, source, kategori)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         jenis_event, tanggal_waktu, source, kategori, lokasi, nama_eo, tipe_tiket, harga_tiket, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             event.get("event_id"),
             event.get("nama_event"),
@@ -163,6 +163,11 @@ def _sync_scraped_events_to_db():
             event.get("tanggal_waktu"),
             event.get("source"),
             event.get("kategori"),
+            event.get("lokasi", "Jawa Barat"),      
+            event.get("penyelenggara", "Polban"),             
+            event.get("tipe_tiket", "Free"),                 
+            event.get("harga_tiket", "0"),  
+            "approved"
         ))
         inserted_count += 1
         existing_keys.add(event_key)

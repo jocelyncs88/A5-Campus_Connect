@@ -319,30 +319,30 @@ class YourEventsPanel(QWidget):
 
         events = self._get_published_events()
 
-        # Jika belum ada event, tampilkan pesan kosong
+        # Jika belum ada event yang approved (skenario 1 & 2):
+        # Tampilkan pesan dengan dua bagian:
+        #   - Kalimat pertama: teks biasa
+        #   - "Create your first event now!": underline + pointer + klik → Add Event
         if not events:
-            lbl_empty = QLabel("You haven't published any events yet.")
+            # Baris pertama: teks biasa abu-abu
+            lbl_empty = QLabel("You haven't created any events yet!")
             lbl_empty.setFont(QFont(self.font_regular, 13))
             lbl_empty.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
 
-            btn_buat = QPushButton("Create your first event →")
-            btn_buat.setCursor(Qt.PointingHandCursor)
-            btn_buat.setStyleSheet("""
-                QPushButton {
-                    background: transparent;
-                    color: #5D6B6B;
-                    font-size: 13px;
-                    font-weight: bold;
-                    border: none;
-                    text-align: left;
-                }
-                QPushButton:hover { color: #516465; }
-            """)
-            # Sinyal ke main_window untuk buka Add Event
-            btn_buat.clicked.connect(self._minta_buka_add_event)
+            # Baris kedua: "Create your first event now!" dengan underline
+            # Menggunakan QLabel dengan RichText agar bisa underline tanpa QPushButton
+            # tapi tetap bisa diklik via mousePressEvent
+            lbl_buat = QLabel('<u>Create your first event now!</u>')
+            lbl_buat.setFont(QFont(self.font_regular, 13))
+            lbl_buat.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+            lbl_buat.setTextFormat(Qt.RichText)
+            lbl_buat.setCursor(Qt.PointingHandCursor)
+
+            # Klik pada label → pancarkan sinyal ke main_window untuk buka Add Event
+            lbl_buat.mousePressEvent = lambda ev: self._minta_buka_add_event()
 
             layout.addWidget(lbl_empty)
-            layout.addWidget(btn_buat)
+            layout.addWidget(lbl_buat)
             layout.addStretch()
             return
 
@@ -1202,16 +1202,75 @@ class YourEventsPanel(QWidget):
 
     # ----------------------------------------------------------
     # FUNGSI _get_published_events()
-    # Mengembalikan list event yang dipublikasi oleh EO ini
+    # Mengambil event milik EO dari database dengan 3 skenario:
     #
-    # CATATAN untuk sambung ke database:
-    #   import db_manager
-    #   return db_manager.get_events_by_organizer(
-    #       self.user_data.get("user_id")
-    #   )
+    #   Skenario 1 — EO belum pernah add event sama sekali:
+    #     → Query ke database tidak menemukan event apapun
+    #     → Return list kosong []
+    #
+    #   Skenario 2 — EO sudah add event tapi belum di-approve admin:
+    #     → Event ada di database dengan status "pending" atau "rejected"
+    #     → Filter hanya status "approved", hasilnya tetap kosong []
+    #     → Return list kosong [] (tampilan sama seperti skenario 1)
+    #
+    #   Skenario 3 — EO sudah add event dan sudah di-approve admin:
+    #     → Event ada di database dengan status "approved"
+    #     → Return list berisi event yang sudah disetujui
+    #
+    # Query menggunakan email EO sebagai identifier karena
+    # account_db.check_login() hanya mengembalikan role, tidak user_id.
+    # Email EO disimpan di kolom email_eo di tabel events saat add event.
     # ----------------------------------------------------------
     def _get_published_events(self):
-        return DUMMY_EVENTS_EO
+        try:
+            import db_manager
+
+            # Ambil email EO dari user_data yang dikirim saat login
+            # Email ini yang dipakai sebagai identifier di tabel events
+            email_eo = self.user_data.get("email", "")
+
+            if not email_eo:
+                # Tidak ada email → tidak bisa query → tampilkan kosong
+                return []
+
+            # Query semua event milik EO ini yang sudah di-approve
+            # Filter ganda: email_eo cocok DAN status = "approved"
+            # Skenario 1 & 2 akan menghasilkan list kosong dari sini
+            conn = __import__("sqlite3").connect(db_manager.DB_NAME)
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM events
+                WHERE email_eo = ? AND status = 'approved'
+                ORDER BY tanggal_waktu ASC
+            """, (email_eo,))
+            rows = cursor.fetchall()
+            conn.close()
+
+            if not rows:
+                return []
+
+            # Konversi rows ke list of dict agar format sama
+            # dengan yang dipakai oleh _buat_kartu_eo()
+            hasil = []
+            for row in rows:
+                # db_manager.row_to_dict butuh cursor dengan description
+                # Buat ulang query untuk dapat cursor yang valid
+                conn2 = __import__("sqlite3").connect(db_manager.DB_NAME)
+                c2 = conn2.cursor()
+                c2.execute("SELECT * FROM events WHERE id = ?", (row[0],))
+                r2 = c2.fetchone()
+                if r2:
+                    event_dict = db_manager.row_to_dict(c2, r2)
+                    hasil.append(event_dict)
+                conn2.close()
+
+            return hasil
+
+        except Exception as e:
+            # Jika database belum ada atau error apapun,
+            # jangan crash — tampilkan kosong saja
+            print(f"[YourEventsPanel] Error mengambil published events: {e}")
+            return []
 
 
     # ----------------------------------------------------------

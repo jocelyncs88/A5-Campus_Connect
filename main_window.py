@@ -115,8 +115,10 @@ class MainWindow(QMainWindow):
         self.settings_page = None
         self.login_page = None
         self.admin_page = None
-        self.detail_event_page = None  
+        self.detail_event_page = None
+        self.event_data_map = {}    
         self.current_user_role = "guest"
+        self.current_user_email = ""  # Email user yang sedang login
         self.update_navbar_berdasarkan_role()
         
         # === FITUR AUTO UPDATE 15 MENIT ===
@@ -196,18 +198,23 @@ class MainWindow(QMainWindow):
 
         # 1. Ambil data terbaru dari database tanpa membatasi status,
         # agar homepage tetap konsisten dengan tampilan awal aplikasi.
-        data_db_terbaru = db_manager.get_all_events()
+        data_db_terbaru = db_manager.get_events_by_status("approved")
         
         # 2. Format ulang data
         data_untuk_ui = []
         for row in data_db_terbaru:
             event_dict = {
+                "db_id": str(row.get("id", "")),
                 "event_id": row.get("event_id", ""),
                 "nama_event": row.get("nama_event") or "Tanpa Judul",
                 "deskripsi_singkat": row.get("deskripsi_singkat") or "...",
                 "gambar_poster": _cache_image(row.get("gambar_poster") or ""),
                 "jenis_event": (row.get("jenis_event") or "External").title(),
                 "tanggal_waktu": row.get("tanggal_waktu") or "TBA",
+                "lokasi"           : row.get("lokasi", "") or "",        # ← TAMBAH
+                "penyelenggara"    : row.get("nama_eo", "") or "",       # ← TAMBAH
+                "tipe_tiket"       : row.get("tipe_tiket", "Free") or "Free",  # ← TAMBAH
+                "harga_tiket"      : row.get("harga_tiket", "0") or "0",      # ← TAMBAH
             }
             data_untuk_ui.append(event_dict)
             
@@ -437,40 +444,45 @@ class MainWindow(QMainWindow):
             if widget is not None:
                 widget.deleteLater()
 
+        # Simpan semua event data ke map supaya bisa diakses saat diklik
+        self.event_data_map = {}
+
         for e in data:
             card = EventCard(e)
             card.setCursor(Qt.PointingHandCursor)
-            card.diklik.connect(self.handle_card_click) 
+            card.diklik.connect(self.handle_card_click)
             self._register_wheel_forwarding(card)
             
-            # Membaca gambar poster dari folder local
             path_poster = e.get("gambar_poster", "")
             if os.path.exists(path_poster):
                 with open(path_poster, "rb") as f:
                     card.set_poster(f.read())
             
+            # Simpan data event ke map pakai key unik dari database.
+            event_key = str(e.get("db_id") or e.get("id") or e.get("event_id") or "")
+            if event_key:
+                self.event_data_map[event_key] = e
+
             self.card_layout.addWidget(card)
         self.card_layout.addStretch()
 
     def handle_card_click(self, event_id):
         print(f"Card diklik: {event_id}")
-        # Ambil data event dari database berdasarkan event_id
-        import db_manager
-        data_list = db_manager.get_all_events()
-        print(f"Jumlah data: {len(data_list)}")
-        print(f"Contoh data: {data_list[0] if data_list else 'kosong'}")
-        
-        # Cari event yang sesuai dengan event_id
-        data_event = None
-        for row in data_list:
-            if str(row.get("event_id")) == str(event_id):
-                data_event = row
-                break
-        
-        print(f"Data ditemukan: {data_event}")
+
+        # OPTIMASI: Ambil dari cache yang sudah diisi dari database saat refresh.
+        # Ini lebih cepat daripada query seluruh tabel setiap kali kartu diklik.
+        data_event = self.event_data_map.get(event_id)
+
+        # Fallback hanya untuk kondisi cache belum sinkron atau event belum termuat.
+        if not data_event:
+            data_list = db_manager.get_all_events()
+            for row in data_list:
+                if str(row.get("id")) == str(event_id) or str(row.get("event_id")) == str(event_id):
+                    data_event = row
+                    break
 
         if not data_event:
-            print("Event tidak ditemukan!")
+            print(f"Event tidak ditemukan: {event_id}")
             return
 
         self._hide_all_pages()
@@ -527,14 +539,14 @@ class MainWindow(QMainWindow):
     # ↓ TAMBAHAN: method untuk buka add event page
     def on_event_dipublikasi(self, data):
         form_data = {
-            "nama_event": data.get("nama_event", ""),
+            "nama_event"     : data.get("nama_event", ""),
             "deskripsi_event": data.get("deskripsi_singkat", ""),
-            "jenis_event": data.get("jenis_event", ""),
-            "kategori_event": data.get("kategori", ""),
-            "tanggal": data.get("tanggal", ""),
-            "waktu": data.get("waktu", ""),
-            "poster_event": data.get("gambar_poster", ""),
-            "source": data.get("source", "manual"),
+            "jenis_event"    : data.get("jenis_event", ""),
+            "kategori_event" : data.get("kategori", ""),
+            "tanggal"        : data.get("tanggal", ""),
+            "waktu"          : data.get("waktu", ""),
+            "poster_event"   : data.get("gambar_poster", ""),
+            "source"         : data.get("source", "manual"),
         }
 
         is_valid, errors, payload = prepare_create(form_data)
@@ -545,6 +557,37 @@ class MainWindow(QMainWindow):
 
         save_payload(payload)
 
+        print(f"[DEBUG] event_id: {payload.get('event_id')}")
+        print(f"[DEBUG] lokasi: {data.get('lokasi')}")
+        print(f"[DEBUG] penyelenggara: {data.get('penyelenggara')}")
+
+        import sqlite3
+        try:
+            conn = sqlite3.connect(db_manager.DB_NAME)
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE events SET
+                    lokasi      = ?,
+                    tipe_tiket  = ?,
+                    harga_tiket = ?,
+                    nama_eo     = ?,
+                    email_eo    = ?
+                WHERE event_id = ?
+            """, (
+                data.get("lokasi", ""),
+                data.get("tipe_tiket", "Free"),
+                data.get("harga_tiket", "0"),
+                data.get("penyelenggara", ""),
+                getattr(self, "current_user_email", ""),  # ← email EO yang sedang login
+                payload.get("event_id", ""),
+            ))
+            print(f"[DEBUG] rows updated: {cursor.rowcount}")
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"[WARN] Gagal simpan field extra: {e}")
+
+        # ← JANGAN LUPA INI, biar muncul success page setelah publish
         self._hide_all_pages()
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
 
@@ -643,19 +686,22 @@ class MainWindow(QMainWindow):
     def on_login_diklik(self, email, password):
             import account_db # Pastikan ini sudah di-import di atas
 
-            # Cek ke database (ingat, account_db.py temanmu harus sudah ditambah return role-nya)
-            # Asumsikan check_login sekarang mengembalikan role (misal: "eo", "admin", atau None)
             user_role = account_db.check_login(email, password)
 
             if user_role:
                 # 1. Ubah state role aplikasi
                 self.current_user_role = user_role
+
+                # Simpan email user yang login agar bisa dikirim ke settings
+                # dan dipakai oleh YourEventsPanel untuk query event per EO
+                self.current_user_email = email
+
                 self.settings_page = None
                 
                 # 2. Beri notifikasi sukses
                 QMessageBox.information(self, "Berhasil", f"Login Sukses sebagai {user_role.upper()}!")
                 
-                # 3. Panggil fungsi untuk mengubah tampilan navbar (kita buat setelah ini)
+                # 3. Panggil fungsi untuk mengubah tampilan navbar
                 self.update_navbar_berdasarkan_role()
                 
                 # 4. Kembali ke halaman utama
@@ -710,6 +756,21 @@ class MainWindow(QMainWindow):
             self.hamburger_menu.addAction(QIcon("assets/event.png"), "Dashboard Validasi").triggered.connect(self.show_admin_page)
             self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+        
+        elif self.current_user_role in ["mahasiswa"]:
+            # --- TAMPILAN MAHASISWA / USER AUDIENCE ---
+            self.btn_login.setText("  Hi, mahasiswa!")
+            self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+            
+            try: self.btn_login.clicked.disconnect() 
+            except: pass
+            self.btn_login.clicked.connect(self.proses_logout)
+
+            # Sesuai aturan RBAC: Mahasiswa TIDAK BISA "Add Event", 
+            # menu hamburger mereka dibuat bersih langsung ke riwayat tiket/event mereka
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(lambda abaikan: self.buka_settings(1))
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
             
     def proses_logout(self):
         # Konfirmasi logout
@@ -718,6 +779,7 @@ class MainWindow(QMainWindow):
         if jawaban == QMessageBox.Yes:
             # Kembalikan state ke guest
             self.current_user_role = "guest"
+            self.current_user_email = ""  # Reset email saat logout
             self.settings_page = None
             # Kembalikan tampilan navbar
             self.update_navbar_berdasarkan_role()
@@ -743,13 +805,23 @@ class MainWindow(QMainWindow):
         self.layout_utama.setSpacing(0)
 
         if self.settings_page is None:
+            # Kirim email user yang sedang login ke user_data
+            # agar YourEventsPanel bisa query event berdasarkan email_eo
+            # Email disimpan saat login di self.current_user_email
             self.settings_page = SettingsWindow(
                 user_data={
-                    "nama": "", "bio": "", "email": "",
-                    "kontak": "", "role": self.current_user_role, "inisial": ""
+                    "nama"   : "",
+                    "bio"    : "",
+                    "email"  : getattr(self, "current_user_email", ""),
+                    "kontak" : "",
+                    "role"   : self.current_user_role,
+                    "inisial": ""
                 }
             )
             self.settings_page.btn_home.clicked.connect(self.show_home_page)
+            # Hubungkan sinyal Add Event dari Settings ke fungsi buka_form_input
+            # Dipancarkan saat EO klik "Create your first event now!" di Your Events
+            self.settings_page.minta_buka_add_event.connect(self.buka_form_input)
             self.layout_utama.insertWidget(4, self.settings_page)
             self.layout_utama.setStretchFactor(self.settings_page, 1)
 

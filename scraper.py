@@ -93,7 +93,11 @@ def parse_events(html_content):
             "jenis_event": jenis_event,
             "tanggal_waktu": tanggal_waktu,
             "source": event_link,
-            "kategori": kategori
+            "kategori": kategori,
+            "lokasi"           : "Jawa Barat",
+            "penyelenggara"    : "Polban",
+            "tipe_tiket"       : "Free",
+            "harga_tiket"      : "0",
         }
 
         scraped_data_list.append(event_data)
