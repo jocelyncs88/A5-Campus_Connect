@@ -1048,9 +1048,6 @@ class AddEventPage(QWidget):
 
         # Jenis event (dropdown)
         jenis = data.get("jenis_event", "")
-        idx = self.input_jenis.findText(jenis)
-        if idx >= 0:
-            self.input_jenis.setCurrentIndex(idx)
         if jenis:
             self.input_jenis.setText(jenis)
 
