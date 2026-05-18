@@ -756,6 +756,21 @@ class MainWindow(QMainWindow):
             self.hamburger_menu.addAction(QIcon("assets/event.png"), "Dashboard Validasi").triggered.connect(self.show_admin_page)
             self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+        
+        elif self.current_user_role in ["mahasiswa"]:
+            # --- TAMPILAN MAHASISWA / USER AUDIENCE ---
+            self.btn_login.setText("  Hi, mahasiswa!")
+            self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
+            
+            try: self.btn_login.clicked.disconnect() 
+            except: pass
+            self.btn_login.clicked.connect(self.proses_logout)
+
+            # Sesuai aturan RBAC: Mahasiswa TIDAK BISA "Add Event", 
+            # menu hamburger mereka dibuat bersih langsung ke riwayat tiket/event mereka
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(lambda abaikan: self.buka_settings(1))
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
             
     def proses_logout(self):
         # Konfirmasi logout
