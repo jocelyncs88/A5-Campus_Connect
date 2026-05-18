@@ -189,6 +189,23 @@ class NotificationsPanel(QWidget):
 
     def _render_eo(self, layout):
 
+        # ---- KATEGORI: Event Status ----
+        # Notifikasi ini SELALU muncul pertama dan tidak bisa di-toggle OFF
+        # karena ini adalah notifikasi penting tentang status event EO
+        self._buat_label_kategori("Event Status", layout)
+        layout.addSpacing(12)
+
+        # Item 0: Event status update (always-on, tidak ada toggle)
+        # Muncul ketika admin accept/decline event yang ditambahkan EO
+        # Pesan berbeda berdasarkan keputusan admin:
+        #   Approved: "<Nama Event> has been approved and is now live on Campus Connect!
+        #              Your event is ready to receive registrations."
+        #   Rejected: "<Nama Event> was not approved by the admin.
+        #              Please review your event details or contact the admin for further assistance."
+        self._buat_item_notif_status(layout)
+
+        layout.addSpacing(24)
+
         # ---- KATEGORI: Registration & Tickets ----
         self._buat_label_kategori("Registration & Tickets", layout)
         layout.addSpacing(12)
@@ -327,6 +344,78 @@ class NotificationsPanel(QWidget):
     # ==========================================================
     # ---- HELPER FUNCTIONS ----
     # ==========================================================
+
+    def _buat_item_notif_status(self, layout):
+        """
+        Membuat baris notifikasi Event Status khusus EO.
+        Notifikasi ini ALWAYS-ON — tidak ada toggle karena
+        ini adalah informasi penting tentang status event EO.
+
+        Pesan yang dikirim sistem:
+          Approved:
+            "<Nama Event> has been approved and is now live on
+             Campus Connect! Your event is ready to receive
+             registrations."
+          Rejected:
+            "<Nama Event> was not approved by the admin. Please
+             review your event details or contact the admin for
+             further assistance."
+        """
+        item_widget = QWidget()
+        item_widget.setStyleSheet("background: transparent;")
+        item_layout = QHBoxLayout(item_widget)
+        item_layout.setContentsMargins(0, 16, 0, 16)
+        item_layout.setSpacing(16)
+
+        # ---- KOLOM KIRI: Judul + Deskripsi ----
+        kiri = QWidget()
+        kiri.setStyleSheet("background: transparent;")
+        kiri_layout = QVBoxLayout(kiri)
+        kiri_layout.setContentsMargins(0, 0, 0, 0)
+        kiri_layout.setSpacing(4)
+
+        lbl_judul = QLabel("Event approval status")
+        lbl_judul.setFont(QFont(self.font_semi, 16))
+        lbl_judul.setStyleSheet(f"color: {COLOR_TEAL_DARK}; font-weight: bold;")
+        kiri_layout.addWidget(lbl_judul)
+
+        lbl_desk = QLabel(
+            "Always receive updates when the admin approves or "
+            "rejects your submitted event."
+        )
+        lbl_desk.setFont(QFont(self.font_regular, 12))
+        lbl_desk.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
+        lbl_desk.setWordWrap(True)
+        kiri_layout.addWidget(lbl_desk)
+
+        item_layout.addWidget(kiri, stretch=1)
+
+        # ---- KOLOM KANAN: Label "Always on" (tanpa toggle) ----
+        # Berbeda dari item lain yang punya toggle ON/OFF,
+        # notifikasi ini selalu aktif dan tidak bisa dimatikan
+        kanan = QWidget()
+        kanan.setStyleSheet("background: transparent;")
+        kanan_layout = QHBoxLayout(kanan)
+        kanan_layout.setContentsMargins(0, 0, 0, 0)
+        kanan_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+        lbl_always = QLabel("Always on")
+        lbl_always.setFont(QFont(self.font_regular, 11))
+        lbl_always.setStyleSheet(f"color: {COLOR_TEAL_DARK};")
+        kanan_layout.addWidget(lbl_always)
+
+        item_layout.addWidget(kanan)
+        layout.addWidget(item_widget)
+
+        # Garis pembatas bawah
+        divider = QFrame()
+        divider.setFrameShape(QFrame.HLine)
+        divider.setFixedHeight(1)
+        divider.setStyleSheet(
+            f"color: {COLOR_DIVIDER}; background-color: {COLOR_DIVIDER};"
+        )
+        layout.addWidget(divider)
+
 
     def _buat_label_kategori(self, teks, layout):
         """

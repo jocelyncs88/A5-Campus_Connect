@@ -15,12 +15,14 @@
 
 import sys
 import os
+# Tambahkan root project ke sys.path agar bisa import toggle_widget,
+# setting_item_widget, dll yang berada di root, bukan di folder settings/
+# Ini diperlukan baik saat dijalankan langsung maupun via main.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from toggle_widget import ToggleSwitch
-from setting_item_widget import SettingItem
 from settings.account_window import AccountPanel
 from settings.your_events_window import YourEventsPanel
 from settings.notifications_window import NotificationsPanel
@@ -403,50 +405,6 @@ class SettingsWindow(QWidget):
     # Panel Account → didelegasikan ke AccountPanel (account_window.py)
     # Panel lainnya → dibangun di bawah ini
     # ==========================================================
-
-
-    # ----------------------------------------------------------
-    # FUNGSI buat_panel_notif()
-    # Membangun panel "Notifications" yang BERBEDA sesuai role:
-    #
-    #   ROLE_ORGANIZER → toggle notifikasi untuk pendaftar event mereka
-    #   ROLE_MAHASISWA → toggle notifikasi untuk event yang diikuti
-    #   ROLE_UMUM      → toggle notifikasi umum (terbatas)
-    # ----------------------------------------------------------
-    def buat_panel_notif(self):
-        panel = QWidget()
-        panel.setStyleSheet("background: transparent;")
-
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(50, 40, 50, 40)
-        layout.setSpacing(16)
-
-        lbl_judul = QLabel("Notifications")
-        lbl_judul.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
-        layout.addWidget(lbl_judul)
-
-        if self.role == ROLE_ORGANIZER:
-            deskripsi = "Atur kapan kamu ingin mendapat notifikasi tentang pendaftar event yang kamu buat."
-        elif self.role == ROLE_MAHASISWA:
-            deskripsi = "Atur kapan kamu ingin mendapat pengingat untuk event yang kamu ikuti."
-        else:
-            deskripsi = "Atur preferensi notifikasi umum kamu di sini."
-
-        lbl_info = QLabel(deskripsi)
-        lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
-        lbl_info.setWordWrap(True)
-        layout.addWidget(lbl_info)
-
-        item = SettingItem(
-            judul="New registrant",
-            deskripsi="Get alerts every time a user registers",
-            nama_setting="notif_registrant",
-            default_on=True
-        )
-        layout.addWidget(item)
-
-        layout.addStretch()
-        return panel
 
 
     # ----------------------------------------------------------
