@@ -112,7 +112,7 @@ def _load_ui_events_from_db():
         event["gambar_poster"] = _cache_image(event.get("gambar_poster", ""))
         events.append(event)
 
-    # Dipakai untuk mengganti dummy data saat data DB tersedia.
+    # Dipakai untuk mengganti dumgit commit -m "Simpan sementara sebelum pull"data saat data DB tersedia.
     return events
 
 
