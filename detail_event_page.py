@@ -400,7 +400,7 @@ class DetailEventPage(QWidget):
 
         # ---- PENYELENGGARA ----
         # Database menyimpan nama_eo, bukan penyelenggara
-        penyelenggara = data.get("nama_eo", "")
+        penyelenggara = data.get("penyelenggara", "") or data.get("nama_eo", "")
         self.penyelenggara_label.setText(
             penyelenggara if penyelenggara else "Penyelenggara belum tersedia"
         )
