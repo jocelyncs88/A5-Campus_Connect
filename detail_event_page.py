@@ -399,7 +399,8 @@ class DetailEventPage(QWidget):
         self.waktu_label.setText(tanggal_waktu if tanggal_waktu else "Tanggal belum tersedia")
 
         # ---- PENYELENGGARA ----
-        penyelenggara = data.get("penyelenggara", "")
+        # Database menyimpan nama_eo, bukan penyelenggara
+        penyelenggara = data.get("penyelenggara", "") or data.get("nama_eo", "")
         self.penyelenggara_label.setText(
             penyelenggara if penyelenggara else "Penyelenggara belum tersedia"
         )
