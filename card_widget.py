@@ -138,9 +138,6 @@ class EventCard(QWidget):
         # Mengunci ukuran gambar 220x220 piksel (rasio 1:1 sesuai Figma)
         self.poster_label.setFixedSize(220, 220)
 
-        # Gambar otomatis menyesuaikan ukuran label tanpa pecah
-        self.poster_label.setScaledContents(True)
-
         # Memberi nama objek untuk ditarget QSS
         self.poster_label.setObjectName("poster_label")
 
@@ -320,11 +317,20 @@ class EventCard(QWidget):
         if success:
             # Hapus styling placeholder abu setelah gambar berhasil dimuat
             # Hanya sisakan border-radius agar sudut gambar tetap membulat
-            self.poster_label.setStyleSheet("border-radius: 8px;")
+            self.poster_label.setStyleSheet("""
+                border-radius: 8px;
+                background-color: #f0f0f0;
+            """)
 
             # Pasang gambar ke poster_label
             # Teks/warna placeholder akan hilang diganti gambar asli
-            self.poster_label.setPixmap(pixmap)
+            scaled_pixmap = pixmap.scaled(
+                self.poster_label.size(),
+                Qt.KeepAspectRatioByExpanding,
+                Qt.SmoothTransformation
+            )
+
+            self.poster_label.setPixmap(scaled_pixmap)
         else:
             # Jika gambar gagal dimuat (URL rusak, bukan file gambar, dll)
             # Tampilkan teks pengganti agar user tahu ada masalah

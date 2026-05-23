@@ -14,8 +14,8 @@ from PyQt5.QtWidgets import (
     QSizePolicy, QDateEdit, QTimeEdit,
     QToolButton, QMenu,
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QDate, QTime, QSize
-from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon
+from PyQt5.QtCore import Qt, pyqtSignal, QDate, QTime, QSize, QDateTime
+from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon, QIntValidator
 from toggle_widget import ToggleSwitch
 from upload_widget import PosterUploadDialog
 import os
@@ -184,6 +184,9 @@ class AddEventPage(QWidget):
         self.input_tanggal.setCalendarPopup(True)
         self.input_tanggal.setDisplayFormat("dd/MM/yyyy")
         self.input_tanggal.setDate(QDate.currentDate())
+
+        # Tidak bisa pilih tanggal sebelum hari ini
+        self.input_tanggal.setMinimumDate(QDate.currentDate())
         self.input_tanggal.setObjectName("input_field")
         self.input_tanggal.setFixedHeight(42)
         self.input_tanggal.setCursor(Qt.PointingHandCursor)
@@ -268,7 +271,11 @@ class AddEventPage(QWidget):
         self.label_harga = QLabel("Ticket Price (Rp) *")
         self.label_harga.setObjectName("label_field")
         self.input_harga = QLineEdit()
-        self.input_harga.setPlaceholderText("Enter ticket price")
+        self.input_harga.setPlaceholderText("Enter ticket price using numbers only, e.g. 50000")
+        # QIntValidator(1, 999999999) = hanya angka dari 1 sampai 999999999
+        # angka 0 tidak bisa karena minimum 1
+        validator = QIntValidator(1, 999999999, self)
+        self.input_harga.setValidator(validator)
         self.input_harga.setObjectName("input_field")
         harga_layout.addWidget(self.label_harga)
         harga_layout.addWidget(self.input_harga)
@@ -469,17 +476,43 @@ class AddEventPage(QWidget):
         tanggal = self.input_tanggal.date().toString("yyyy-MM-dd")
         waktu   = self.input_waktu.time().toString("HH:mm")
 
+        # ---- VALIDASI TANGGAL & WAKTU ----
+        tanggal_pilih = self.input_tanggal.date()
+        waktu_pilih = self.input_waktu.time()
+
+        tanggal_sekarang = QDate.currentDate()
+        waktu_sekarang = QTime.currentTime()
+
+        # 1. Tidak boleh pilih tanggal yang sudah lewat
+        if tanggal_pilih < tanggal_sekarang:
+            self.tampilkan_error("Event date cannot be in the past!")
+            return
+
+        # 2. Jika tanggal hari ini, jam tidak boleh lewat
+        if tanggal_pilih == tanggal_sekarang:
+            if waktu_pilih < waktu_sekarang:
+                self.tampilkan_error("For today's event, the time cannot be earlier than the current time!")
+                return
+
         if not tanggal.strip():
-            self.tampilkan_error("Tanggal belum diisi!")
+            self.tampilkan_error("Date has not been entered!")
             return
         if not waktu.strip():
-            self.tampilkan_error("Waktu belum diisi!")
+            self.tampilkan_error("Time has not been entered!")
             return
 
         if self.toggle_tiket.is_on() and not self.input_harga.text().strip():
             self.tampilkan_error("Please enter the ticket price!")
             return
-
+        if not self.poster_path:
+            self.tampilkan_error("Please upload the event poster!")
+            return
+        # Validasi tambahan harga tiket
+        if self.toggle_tiket.is_on():
+            harga_text = self.input_harga.text().strip()
+            if not harga_text or int(harga_text) < 1:
+                self.tampilkan_error("Ticket price must be a number greater than 0!")
+                return
         # ---- BANGUN DICT ----
         data_event = {
             "nama_event"       : self.input_nama.text().strip(),

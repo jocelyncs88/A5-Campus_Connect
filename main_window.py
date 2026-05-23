@@ -538,13 +538,34 @@ class MainWindow(QMainWindow):
 
         if self.detail_event_page is None:
             from detail_event_page import DetailEventPage
-            self.detail_event_page = DetailEventPage()
+            self.detail_event_page = DetailEventPage(
+                current_user_email=self.current_user_email
+            )
             self.detail_event_page.kembali_diklik.connect(self.show_home_page)
             self.layout_utama.insertWidget(4, self.detail_event_page)
             self.layout_utama.setStretchFactor(self.detail_event_page, 1)
 
         self.detail_event_page.set_data(data_event)
         self.detail_event_page.show()
+
+    
+    def proses_booking(self, data_event):
+
+        # Kalau belum login
+        if self.current_user_role == "guest":
+            QMessageBox.warning(
+                self,
+                "Login Required",
+                "You must login first to book this event."
+            )
+            return
+
+        # Kalau sudah login
+        QMessageBox.information(
+            self,
+            "Booking Success",
+            f'You successfully booked "{data_event.get("nama_event", "")}"'
+        )
 
     def buka_form_input(self):
         self._hide_all_pages()
@@ -742,8 +763,8 @@ class MainWindow(QMainWindow):
             db_manager.simpan_notifikasi(email_eo, judul, pesan)
 
         # 4. Beri notifikasi ke Admin
-        aksi = "Approved" if status_baru == "Approved" else "Rejected"
-        QMessageBox.information(self, "Success", f"Event {event_id} successfully {aksi}!")
+        aksi = status_baru.capitalize()
+        QMessageBox.information(self, "Success", f"Event {event_id} Successfully {status_baru.capitalize()}!")
         
         # 5. Refresh tabel di halaman admin
         self.admin_page.load_data_antrean()
