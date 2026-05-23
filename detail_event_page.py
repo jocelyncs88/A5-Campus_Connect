@@ -26,6 +26,7 @@ from PyQt5.QtGui import QFont, QPixmap, QColor, QIcon
 
 import os
 import requests
+import db_manager
 
 
 # ==============================================================
@@ -46,11 +47,14 @@ class DetailEventPage(QWidget):
     # ----------------------------------------------------------
     # FUNGSI __init__ (Konstruktor)
     # ----------------------------------------------------------
-    def __init__(self, parent=None):
+    def __init__(self, current_user_email="", parent=None):
         super().__init__(parent)
 
         # Menyimpan data event yang sedang ditampilkan
         self.data_event = {}
+        self.booked_events = {}
+        self.current_user_email = current_user_email
+        self.current_user_role = "guest" 
 
         self.setObjectName("detail_event_page")
         self.setup_ui()
@@ -127,8 +131,7 @@ class DetailEventPage(QWidget):
         # Label untuk menampilkan gambar poster
         self.poster_label = QLabel()
         self.poster_label.setObjectName("poster_label")
-        self.poster_label.setFixedSize(320, 450)
-        self.poster_label.setScaledContents(True)
+        self.poster_label.setFixedSize(380, 530)
         self.poster_label.setAlignment(Qt.AlignCenter)
         self.poster_label.setText("No Image")
 
@@ -139,8 +142,48 @@ class DetailEventPage(QWidget):
         shadow.setBlurRadius(24)
         self.poster_label.setGraphicsEffect(shadow)
 
-        konten_layout.addWidget(self.poster_label, stretch=0)
+        # ---- TOMBOL GET TICKET + INFO TIKET BAWAH POSTER ----
+        # Widget container di bawah poster
+        bawah_poster_widget = QWidget()
+        bawah_poster_widget.setObjectName("bawah_poster_widget")
+        bawah_poster_widget.setFixedWidth(380)
 
+        bawah_poster_layout = QVBoxLayout(bawah_poster_widget)
+        bawah_poster_layout.setContentsMargins(16, 14, 16, 14)
+        bawah_poster_layout.setSpacing(8)
+
+        # Info tiket dan tanggal di bawah poster
+        self.info_bawah_label = QLabel("Free  |  -")
+        self.info_bawah_label.setObjectName("info_bawah_label")
+        font_info_bawah = QFont("Inter SemiBold", 13)
+        font_info_bawah.setWeight(QFont.DemiBold)
+        self.info_bawah_label.setFont(font_info_bawah)
+
+        # Tombol Get Ticket
+        self.btn_get_ticket = QPushButton("Get ticket")
+        self.btn_get_ticket.setObjectName("btn_get_ticket")
+        self.btn_get_ticket.setFixedHeight(48)
+        self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
+        font_btn_ticket = QFont("Inter SemiBold", 14)
+        font_btn_ticket.setWeight(QFont.DemiBold)
+        self.btn_get_ticket.setFont(font_btn_ticket)
+
+        # Status booking — False = belum booked
+        self.is_booked = False
+
+        # Saat diklik → toggle status booked
+        self.btn_get_ticket.clicked.connect(self.toggle_booking)
+
+        bawah_poster_layout.addWidget(self.info_bawah_label)
+        bawah_poster_layout.addWidget(self.btn_get_ticket)
+
+        # Container kiri (poster)
+        kiri_layout = QVBoxLayout()
+        kiri_layout.setSpacing(0)
+        kiri_layout.setContentsMargins(0, 0, 0, 0)
+        kiri_layout.addWidget(self.poster_label)
+
+        konten_layout.addLayout(kiri_layout, stretch=0)
 
         # ==============================================
         # BAGIAN KANAN: INFO EVENT
@@ -316,6 +359,21 @@ class DetailEventPage(QWidget):
 
         scroll.setWidget(konten_widget)
         outer_layout.addWidget(scroll)
+
+        # ==========================================
+        # FLOATING TICKET SECTION
+        # kanan bawah page
+        # ==========================================
+
+        bottom_wrapper = QHBoxLayout()
+        bottom_wrapper.setContentsMargins(0, 20, 0, 0)
+
+        bottom_wrapper.addStretch()
+
+        bottom_wrapper.addWidget(bawah_poster_widget)
+
+        outer_layout.addLayout(bottom_wrapper)
+
         self.setLayout(outer_layout)
 
     # ----------------------------------------------------------
@@ -354,8 +412,17 @@ class DetailEventPage(QWidget):
                     pixmap = None
 
         if pixmap and not pixmap.isNull():
-            self.poster_label.setPixmap(pixmap)
+
+            scaled_pixmap = pixmap.scaled(
+                self.poster_label.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+
+            self.poster_label.setPixmap(scaled_pixmap)
+
             self.poster_label.setText("")
+
             self.poster_label.setStyleSheet("""
                 QLabel {
                     border-radius: 12px;
@@ -363,6 +430,7 @@ class DetailEventPage(QWidget):
                     background-color: transparent;
                 }
             """)
+
         else:
             self.poster_label.setText("No Image")
             self.poster_label.setStyleSheet("""
@@ -409,16 +477,85 @@ class DetailEventPage(QWidget):
         tipe_tiket = data.get("tipe_tiket", "Gratis")
         harga = data.get("harga_tiket", "0")
         if tipe_tiket.lower() in ("paid", "berbayar"):
-            self.tiket_label.setText(f"Berbayar — Rp {harga}")
+            self.tiket_label.setText(f"Paid | Rp {harga}")
         else:
-            self.tiket_label.setText("Gratis")
+            self.tiket_label.setText("Free")
+
+        # ---- INFO BAWAH POSTER ----
+        # Update label info di bawah poster (tipe tiket + tanggal)
+        tipe_singkat = "Free" if tipe_tiket.lower() not in ("paid", "berbayar") else f"Rp {harga}"
+        tanggal_singkat = data.get("tanggal_waktu", "-")
+        self.info_bawah_label.setText(f"{tipe_singkat}  |  {tanggal_singkat}")
+
+        self.refresh_booking_status()
 
         # ---- DESKRIPSI ----
         deskripsi = data.get("deskripsi_singkat", "")
         self.deskripsi_label.setText(
             deskripsi if deskripsi else "Deskripsi belum tersedia"
         )
+        
+        # Load booking status from database AFTER all data is set
+        self.refresh_booking_status()
 
+    # ----------------------------------------------------------
+    # FUNGSI toggle_booking()
+    # Dipanggil saat user klik tombol "Get ticket"
+    # Mengubah tampilan tombol menjadi "Booked" berwarna pink
+    # ----------------------------------------------------------
+    # SESUDAH
+    def toggle_booking(self):
+        if not self.current_user_email:
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.warning(None, "Login Required", "You must login first to book this event.")
+            return
+
+        event_id = self.get_event_id()
+
+        if not event_id:
+            return
+
+        if not self.is_booked:
+            self.is_booked = True
+            db_manager.book_event(self.current_user_email, event_id)
+        else:
+            self.is_booked = False
+            db_manager.unbook_event(self.current_user_email, event_id)
+
+        # Update cached event data dan tampilan tombol secara langsung
+        self.data_event["is_booked"] = self.is_booked
+        self.btn_get_ticket.setText("Booked" if self.is_booked else "Get ticket")
+        self.btn_get_ticket.setProperty("booked", "true" if self.is_booked else "false")
+        self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
+        self.btn_get_ticket.setEnabled(True)
+        self.btn_get_ticket.style().unpolish(self.btn_get_ticket)
+        self.btn_get_ticket.style().polish(self.btn_get_ticket)
+        self.btn_get_ticket.update()
+        
+    def get_event_id(self):
+        event_id = str(
+            self.data_event.get("event_id")
+            or self.data_event.get("db_id")
+            or self.data_event.get("id")
+            or ""
+        )
+        return event_id
+
+    def refresh_booking_status(self):
+        event_id = self.get_event_id()
+        if self.current_user_email and hasattr(db_manager, "is_event_booked"):
+            is_booked = db_manager.is_event_booked(self.current_user_email, event_id)
+            self.is_booked = is_booked
+        else:
+            self.is_booked = False
+
+        self.btn_get_ticket.setText("Booked" if self.is_booked else "Get ticket")
+        self.btn_get_ticket.setProperty("booked", "true" if self.is_booked else "false")
+        self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
+        self.btn_get_ticket.setEnabled(True)
+        self.btn_get_ticket.style().unpolish(self.btn_get_ticket)
+        self.btn_get_ticket.style().polish(self.btn_get_ticket)
+        self.btn_get_ticket.update()
 
     # ----------------------------------------------------------
     # FUNGSI apply_style()
@@ -503,5 +640,36 @@ class DetailEventPage(QWidget):
                 border-radius: 12px;
                 color: #5D6B6B;
                 font-size: 14px;
+            }
+                           
+            /* Tombol default */
+            QPushButton#btn_get_ticket {
+                background-color: #516465;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 12px 18px;
+            }
+
+            QPushButton#btn_get_ticket:hover {
+                background-color: #6b7777;
+            }
+
+            /* Saat booked */
+            QPushButton#btn_get_ticket[booked="true"] {
+                background-color: #EAA4A6;
+                color: #8B3A3A;
+            }
+
+            QPushButton#btn_get_ticket[booked="true"]:hover {
+                background-color: #D98C8F;
+            }
+
+            /* Info bawah poster */
+            QLabel#info_bawah_label {
+                color: #516465;
+                font-size: 13px;
             }
      """)                        

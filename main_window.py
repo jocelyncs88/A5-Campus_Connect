@@ -25,6 +25,8 @@ from login_page import LoginPage
 from admin_page import AdminPage
 from detail_event_page import DetailEventPage
 from notification_page import NotificationPage
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from PyQt5.QtGui import QColor
 
 
 
@@ -185,7 +187,7 @@ class MainWindow(QMainWindow):
         if self.scroll.widget() is None:
             self.scroll_content = QWidget()
             self.scroll_content.setStyleSheet("background: transparent;")
-            self.card_layout = QHBoxLayout(self.scroll_content)
+            self.card_layout = QGridLayout(self.scroll_content)
             self.card_layout.setSpacing(25)
             self.card_layout.setContentsMargins(10, 0, 10, 10)
             self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
@@ -456,25 +458,51 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(title)
         
         self.scroll = QScrollArea()
+        self.scroll.setFixedHeight(350) 
         self.scroll.setWidgetResizable(True)
-        self.scroll.setFixedHeight(420)
-        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff) 
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded) 
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         
         # Styling Scrollbar agar senada
         self.scroll.setStyleSheet("""
-            QScrollArea { background: transparent; border: none; }
-            QScrollBar:horizontal { border: none; background: rgba(255, 255, 255, 50); height: 8px; border-radius: 4px; margin: 0px 20px 0px 20px; }
-            QScrollBar::handle:horizontal { background: #5D6B6B; min-width: 20px; border-radius: 4px; }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { border: none; background: none; }
+            QScrollArea {
+                background: transparent;
+                border: none;
+                border-radius: 20px;
+                padding: 10px;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: rgba(255, 255, 255, 0.3);
+                width: 12px;
+                border-radius: 6px;
+                margin: 10px 4px 10px 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(81, 100, 101, 0.6);
+                border-radius: 6px;
+                min-height: 40px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: rgba(81, 100, 101, 1);
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+            }
         """)
-        
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(0, 0, 0, 30))
+        shadow.setOffset(0, 4)
+        self.scroll.setGraphicsEffect(shadow)
+                
         self.scroll_content = QWidget()
         self.scroll_content.setStyleSheet("background: transparent;") 
-        self.card_layout = QHBoxLayout(self.scroll_content)
+        self.card_layout = QGridLayout(self.scroll_content)
         self.card_layout.setSpacing(25)
         self.card_layout.setContentsMargins(10, 0, 10, 10)
-        self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.card_layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         
         self.scroll.setWidget(self.scroll_content)
         self.scroll.installEventFilter(self)
@@ -483,17 +511,17 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(self.scroll)
 
     def render_event_cards(self, data):
-        """Membuat dan menampilkan objek kartu berdasarkan list data"""
         while self.card_layout.count():
             item = self.card_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
 
-        # Simpan semua event data ke map supaya bisa diakses saat diklik
         self.event_data_map = {}
 
-        for e in data:
+        CARDS_PER_ROW = 7  # ← ganti angka ini sesuai selera
+
+        for i, e in enumerate(data):
             card = EventCard(e)
             card.setCursor(Qt.PointingHandCursor)
             card.diklik.connect(self.handle_card_click)
@@ -504,13 +532,16 @@ class MainWindow(QMainWindow):
                 with open(path_poster, "rb") as f:
                     card.set_poster(f.read())
             
-            # Simpan data event ke map pakai key unik dari database.
-            event_key = str(e.get("db_id") or e.get("id") or e.get("event_id") or "")
-            if event_key:
-                self.event_data_map[event_key] = e
+            db_id = str(e.get("db_id") or e.get("id") or "")
+            event_id = str(e.get("event_id") or "")
+            if db_id:
+                self.event_data_map[db_id] = e
+            if event_id:
+                self.event_data_map[event_id] = e
 
-            self.card_layout.addWidget(card)
-        self.card_layout.addStretch()
+            row = i // CARDS_PER_ROW   # ← baris ke berapa
+            col = i % CARDS_PER_ROW    # ← kolom ke berapa
+            self.card_layout.addWidget(card, row, col)
 
     def handle_card_click(self, event_id):
         print(f"Card diklik: {event_id}")
@@ -531,6 +562,20 @@ class MainWindow(QMainWindow):
             print(f"Event tidak ditemukan: {event_id}")
             return
 
+        if self.current_user_email and hasattr(db_manager, "is_event_booked"):
+            event_key = str(
+                data_event.get("event_id")
+                or data_event.get("db_id")
+                or data_event.get("id")
+                or ""
+            )
+            if event_key:
+                is_booked = db_manager.is_event_booked(
+                    self.current_user_email,
+                    event_key
+                )
+                data_event["is_booked"] = is_booked
+
         self._hide_all_pages()
         self.navbar_container.hide()
         self.layout_utama.setContentsMargins(0, 0, 0, 0)
@@ -538,13 +583,36 @@ class MainWindow(QMainWindow):
 
         if self.detail_event_page is None:
             from detail_event_page import DetailEventPage
-            self.detail_event_page = DetailEventPage()
+            self.detail_event_page = DetailEventPage(
+                current_user_email=self.current_user_email
+            )
             self.detail_event_page.kembali_diklik.connect(self.show_home_page)
             self.layout_utama.insertWidget(4, self.detail_event_page)
             self.layout_utama.setStretchFactor(self.detail_event_page, 1)
 
+        self.detail_event_page.current_user_email = self.current_user_email
         self.detail_event_page.set_data(data_event)
         self.detail_event_page.show()
+        
+        data_event = self.event_data_map.get(event_id)
+    
+    def proses_booking(self, data_event):
+
+        # Kalau belum login
+        if self.current_user_role == "guest":
+            QMessageBox.warning(
+                self,
+                "Login Required",
+                "You must login first to book this event."
+            )
+            return
+
+        # Kalau sudah login
+        QMessageBox.information(
+            self,
+            "Booking Success",
+            f'You successfully booked "{data_event.get("nama_event", "")}"'
+        )
 
     def buka_form_input(self):
         self._hide_all_pages()
@@ -778,6 +846,9 @@ class MainWindow(QMainWindow):
             db_manager.simpan_notifikasi(email_eo, judul, pesan)
 
         # 4. Beri notifikasi ke Admin
+        aksi = status_baru.capitalize()
+        QMessageBox.information(self, "Success", f"Event {event_id} Successfully {status_baru.capitalize()}!")
+        
         aksi = "Approved" if status_baru == "approved" else "Rejected"
         QMessageBox.information(self, "Success", f"Item {event_ref} successfully {aksi}!")
 
@@ -840,6 +911,10 @@ class MainWindow(QMainWindow):
                 # Simpan email user yang login agar bisa dikirim ke settings
                 # dan dipakai oleh YourEventsPanel untuk query event per EO
                 self.current_user_email = email
+                
+                # CRITICAL: Create/ensure user exists in database.db users table
+                # This is required for booking functionality to work
+                db_manager.ensure_user_exists(email)
 
                 self.settings_page = None
                 

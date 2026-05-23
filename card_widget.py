@@ -138,9 +138,6 @@ class EventCard(QWidget):
         # Mengunci ukuran gambar 220x220 piksel (rasio 1:1 sesuai Figma)
         self.poster_label.setFixedSize(220, 220)
 
-        # Gambar otomatis menyesuaikan ukuran label tanpa pecah
-        self.poster_label.setScaledContents(True)
-
         # Memberi nama objek untuk ditarget QSS
         self.poster_label.setObjectName("poster_label")
 
@@ -294,6 +291,7 @@ class EventCard(QWidget):
         # Mengunci lebar kartu sama dengan lebar gambar (220px)
         # Agar semua kartu punya lebar yang seragam
         self.setFixedWidth(220)
+        self.setFixedHeight(340)
 
 
     # ----------------------------------------------------------
@@ -315,16 +313,27 @@ class EventCard(QWidget):
 
         # Memuat data gambar dari QByteArray ke dalam pixmap
         # Mengembalikan True jika berhasil, False jika data rusak
+        pixmap.setDevicePixelRatio(1)
         success = pixmap.loadFromData(byte_array)
 
         if success:
             # Hapus styling placeholder abu setelah gambar berhasil dimuat
             # Hanya sisakan border-radius agar sudut gambar tetap membulat
-            self.poster_label.setStyleSheet("border-radius: 8px;")
+            self.poster_label.setStyleSheet("""
+                border-radius: 8px;
+                background-color: #f0f0f0;
+            """)
 
             # Pasang gambar ke poster_label
             # Teks/warna placeholder akan hilang diganti gambar asli
-            self.poster_label.setPixmap(pixmap)
+            scaled_pixmap = pixmap.scaled(
+                220,
+                220,
+                Qt.KeepAspectRatioByExpanding,
+                Qt.FastTransformation
+            )
+
+            self.poster_label.setPixmap(scaled_pixmap)
         else:
             # Jika gambar gagal dimuat (URL rusak, bukan file gambar, dll)
             # Tampilkan teks pengganti agar user tahu ada masalah
@@ -364,7 +373,7 @@ class EventCard(QWidget):
 
             /* Saat mouse diarahkan ke kartu: border sedikit gelap */
             QWidget#event_card:hover {
-                border: 1px solid #a0a0a0;
+                border: 1px solid #d0d0d0;
             }
 
             /* Area teks bawah gambar: transparan tanpa border */
