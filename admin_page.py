@@ -75,19 +75,34 @@ class AdminPage(QWidget):
 
         # Ambil data dari database yang antre (pending)
         data_pending = db_manager.get_events_by_status("pending")
+        data_update_requests = db_manager.get_event_update_requests("pending")
+
+        antrean = []
+        for row in data_pending:
+            antrean.append(("event", row))
+        for row in data_update_requests:
+            antrean.append(("update_request", row))
         
         # Kosongkan tabel sebelum diisi ulang
         self.tabel.setRowCount(0)
-        self.tabel.setRowCount(len(data_pending))
+        self.tabel.setRowCount(len(antrean))
 
         # Struktur data dari DB: (0:id, 1:event_id, 2:nama_event, 3:deskripsi, 
         # 4:poster, 5:jenis_event, 6:waktu, 7:source, 8:kategori, 9:status)
         
-        for row_idx, row in enumerate(data_pending):
-            evt_id = row.get("event_id", "")
-            nama_event = row.get("nama_event", "")
-            jenis = row.get("jenis_event", "")
-            waktu = row.get("tanggal_waktu", "")
+        for row_idx, (item_type, row) in enumerate(antrean):
+            if item_type == "update_request":
+                evt_id = row.get("event_id", "")
+                nama_event = row.get("nama_event", "")
+                jenis = f"{row.get('jenis_event', '')} (Update)".strip()
+                waktu = row.get("tanggal_waktu", "")
+                action_key = f"REQ:{row.get('id', '')}"
+            else:
+                evt_id = row.get("event_id", "")
+                nama_event = row.get("nama_event", "")
+                jenis = row.get("jenis_event", "")
+                waktu = row.get("tanggal_waktu", "")
+                action_key = f"EVT:{evt_id}"
 
             # Masukkan teks ke sel tabel
             kolom_data = [evt_id, nama_event, jenis, waktu]
@@ -106,12 +121,12 @@ class AdminPage(QWidget):
             btn_approve.setObjectName("btn_approve")
             btn_approve.setCursor(Qt.PointingHandCursor)
             # Kirim evt_id ke main_window saat diklik
-            btn_approve.clicked.connect(lambda checked, eid=evt_id: self.validasi_diklik.emit(eid, "approved"))
+            btn_approve.clicked.connect(lambda checked, key=action_key: self.validasi_diklik.emit(key, "approved"))
 
             btn_decline = QPushButton("✗ Decline")
             btn_decline.setObjectName("btn_decline")
             btn_decline.setCursor(Qt.PointingHandCursor)
-            btn_decline.clicked.connect(lambda checked, eid=evt_id: self.validasi_diklik.emit(eid, "rejected"))
+            btn_decline.clicked.connect(lambda checked, key=action_key: self.validasi_diklik.emit(key, "rejected"))
 
             action_layout.addWidget(btn_approve)
             action_layout.addWidget(btn_decline)

@@ -197,6 +197,31 @@ def init_db():
     )
     """)
 
+    # =========================================================
+    # TABEL EVENT UPDATE REQUESTS
+    # Menyimpan permintaan perubahan event dari EO sebelum admin approve
+    # =========================================================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS event_update_requests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id TEXT,
+        requested_by_email TEXT,
+        nama_event TEXT,
+        deskripsi_singkat TEXT,
+        gambar_poster TEXT,
+        jenis_event TEXT,
+        tanggal_waktu TEXT,
+        source TEXT,
+        kategori TEXT,
+        lokasi TEXT,
+        tipe_tiket TEXT DEFAULT 'Gratis',
+        harga_tiket TEXT DEFAULT '0',
+        nama_eo TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at TEXT
+    )
+    """)
+
     # ← TAMBAHAN: Migration - tambah kolom baru kalau belum ada
     kolom_baru = [
         ("lokasi",      "TEXT DEFAULT ''"),
@@ -373,6 +398,137 @@ def update_event_status(event_id, new_status):
     cursor.execute("UPDATE events SET status = ? WHERE event_id = ?", (new_status, event_id))
     conn.commit()
     conn.close()
+
+
+def create_event_update_request(event_data):
+    """Menyimpan perubahan event dari EO ke antrean validasi admin."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    event_id = (event_data.get("event_id") or "").strip()
+    if not event_id:
+        conn.close()
+        raise ValueError("event_id wajib diisi untuk membuat request perubahan.")
+
+    # Simpan request terbaru saja untuk satu event agar antrean tidak menumpuk.
+    cursor.execute(
+        "DELETE FROM event_update_requests WHERE event_id = ? AND status = 'pending'",
+        (event_id,)
+    )
+
+    cursor.execute("""
+        INSERT INTO event_update_requests (
+            event_id, requested_by_email, nama_event, deskripsi_singkat,
+            gambar_poster, jenis_event, tanggal_waktu, source, kategori,
+            lokasi, tipe_tiket, harga_tiket, nama_eo, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+    """, (
+        event_id,
+        (event_data.get("requested_by_email") or event_data.get("email_eo") or "").strip(),
+        event_data.get("nama_event", ""),
+        event_data.get("deskripsi_singkat", ""),
+        event_data.get("gambar_poster", ""),
+        event_data.get("jenis_event", ""),
+        event_data.get("tanggal_waktu", ""),
+        event_data.get("source", "manual"),
+        event_data.get("kategori", ""),
+        event_data.get("lokasi", ""),
+        event_data.get("tipe_tiket", "Free"),
+        event_data.get("harga_tiket", "0"),
+        event_data.get("nama_eo", event_data.get("penyelenggara", "")),
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    ))
+
+    conn.commit()
+    conn.close()
+
+
+def get_event_update_requests(status="pending"):
+    """Mengambil daftar request perubahan event dari EO."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    if status:
+        cursor.execute(
+            "SELECT * FROM event_update_requests WHERE status = ? ORDER BY created_at DESC",
+            (status,)
+        )
+    else:
+        cursor.execute("SELECT * FROM event_update_requests ORDER BY created_at DESC")
+
+    rows = cursor.fetchall()
+    result = [row_to_dict(cursor, row) for row in rows]
+    conn.close()
+    return result
+
+
+def get_event_update_request(request_id):
+    """Mengambil satu request perubahan berdasarkan id."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM event_update_requests WHERE id = ?", (request_id,))
+    row = cursor.fetchone()
+    result = row_to_dict(cursor, row) if row else None
+    conn.close()
+    return result
+
+
+def apply_event_update_request(request_id, new_status):
+    """Menerapkan atau menolak request perubahan event."""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM event_update_requests WHERE id = ?", (request_id,))
+    request_row = cursor.fetchone()
+    if not request_row:
+        conn.close()
+        return False
+
+    request = row_to_dict(cursor, request_row)
+    event_id = request.get("event_id", "")
+
+    if new_status == "approved":
+        cursor.execute("""
+            UPDATE events SET
+                nama_event = ?,
+                deskripsi_singkat = ?,
+                gambar_poster = ?,
+                jenis_event = ?,
+                tanggal_waktu = ?,
+                source = ?,
+                kategori = ?,
+                lokasi = ?,
+                tipe_tiket = ?,
+                harga_tiket = ?,
+                nama_eo = ?,
+                status = 'approved'
+            WHERE event_id = ?
+        """, (
+            request.get("nama_event", ""),
+            request.get("deskripsi_singkat", ""),
+            request.get("gambar_poster", ""),
+            request.get("jenis_event", ""),
+            request.get("tanggal_waktu", ""),
+            request.get("source", "manual"),
+            request.get("kategori", ""),
+            request.get("lokasi", ""),
+            request.get("tipe_tiket", "Free"),
+            request.get("harga_tiket", "0"),
+            request.get("nama_eo", ""),
+            event_id,
+        ))
+        if cursor.rowcount == 0:
+            conn.close()
+            return False
+
+    cursor.execute(
+        "UPDATE event_update_requests SET status = ? WHERE id = ?",
+        (new_status, request_id)
+    )
+
+    conn.commit()
+    conn.close()
+    return True
 
 
 # =========================================================

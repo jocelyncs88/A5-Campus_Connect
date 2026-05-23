@@ -735,40 +735,79 @@ class MainWindow(QMainWindow):
         self.admin_page.load_data_antrean()
         self.admin_page.show()
         
-    def proses_validasi_admin(self, event_id, status_baru):
-        """Mengeksekusi persetujuan atau penolakan event dari Admin"""
-        # 1. Ubah status di database
-        db_manager.update_event_status(event_id, status_baru)
-        
-        # 2. Ambil info event untuk pesan notifikasi
-        semua_event = db_manager.get_all_events()
-        data_event = next((e for e in semua_event if e.get("event_id") == event_id), {})
-        nama_event = data_event.get("nama_event", event_id)
-        email_eo   = data_event.get("email_eo", "")
+    def proses_validasi_admin(self, event_ref, status_baru):
+        """Mengeksekusi persetujuan atau penolakan event dari Admin."""
+        is_update_request = str(event_ref).startswith("REQ:")
+        is_event_ref = str(event_ref).startswith("EVT:")
 
-        # 3. Simpan notifikasi ke database agar EO bisa lihat
-        if email_eo:
+        if is_update_request:
+            try:
+                request_id = int(str(event_ref).split(":", 1)[1])
+            except Exception:
+                QMessageBox.warning(self, "Error", "Format request update tidak valid.")
+                return
+
+            request_data = db_manager.get_event_update_request(request_id)
+            if not request_data:
+                QMessageBox.warning(self, "Error", "Request update tidak ditemukan.")
+                return
+
+            sukses = db_manager.apply_event_update_request(request_id, status_baru)
+            if not sukses:
+                QMessageBox.warning(self, "Error", "Gagal memproses request update.")
+                return
+
+            nama_event = request_data.get("nama_event", f"Request #{request_id}")
+            email_eo = request_data.get("requested_by_email", "") or request_data.get("nama_eo", "")
+            judul = "Event Update Approved ✅" if status_baru == "approved" else "Event Update Rejected ❌"
             if status_baru == "approved":
-                judul = f"Event Approved ✅"
+                pesan = (
+                    f'Perubahan untuk "{nama_event}" telah disetujui admin dan event di database '
+                    f"sudah diperbarui."
+                )
+            else:
+                pesan = (
+                    f'Perubahan untuk "{nama_event}" ditolak admin. Event asli tetap tidak berubah.'
+                )
+        else:
+            event_id = str(event_ref).replace("EVT:", "") if is_event_ref else str(event_ref)
+
+            # 1. Ubah status di database
+            db_manager.update_event_status(event_id, status_baru)
+
+            # 2. Ambil info event untuk pesan notifikasi
+            semua_event = db_manager.get_all_events()
+            data_event = next((e for e in semua_event if e.get("event_id") == event_id), {})
+            nama_event = data_event.get("nama_event", event_id)
+            email_eo = data_event.get("email_eo", "")
+
+            # 3. Simpan notifikasi ke database agar EO bisa lihat
+            if status_baru == "approved":
+                judul = "Event Approved ✅"
                 pesan = (
                     f'"{nama_event}" has been approved by the admin and is now live '
                     f"on Campus Connect! Your event is ready to accept registration"
                 )
             else:
-                judul = f"Event Rejected ❌"
+                judul = "Event Rejected ❌"
                 pesan = (
                     f'"{nama_event}" has been rejected by the admin. '
                     f"Please double-check the event details or contact the admin for further information."
                 )
+
+        if email_eo:
             db_manager.simpan_notifikasi(email_eo, judul, pesan)
 
         # 4. Beri notifikasi ke Admin
         aksi = status_baru.capitalize()
         QMessageBox.information(self, "Success", f"Event {event_id} Successfully {status_baru.capitalize()}!")
         
+        aksi = "Approved" if status_baru == "approved" else "Rejected"
+        QMessageBox.information(self, "Success", f"Item {event_ref} successfully {aksi}!")
+
         # 5. Refresh tabel di halaman admin
         self.admin_page.load_data_antrean()
-        
+
         # 6. Refresh layar utama agar event yang di-approve langsung muncul di depan!
         self.refresh_tampilan_homepage()
 
