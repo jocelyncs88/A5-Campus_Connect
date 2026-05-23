@@ -291,6 +291,7 @@ class EventCard(QWidget):
         # Mengunci lebar kartu sama dengan lebar gambar (220px)
         # Agar semua kartu punya lebar yang seragam
         self.setFixedWidth(220)
+        self.setFixedHeight(340)
 
 
     # ----------------------------------------------------------
@@ -312,6 +313,7 @@ class EventCard(QWidget):
 
         # Memuat data gambar dari QByteArray ke dalam pixmap
         # Mengembalikan True jika berhasil, False jika data rusak
+        pixmap.setDevicePixelRatio(1)
         success = pixmap.loadFromData(byte_array)
 
         if success:
@@ -325,9 +327,10 @@ class EventCard(QWidget):
             # Pasang gambar ke poster_label
             # Teks/warna placeholder akan hilang diganti gambar asli
             scaled_pixmap = pixmap.scaled(
-                self.poster_label.size(),
+                220,
+                220,
                 Qt.KeepAspectRatioByExpanding,
-                Qt.SmoothTransformation
+                Qt.FastTransformation
             )
 
             self.poster_label.setPixmap(scaled_pixmap)
@@ -370,7 +373,7 @@ class EventCard(QWidget):
 
             /* Saat mouse diarahkan ke kartu: border sedikit gelap */
             QWidget#event_card:hover {
-                border: 1px solid #a0a0a0;
+                border: 1px solid #d0d0d0;
             }
 
             /* Area teks bawah gambar: transparan tanpa border */

@@ -487,73 +487,76 @@ class DetailEventPage(QWidget):
         tanggal_singkat = data.get("tanggal_waktu", "-")
         self.info_bawah_label.setText(f"{tipe_singkat}  |  {tanggal_singkat}")
 
-        event_id = data.get("event_id")
-
-        email_user = self.current_user_email
-
-        if hasattr(db_manager, "is_event_booked"):
-            self.is_booked = db_manager.is_event_booked(
-                email_user,
-                event_id
-            )
-        else:
-            self.is_booked = False
-
-        self.btn_get_ticket.setProperty("booked", self.is_booked)
-        if self.is_booked:
-            self.btn_get_ticket.setText("Booked")
-        else:
-            self.btn_get_ticket.setText("Get ticket")
-
-        self.btn_get_ticket.setProperty(
-            "booked",
-            "true" if self.is_booked else "false"
-        )
-
-        self.btn_get_ticket.style().unpolish(self.btn_get_ticket)
-        self.btn_get_ticket.style().polish(self.btn_get_ticket)
-        self.btn_get_ticket.update()
+        self.refresh_booking_status()
 
         # ---- DESKRIPSI ----
         deskripsi = data.get("deskripsi_singkat", "")
         self.deskripsi_label.setText(
             deskripsi if deskripsi else "Deskripsi belum tersedia"
         )
+        
+        # Load booking status from database AFTER all data is set
+        self.refresh_booking_status()
 
     # ----------------------------------------------------------
     # FUNGSI toggle_booking()
     # Dipanggil saat user klik tombol "Get ticket"
     # Mengubah tampilan tombol menjadi "Booked" berwarna pink
     # ----------------------------------------------------------
+    # SESUDAH
     def toggle_booking(self):
-        # Cek login
         if not self.current_user_email:
             from PyQt5.QtWidgets import QMessageBox
             QMessageBox.warning(None, "Login Required", "You must login first to book this event.")
             return
 
-        event_id = self.data_event.get("event_id")
+        event_id = self.get_event_id()
 
-        if not self.current_user_email:
+        if not event_id:
             return
-
-        event_id = self.data_event.get("event_id")
 
         if not self.is_booked:
             self.is_booked = True
-            db_manager.book_event(self.current_user_email, event_id)  # ← TAMBAH INI
-            self.btn_get_ticket.setText("Booked")
-            self.btn_get_ticket.setProperty("booked", "true")
+            db_manager.book_event(self.current_user_email, event_id)
         else:
             self.is_booked = False
-            db_manager.unbook_event(self.current_user_email, event_id)  # ← TAMBAH INI
-            self.btn_get_ticket.setText("Get ticket")
-            self.btn_get_ticket.setProperty("booked", "false")
+            db_manager.unbook_event(self.current_user_email, event_id)
 
+        # Update cached event data dan tampilan tombol secara langsung
+        self.data_event["is_booked"] = self.is_booked
+        self.btn_get_ticket.setText("Booked" if self.is_booked else "Get ticket")
+        self.btn_get_ticket.setProperty("booked", "true" if self.is_booked else "false")
+        self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
+        self.btn_get_ticket.setEnabled(True)
         self.btn_get_ticket.style().unpolish(self.btn_get_ticket)
         self.btn_get_ticket.style().polish(self.btn_get_ticket)
         self.btn_get_ticket.update()
-    
+        
+    def get_event_id(self):
+        event_id = str(
+            self.data_event.get("event_id")
+            or self.data_event.get("db_id")
+            or self.data_event.get("id")
+            or ""
+        )
+        return event_id
+
+    def refresh_booking_status(self):
+        event_id = self.get_event_id()
+        if self.current_user_email and hasattr(db_manager, "is_event_booked"):
+            is_booked = db_manager.is_event_booked(self.current_user_email, event_id)
+            self.is_booked = is_booked
+        else:
+            self.is_booked = False
+
+        self.btn_get_ticket.setText("Booked" if self.is_booked else "Get ticket")
+        self.btn_get_ticket.setProperty("booked", "true" if self.is_booked else "false")
+        self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
+        self.btn_get_ticket.setEnabled(True)
+        self.btn_get_ticket.style().unpolish(self.btn_get_ticket)
+        self.btn_get_ticket.style().polish(self.btn_get_ticket)
+        self.btn_get_ticket.update()
+
     # ----------------------------------------------------------
     # FUNGSI apply_style()
     # ----------------------------------------------------------
