@@ -123,6 +123,9 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(self.spacing_after_hero)
         self.init_scroll_area()
         self.render_event_cards(dummy_events) # Mengisi Kartu dengan Data
+        # Reflow sekali setelah window benar-benar tampil agar perhitungan
+        # kolom memakai lebar viewport final (tidak nyangkut 1-2 kolom).
+        QTimer.singleShot(0, self.filter_event_cards)
 
         self.layout_utama.addStretch() # Mendorong semua ke atas
         self.current_user_email = ""  # Email user yang sedang login
@@ -191,8 +194,8 @@ class MainWindow(QMainWindow):
             self.scroll_content = QWidget()
             self.scroll_content.setStyleSheet("background: transparent;")
             self.card_layout = QGridLayout(self.scroll_content)
-            self.card_layout.setSpacing(25)
-            self.card_layout.setContentsMargins(10, 0, 10, 10)
+            self.card_layout.setSpacing(16)
+            self.card_layout.setContentsMargins(6, 0, 6, 10)
             self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
             self.scroll.setWidget(self.scroll_content)
             self.scroll_content.installEventFilter(self)
@@ -270,49 +273,30 @@ class MainWindow(QMainWindow):
         # yang berulang-ulang dan menurunkan performa saat wheel event.
         widget.installEventFilter(self)
 
+    def _get_cards_per_row(self):
+        """Hitung jumlah kartu per baris berdasarkan lebar viewport saat ini."""
+        if not hasattr(self, "scroll") or not hasattr(self, "card_layout"):
+            return 1
+
+        card_width = 220
+        spacing = self.card_layout.horizontalSpacing()
+        if spacing < 0:
+            spacing = 25
+
+        margins = self.card_layout.contentsMargins()
+        available = max(0, self.scroll.viewport().width() - margins.left() - margins.right())
+
+        # Fallback saat fase awal render: viewport kadang belum punya ukuran final.
+        if available < card_width:
+            available = max(available, self.scroll.width() - margins.left() - margins.right())
+
+        # n*card + (n-1)*spacing <= available
+        per_row = (available + spacing) // (card_width + spacing)
+        return max(1, int(per_row))
+
     def eventFilter(self, watched, event):
-        if hasattr(self, "scroll") and event.type() == QEvent.Wheel:
-            sources = {
-                self.scroll,
-                self.scroll.viewport(),
-                self.scroll_content,
-            }
-            if watched in sources or self.scroll_content.isAncestorOf(watched):
-                hbar = self.scroll.horizontalScrollBar()
-                # Jika tidak ada jangkauan horizontal, biarkan Qt menangani
-                # wheel event (vertikal) secara default. Jangan override
-                # hanya karena ada teks pencarian.
-                if hbar.maximum() <= 0:
-                    return super().eventFilter(watched, event)
-
-                pixel_delta = event.pixelDelta()
-                angle_delta = event.angleDelta()
-                modifiers = event.modifiers()
-
-                step_size = max(hbar.singleStep(), 40)
-                move_by = 0
-
-                if not pixel_delta.isNull():
-                    if pixel_delta.x() != 0:
-                        move_by = -pixel_delta.x()
-                    else:
-                        move_by = -pixel_delta.y()
-                elif not angle_delta.isNull():
-                    if angle_delta.x() != 0:
-                        steps = angle_delta.x() / 120
-                        move_by = int(-steps * step_size)
-                    else:
-                        steps = angle_delta.y() / 120
-                        if modifiers & Qt.ShiftModifier:
-                            move_by = int(-steps * step_size)
-                        else:
-                            move_by = int(-steps * step_size)
-
-                if move_by:
-                    hbar.setValue(hbar.value() + move_by)
-                    event.accept()
-                    return True
-
+        # Biarkan QScrollArea menangani wheel event secara default (vertikal).
+        # Ini memastikan scroll selalu atas-bawah, termasuk saat window di-minimize.
         return super().eventFilter(watched, event)
 
     def _hide_all_pages(self):
@@ -683,8 +667,8 @@ class MainWindow(QMainWindow):
         self.scroll_content = QWidget()
         self.scroll_content.setStyleSheet("background: transparent;") 
         self.card_layout = QGridLayout(self.scroll_content)
-        self.card_layout.setSpacing(25)
-        self.card_layout.setContentsMargins(10, 0, 10, 10)
+        self.card_layout.setSpacing(16)
+        self.card_layout.setContentsMargins(6, 0, 6, 10)
         self.card_layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         
         self.scroll.setWidget(self.scroll_content)
@@ -703,7 +687,7 @@ class MainWindow(QMainWindow):
         self.event_data_map = {}
         self.all_cards = [] 
 
-        CARDS_PER_ROW = 7  # ← ganti angka ini sesuai selera
+        CARDS_PER_ROW = self._get_cards_per_row()
 
         for i, e in enumerate(data):
             card = EventCard(e)
@@ -765,12 +749,18 @@ class MainWindow(QMainWindow):
             card.setVisible(False)
 
         # Pasang ulang hanya yang cocok mulai dari posisi 0,0
-        CARDS_PER_ROW = 7
+        CARDS_PER_ROW = self._get_cards_per_row()
         for i, card in enumerate(cocok):
             row = i // CARDS_PER_ROW
             col = i % CARDS_PER_ROW
             self.card_layout.addWidget(card, row, col)
             card.setVisible(True)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Saat ukuran jendela berubah, susun ulang grid agar card ikut wrap.
+        if hasattr(self, "all_cards") and self.all_cards:
+            self.filter_event_cards()
 
     def handle_card_click(self, event_id):
         print(f"Card diklik: {event_id}")
