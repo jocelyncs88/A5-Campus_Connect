@@ -248,36 +248,6 @@ class EventCard(QWidget):
         # Menambahkan nama event ke layout teks
         text_layout.addWidget(self.nama_label)
 
-
-        # ---- DESKRIPSI SINGKAT ----
-
-        # Mengambil nilai "deskripsi_singkat" dari dictionary
-        # Maksimal 50-70 karakter sesuai Data Contract
-        deskripsi = self.event_data.get("deskripsi_singkat", "")
-
-        # Memotong deskripsi jika lebih dari 35 karakter
-        if len(deskripsi) > 35:
-            deskripsi = deskripsi[:35] + "..."
-
-        # Membuat label deskripsi
-        self.deskripsi_label = QLabel(deskripsi)
-
-        # Memberi nama objek untuk ditarget QSS
-        self.deskripsi_label.setObjectName("deskripsi_label")
-
-        # Mengatur font deskripsi: Inter Regular ukuran 16 sesuai Figma
-        font_deskripsi = QFont("Inter", 10)
-        self.deskripsi_label.setFont(font_deskripsi)
-
-        # Word wrap untuk deskripsi yang mungkin agak panjang
-        self.deskripsi_label.setWordWrap(True)
-
-        # Tinggi maksimal 50px agar konsisten antar kartu
-        self.deskripsi_label.setMaximumHeight(50)
-
-        # Menambahkan deskripsi ke layout teks
-        text_layout.addWidget(self.deskripsi_label)
-
         # Menerapkan layout teks ke text_widget
         text_widget.setLayout(text_layout)
 
@@ -291,7 +261,7 @@ class EventCard(QWidget):
         # Mengunci lebar kartu sama dengan lebar gambar (220px)
         # Agar semua kartu punya lebar yang seragam
         self.setFixedWidth(220)
-        self.setFixedHeight(340)
+        self.setFixedHeight(290)
 
 
     # ----------------------------------------------------------

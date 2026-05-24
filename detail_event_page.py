@@ -160,7 +160,7 @@ class DetailEventPage(QWidget):
         self.info_bawah_label.setFont(font_info_bawah)
 
         # Tombol Get Ticket
-        self.btn_get_ticket = QPushButton("Get ticket")
+        self.btn_get_ticket = QPushButton("Book")
         self.btn_get_ticket.setObjectName("btn_get_ticket")
         self.btn_get_ticket.setFixedHeight(48)
         self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
@@ -500,7 +500,7 @@ class DetailEventPage(QWidget):
 
     # ----------------------------------------------------------
     # FUNGSI toggle_booking()
-    # Dipanggil saat user klik tombol "Get ticket"
+    # Dipanggil saat user klik tombol "Book"
     # Mengubah tampilan tombol menjadi "Booked" berwarna pink
     # ----------------------------------------------------------
     # SESUDAH
@@ -524,7 +524,7 @@ class DetailEventPage(QWidget):
 
         # Update cached event data dan tampilan tombol secara langsung
         self.data_event["is_booked"] = self.is_booked
-        self.btn_get_ticket.setText("Booked" if self.is_booked else "Get ticket")
+        self.btn_get_ticket.setText("Booked" if self.is_booked else "Book")
         self.btn_get_ticket.setProperty("booked", "true" if self.is_booked else "false")
         self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
         self.btn_get_ticket.setEnabled(True)
@@ -549,7 +549,7 @@ class DetailEventPage(QWidget):
         else:
             self.is_booked = False
 
-        self.btn_get_ticket.setText("Booked" if self.is_booked else "Get ticket")
+        self.btn_get_ticket.setText("Booked" if self.is_booked else "Book")
         self.btn_get_ticket.setProperty("booked", "true" if self.is_booked else "false")
         self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
         self.btn_get_ticket.setEnabled(True)
