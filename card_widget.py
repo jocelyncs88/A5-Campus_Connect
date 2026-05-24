@@ -224,10 +224,10 @@ class EventCard(QWidget):
         # Mengambil nilai "nama_event" dari dictionary
         nama = self.event_data.get("nama_event", "")
 
-        # Memotong nama jika lebih dari 63 karakter agar tampilan konsisten
-        # Karakter ke-64 dst diganti "..." sebagai tanda ada teks yang dipotong
-        if len(nama) > 63:
-            nama = nama[:63] + "..."
+        # Memotong nama jika lebih dari 60 karakter agar tampilan konsisten
+        # Karakter ke-61 dst diganti "..." sebagai tanda ada teks yang dipotong
+        if len(nama) > 60:
+            nama = nama[:60] + "..."
 
         # Membuat label nama event
         self.nama_label = QLabel(nama)
