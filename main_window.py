@@ -93,8 +93,24 @@ class MainWindow(QMainWindow):
         self.layout_utama = QVBoxLayout(self.central_widget)
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         
-        # 4. INISIALISASI KOMPONEN UI
-# SESUDAH:
+        # 4. INISIALISASI STATE (harus sebelum init UI)
+        self.event_data_map = {}
+        self.all_cards = []
+        self.active_filters = {"jenis_event": None, "tipe_tiket": None, "source": None}
+        self.current_user_role = "guest"
+
+        # Page references — dibuat lazy
+        self.about_page = None
+        self.faq_page = None
+        self.add_event_page = None
+        self.success_page = None
+        self.settings_page = None
+        self.login_page = None
+        self.admin_page = None
+        self.detail_event_page = None
+        self.notif_page = None
+
+        # 5. INISIALISASI KOMPONEN UI
         self.init_header()
         self.spacing_after_navbar = QWidget()   # ← jadikan widget, bisa di-hide
         self.spacing_after_navbar.setFixedHeight(40)
@@ -107,22 +123,8 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(self.spacing_after_hero)
         self.init_scroll_area()
         self.render_event_cards(dummy_events) # Mengisi Kartu dengan Data
-        
-        self.layout_utama.addStretch() # Mendorong semua ke atas
 
-        # Page references — dibuat lazy (None dulu, baru dibuat saat pertama dibuka)
-        self.about_page = None
-        self.faq_page = None  # ← TAMBAHAN
-        self.add_event_page = None  
-        self.success_page = None 
-        self.settings_page = None
-        self.login_page = None
-        self.admin_page = None
-        self.detail_event_page = None
-        self.notif_page = None          # ← TAMBAHAN: halaman notifikasi
-        self.event_data_map = {} 
-        self.all_cards = []   
-        self.current_user_role = "guest"
+        self.layout_utama.addStretch() # Mendorong semua ke atas
         self.current_user_email = ""  # Email user yang sedang login
         self.update_navbar_berdasarkan_role()
         
@@ -220,6 +222,7 @@ class MainWindow(QMainWindow):
                 "penyelenggara"    : row.get("nama_eo", "") or "",       # ← TAMBAH
                 "tipe_tiket"       : row.get("tipe_tiket", "Free") or "Free",  # ← TAMBAH
                 "harga_tiket"      : row.get("harga_tiket", "0") or "0",      # ← TAMBAH
+                "source"           : row.get("source", "") or "",              # ← TAMBAH
             }
             data_untuk_ui.append(event_dict)
             
@@ -228,8 +231,8 @@ class MainWindow(QMainWindow):
         
     def show_home_page(self):
         self._hide_all_pages()
-        
-        # REFRESH DATA SETIAP KALI KE HOME (Biar langsung update tanpa close program!)
+
+        # REFRESH DATA SETIAP KALI KE HOME
         self.refresh_tampilan_homepage()
         if hasattr(self, 'search_bar'):
             self.search_bar.blockSignals(True)
@@ -237,9 +240,22 @@ class MainWindow(QMainWindow):
             self.search_bar.blockSignals(False)
             self.btn_clear_search.hide()
 
+        # Reset filter chips ke "All"
+        self.active_filters = {"jenis_event": None, "tipe_tiket": None, "source": None}
+        if hasattr(self, '_jenis_chips') and hasattr(self, '_tiket_chips'):
+            for i, btn in enumerate(self._jenis_chips):
+                btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
+            for i, btn in enumerate(self._tiket_chips):
+                btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
+            if hasattr(self, '_sumber_chips'):
+                for i, btn in enumerate(self._sumber_chips):
+                    btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
+
         self.navbar_container.show()
         self.spacing_after_navbar.show()
         self.spacing_after_hero.show()
+        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
+            self.filter_bar_widget.show()
 
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         self.layout_utama.setSpacing(0)
@@ -247,7 +263,7 @@ class MainWindow(QMainWindow):
         self.hero_widget.show()
         self.event_title.show()
         self.scroll.show()
-        
+
     def _register_wheel_forwarding(self, widget):
         widget.installEventFilter(self)
         for child in widget.findChildren(QWidget):
@@ -302,6 +318,8 @@ class MainWindow(QMainWindow):
         self.scroll.hide()
         self.spacing_after_navbar.hide()
         self.spacing_after_hero.hide()
+        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
+            self.filter_bar_widget.hide()
         if self.about_page:
             self.about_page.hide()
         if self.faq_page:
@@ -501,6 +519,103 @@ class MainWindow(QMainWindow):
         # Reset timer setiap ketik — cegah spam trigger
         self.search_timer.start()
 
+    def init_filter_bar(self):
+        """Filter chips bar: Jenis Event + Tipe Tiket"""
+        self.filter_bar_widget = QWidget()
+        self.filter_bar_widget.setStyleSheet("background: transparent;")
+        bar_layout = QHBoxLayout(self.filter_bar_widget)
+        bar_layout.setContentsMargins(4, 4, 4, 10)
+        bar_layout.setSpacing(8)
+
+        CHIP_ACTIVE   = "background: #516465; color: white; border-radius: 14px; padding: 5px 16px; font-size: 12px; border: none; font-weight: bold;"
+        CHIP_INACTIVE = "background: rgba(255,255,255,0.55); color: #516465; border-radius: 14px; padding: 5px 16px; font-size: 12px; border: 1px solid rgba(81,100,101,0.25);"
+
+        # ── Grup Jenis Event ──────────────────────────────────────
+        lbl_jenis = QLabel("Jenis:")
+        lbl_jenis.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
+        bar_layout.addWidget(lbl_jenis)
+
+        jenis_chips = []
+        for label, value in [("All", None), ("Internal", "Internal"), ("External", "External")]:
+            btn = QPushButton(label)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedHeight(28)
+            is_active = (value == self.active_filters["jenis_event"])
+            btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
+            btn.clicked.connect(
+                lambda _, v=value, b=btn, grp=jenis_chips: self._on_filter_chip_clicked("jenis_event", v, b, grp)
+            )
+            jenis_chips.append(btn)
+            bar_layout.addWidget(btn)
+
+        self._jenis_chips = jenis_chips
+        self._chip_active_style   = CHIP_ACTIVE
+        self._chip_inactive_style = CHIP_INACTIVE
+
+        # Pemisah
+        sep = QLabel("|")
+        sep.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 14px;")
+        bar_layout.addWidget(sep)
+        bar_layout.addSpacing(4)
+
+        # ── Grup Tipe Tiket ───────────────────────────────────────
+        lbl_tiket = QLabel("Tiket:")
+        lbl_tiket.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
+        bar_layout.addWidget(lbl_tiket)
+
+        tiket_chips = []
+        for label, value in [("All", None), ("Free", "Free"), ("Paid", "Paid")]:
+            btn = QPushButton(label)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedHeight(28)
+            is_active = (value == self.active_filters["tipe_tiket"])
+            btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
+            btn.clicked.connect(
+                lambda _, v=value, b=btn, grp=tiket_chips: self._on_filter_chip_clicked("tipe_tiket", v, b, grp)
+            )
+            tiket_chips.append(btn)
+            bar_layout.addWidget(btn)
+
+        self._tiket_chips = tiket_chips
+
+        # Pemisah
+        sep2 = QLabel("|")
+        sep2.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 14px;")
+        bar_layout.addWidget(sep2)
+        bar_layout.addSpacing(4)
+
+        # ── Grup Sumber ───────────────────────────────────────────
+        lbl_sumber = QLabel("Sumber:")
+        lbl_sumber.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
+        bar_layout.addWidget(lbl_sumber)
+
+        sumber_chips = []
+        for label, value in [("All", None), ("Resmi Polban", "scraping"), ("Submitted EO", "manual")]:
+            btn = QPushButton(label)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedHeight(28)
+            is_active = (value == self.active_filters["source"])
+            btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
+            btn.clicked.connect(
+                lambda _, v=value, b=btn, grp=sumber_chips: self._on_filter_chip_clicked("source", v, b, grp)
+            )
+            sumber_chips.append(btn)
+            bar_layout.addWidget(btn)
+
+        self._sumber_chips = sumber_chips
+
+        bar_layout.addStretch()
+        self.layout_utama.addWidget(self.filter_bar_widget)
+
+    def _on_filter_chip_clicked(self, filter_key, value, clicked_btn, btn_group):
+        """Toggle chip aktif dan trigger filter ulang."""
+        self.active_filters[filter_key] = value
+        for btn in btn_group:
+            btn.setStyleSheet(
+                self._chip_active_style if btn is clicked_btn else self._chip_inactive_style
+            )
+        self.filter_event_cards()
+
     def init_hero(self):
         self.hero_widget = QWidget()
         hero_widget = self.hero_widget
@@ -519,6 +634,7 @@ class MainWindow(QMainWindow):
         title = self.event_title
         title.setStyleSheet(f"font-weight: bold; font-size: 18px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
         self.layout_utama.addWidget(title)
+        self.init_filter_bar()
         
         self.scroll = QScrollArea()
         self.scroll.setFixedHeight(550) 
@@ -609,15 +725,34 @@ class MainWindow(QMainWindow):
             self.all_cards.append(card)
 
     def filter_event_cards(self):
-        query = self.search_bar.text().strip().lower()
+        query        = self.search_bar.text().strip().lower()
+        f_jenis      = self.active_filters.get("jenis_event")
+        f_tiket      = self.active_filters.get("tipe_tiket")
+        f_source     = self.active_filters.get("source")
 
-        # Pisahkan kartu cocok vs tidak
         cocok = []
         for card in self.all_cards:
             if not hasattr(card, 'event_data'):
                 continue
-            nama = card.event_data.get('nama_event', '').lower()
-            if (not query) or (query in nama):
+            data   = card.event_data
+            nama   = data.get('nama_event', '').lower()
+            jenis  = data.get('jenis_event', '').strip().title()
+            tiket  = data.get('tipe_tiket', 'Free').strip()
+            source = data.get('source', '').strip().lower()
+
+            match_search = (not query) or (query in nama)
+            match_jenis  = (f_jenis is None) or (jenis == f_jenis)
+            match_tiket  = (f_tiket is None) or (tiket == f_tiket)
+
+            # source di DB: URL panjang = hasil scraping, "manual" = input EO
+            is_scraped   = source.startswith("http")
+            match_source = (
+                f_source is None or
+                (f_source == "scraping" and is_scraped) or
+                (f_source == "manual"   and not is_scraped)
+            )
+
+            if match_search and match_jenis and match_tiket and match_source:
                 cocok.append(card)
 
         # Cabut semua kartu dari grid dulu
@@ -816,17 +951,16 @@ class MainWindow(QMainWindow):
     def show_home_page(self):
         self._hide_all_pages()
         self.navbar_container.show()
-
         self.spacing_after_navbar.show()
         self.spacing_after_hero.show()
-
+        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
+            self.filter_bar_widget.show()
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         self.layout_utama.setSpacing(0)
-
         self.hero_widget.show()
         self.event_title.show()
         self.scroll.show()
-    
+
     def show_login_page(self):
         self._hide_all_pages()
         self.navbar_container.hide()
@@ -1087,7 +1221,7 @@ class MainWindow(QMainWindow):
 
             # Sesuai aturan RBAC: Mahasiswa TIDAK BISA "Add Event", 
             # menu hamburger mereka dibuat bersih langsung ke riwayat tiket/event mereka
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(lambda abaikan: self.buka_settings(1))
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(self.buka_my_events)
             self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
             
@@ -1116,7 +1250,7 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
     
-    def buka_settings(self):
+    def buka_settings(self, panel_index=0):
         from settings.setting_window import SettingsWindow
         self._hide_all_pages()
         self.navbar_container.hide()
@@ -1147,14 +1281,14 @@ class MainWindow(QMainWindow):
 
         self.settings_page.show()
 
+        # Navigasi ke panel tertentu jika diminta
+        # (contoh: index 1 = Your Events, dipanggil dari hamburger "My Events")
+        if panel_index != 0 and hasattr(self.settings_page, 'switch_panel'):
+            self.settings_page.switch_panel(panel_index)
+
     def buka_my_events(self):
-        """Buka Settings dan navigasi langsung ke Your Events panel"""
-        # Buka settings terlebih dahulu
-        self.buka_settings()
-        
-        # Navigasi ke Your Events panel (index 1) dan update sidebar
-        if self.settings_page and hasattr(self.settings_page, 'switch_panel'):
-            self.settings_page.switch_panel(1)
+        """Buka Settings dan navigasi langsung ke Your Events panel (index 1)"""
+        self.buka_settings(panel_index=1)
 
 
 if __name__ == "__main__":
