@@ -552,7 +552,7 @@ class MainWindow(QMainWindow):
         bar_layout.addWidget(lbl_tiket)
 
         tiket_chips = []
-        for label, value in [("All", None), ("Free", "Free"), ("Paid", "Paid")]:
+        for label, value in [("All", None), ("Gratis", "Free"), ("Berbayar", "Paid")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(28)
@@ -578,7 +578,7 @@ class MainWindow(QMainWindow):
         bar_layout.addWidget(lbl_sumber)
 
         sumber_chips = []
-        for label, value in [("All", None), ("Resmi Polban", "scraping"), ("Submitted EO", "manual")]:
+        for label, value in [("All", None), ("Resmi Polban", "scraping"), ("Partnership", "manual")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(28)
