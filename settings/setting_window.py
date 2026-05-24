@@ -37,6 +37,7 @@ class SettingsWindow(QWidget):
 
     def __init__(self, user_data=None, parent=None):
         super().__init__(parent)
+        self.setObjectName("settings_window_root")
 
         self.user_data = user_data or {
             "nama": "",
@@ -67,9 +68,11 @@ class SettingsWindow(QWidget):
         )
 
         self.setStyleSheet(f"""
-            QWidget {{
-                font-family: '{self.font_sans}';
+            #settings_window_root {{
                 background: transparent;
+            }}
+            #settings_window_root QWidget {{
+                font-family: '{self.font_sans}';
             }}
         """)
 
@@ -260,6 +263,33 @@ class SettingsWindow(QWidget):
     def _simpan_perubahan_event(self, existing_event, form_data, panel):
         import db_manager
 
+        def _show_message(kind, title, text):
+            box = QMessageBox(panel)
+            box.setWindowTitle(title)
+            box.setText(text)
+            box.setStandardButtons(QMessageBox.Ok)
+            box.setIcon(QMessageBox.Information if kind == "info" else QMessageBox.Warning)
+            box.setStyleSheet("""
+                QMessageBox { background-color: #ffffff; }
+                QMessageBox QLabel { color: #1a1a1a; min-width: 320px; }
+            """)
+
+            ok_btn = box.button(QMessageBox.Ok)
+            if ok_btn:
+                ok_btn.setStyleSheet("""
+                    QPushButton {
+                        min-width: 80px;
+                        padding: 6px 12px;
+                        border: 1px solid #CBD5E0;
+                        border-radius: 6px;
+                        background-color: #f8fafc;
+                        color: #1a1a1a;
+                    }
+                    QPushButton:hover { background-color: #eef2f7; }
+                    QPushButton:pressed { background-color: #dde6ef; }
+                """)
+            box.exec_()
+
         try:
             tanggal_raw = form_data.get("tanggal", "")
             waktu_raw = form_data.get("waktu", "")
@@ -292,13 +322,13 @@ class SettingsWindow(QWidget):
             }
 
             db_manager.create_event_update_request(request_payload)
-            QMessageBox.information(
-                panel,
+            _show_message(
+                "info",
                 "Request Terkirim",
                 "Perubahan event sudah dikirim ke admin untuk divalidasi."
             )
         except Exception as exc:
-            QMessageBox.warning(self, "Error Database", f"Gagal mengirim request perubahan:\n{exc}")
+            _show_message("warn", "Error Database", f"Gagal mengirim request perubahan:\n{exc}")
             return
 
         self._tutup_edit_event(panel)
