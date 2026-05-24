@@ -497,13 +497,13 @@ class YourEventsPanel(QWidget):
 
         lbl_sub = QLabel("My Events")
         lbl_sub.setFont(QFont(self.font_bold, 16))
-        lbl_sub.setStyleSheet("color: black; font-weight: bold;")
+        lbl_sub.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(lbl_sub)
 
         # ---- BOOKED EVENTS ----
         lbl_booked = QLabel("Booked Events")
         lbl_booked.setFont(QFont(self.font_bold, 13))
-        lbl_booked.setStyleSheet("color: black; font-weight: bold;")
+        lbl_booked.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(lbl_booked)
 
         booked_scroll = self._buat_booked_scroll()
@@ -512,13 +512,14 @@ class YourEventsPanel(QWidget):
         # ---- LIKED EVENTS ----
         lbl_liked = QLabel("Liked Events")
         lbl_liked.setFont(QFont(self.font_bold, 13))
-        lbl_liked.setStyleSheet("color: black; font-weight: bold;")
+        lbl_liked.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(lbl_liked)
 
         # Container liked events — disimpan sebagai atribut
         # agar bisa di-refresh saat user unlike sebuah event
         self.liked_container = QWidget()
         self.liked_container.setStyleSheet("background: transparent;")
+        self.liked_container.setContentsMargins(0, 0, 0, 0)
         self._render_liked_grid()
 
         layout.addWidget(self.liked_container, stretch=1)
@@ -577,7 +578,7 @@ class YourEventsPanel(QWidget):
                 aktif.append(e)
 
         if not aktif:
-            lbl_empty = QLabel("Belum ada event yang kamu daftarkan.")
+            lbl_empty = QLabel("You haven't booked any events yet.")
             lbl_empty.setFont(QFont(self.font_regular, 12))
             lbl_empty.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
             h_layout.addWidget(lbl_empty)
@@ -673,9 +674,12 @@ class YourEventsPanel(QWidget):
         ]
 
         if not tampil:
-            lbl_empty = QLabel("Belum ada event yang kamu sukai.")
+            lbl_empty = QLabel("You haven't liked any events yet.")
             lbl_empty.setFont(QFont(self.font_regular, 12))
-            lbl_empty.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
+            lbl_empty.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; background: transparent;")
+            # setContentsMargins pada grid agar sejajar dengan label "Liked Events"
+            # dan tidak menjorok ke dalam
+            grid.setContentsMargins(0, 0, 0, 0)
             grid.addWidget(lbl_empty, 0, 0)
         else:
             for i, event in enumerate(tampil):
@@ -1284,7 +1288,37 @@ class YourEventsPanel(QWidget):
     #   )
     # ----------------------------------------------------------
     def _get_booked_events(self):
-        return DUMMY_EVENTS_STUDENT
+        """
+        Mengambil event yang sudah di-booking oleh student dari database.
+        Query ke tabel bookings JOIN events berdasarkan email user.
+
+        CATATAN: Saat ini query menggunakan email untuk lookup user_id,
+        karena main_window hanya menyimpan email di user_data.
+        """
+        try:
+            import db_manager, sqlite3
+            email = self.user_data.get("email", "")
+            if not email:
+                return []
+
+            conn = sqlite3.connect(db_manager.DB_NAME)
+            cursor = conn.cursor()
+
+            # Cari user_id dari tabel users berdasarkan email
+            cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+            user_row = cursor.fetchone()
+            conn.close()
+
+            if not user_row:
+                return []
+
+            user_id = user_row[0]
+            # Gunakan fungsi db_manager yang sudah ada
+            return db_manager.get_booked_events(user_id)
+
+        except Exception as e:
+            print(f"[YourEventsPanel] Error ambil booked events: {e}")
+            return []
 
 
     # ----------------------------------------------------------
@@ -1298,7 +1332,32 @@ class YourEventsPanel(QWidget):
     #   )
     # ----------------------------------------------------------
     def _get_liked_events(self):
-        return DUMMY_EVENTS_STUDENT
+        """
+        Mengambil event yang di-liked oleh student dari database.
+        Query ke tabel likes JOIN events berdasarkan email user.
+        """
+        try:
+            import db_manager, sqlite3
+            email = self.user_data.get("email", "")
+            if not email:
+                return []
+
+            conn = sqlite3.connect(db_manager.DB_NAME)
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+            user_row = cursor.fetchone()
+            conn.close()
+
+            if not user_row:
+                return []
+
+            user_id = user_row[0]
+            return db_manager.get_liked_events(user_id)
+
+        except Exception as e:
+            print(f"[YourEventsPanel] Error ambil liked events: {e}")
+            return []
 
 
 # ==============================================================

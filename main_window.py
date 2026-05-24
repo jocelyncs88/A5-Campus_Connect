@@ -1221,7 +1221,7 @@ class MainWindow(QMainWindow):
 
             # Sesuai aturan RBAC: Mahasiswa TIDAK BISA "Add Event", 
             # menu hamburger mereka dibuat bersih langsung ke riwayat tiket/event mereka
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(lambda abaikan: self.buka_settings(1))
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(self.buka_my_events)
             self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
             
@@ -1250,7 +1250,7 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
     
-    def buka_settings(self):
+    def buka_settings(self, panel_index=0):
         from settings.setting_window import SettingsWindow
         self._hide_all_pages()
         self.navbar_container.hide()
@@ -1281,14 +1281,14 @@ class MainWindow(QMainWindow):
 
         self.settings_page.show()
 
+        # Navigasi ke panel tertentu jika diminta
+        # (contoh: index 1 = Your Events, dipanggil dari hamburger "My Events")
+        if panel_index != 0 and hasattr(self.settings_page, 'switch_panel'):
+            self.settings_page.switch_panel(panel_index)
+
     def buka_my_events(self):
-        """Buka Settings dan navigasi langsung ke Your Events panel"""
-        # Buka settings terlebih dahulu
-        self.buka_settings()
-        
-        # Navigasi ke Your Events panel (index 1) dan update sidebar
-        if self.settings_page and hasattr(self.settings_page, 'switch_panel'):
-            self.settings_page.switch_panel(1)
+        """Buka Settings dan navigasi langsung ke Your Events panel (index 1)"""
+        self.buka_settings(panel_index=1)
 
 
 if __name__ == "__main__":
