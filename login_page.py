@@ -44,6 +44,7 @@ class LoginPage(QWidget):
     # ----------------------------------------------------------
     login_diklik = pyqtSignal(str, str)  # email, password
     kembali_diklik = pyqtSignal()
+    signup_diklik = pyqtSignal() 
 
     # ----------------------------------------------------------
     # FUNGSI __init__ (Konstruktor)
@@ -269,7 +270,6 @@ class LoginPage(QWidget):
         main_layout.addWidget(self.btn_continue)
         main_layout.addSpacing(10)
 
-
         # ---- TOMBOL KEMBALI KE HOMEPAGE ----
 
         self.btn_kembali = QPushButton("← Return to Homepage")
@@ -354,7 +354,29 @@ class LoginPage(QWidget):
         self.teks_admin.setFont(font_admin)
 
         main_layout.addWidget(self.teks_admin)
+        main_layout.addSpacing(12)
 
+        
+        # ---- TOMBOL SIGN UP ----
+
+        self.btn_signup = QPushButton("Sign Up")
+        self.btn_signup.setObjectName("btn_signup")
+        self.btn_signup.setFixedHeight(48)
+        self.btn_signup.setCursor(Qt.PointingHandCursor)
+        self.btn_signup.setFont(font_btn)
+        self.btn_signup.clicked.connect(self.on_signup_diklik)
+
+        main_layout.addWidget(self.btn_signup)
+        main_layout.addSpacing(8)
+
+        # ---- TEKS BAWAH SIGN UP ----
+
+        self.teks_signup = QLabel("Sign up as a student")
+        self.teks_signup.setObjectName("teks_signup")
+        self.teks_signup.setAlignment(Qt.AlignCenter)
+        self.teks_signup.setFont(font_admin)
+
+        main_layout.addWidget(self.teks_signup)
         # Terapkan layout ke card
         self.card.setLayout(main_layout)
 
@@ -444,6 +466,8 @@ class LoginPage(QWidget):
     def on_kembali_diklik(self):
         self.kembali_diklik.emit()
 
+    def on_signup_diklik(self):
+        self.signup_diklik.emit()
 
     # ----------------------------------------------------------
     # FUNGSI buka_whatsapp()
@@ -632,5 +656,28 @@ class LoginPage(QWidget):
             QLabel#teks_admin {
                 color: #5D6B6B;
                 font-size: 12px;
+            }
+            
+            /* Teks signup student */
+            QLabel#teks_signup {
+                color: #5D6B6B;
+                font-size: 12px;
+            }
+                           
+            /* Tombol Sign Up */
+            QPushButton#btn_signup {
+                background-color: #2D6A6A;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 15px;
+            }
+
+            QPushButton#btn_signup:hover {
+                background-color: #3a7a7a;
+            }
+
+            QPushButton#btn_signup:pressed {
+                background-color: #1a5a5a;
             }
         """)
