@@ -96,7 +96,7 @@ class MainWindow(QMainWindow):
         # 4. INISIALISASI STATE (harus sebelum init UI)
         self.event_data_map = {}
         self.all_cards = []
-        self.active_filters = {"jenis_event": None, "tipe_tiket": None}
+        self.active_filters = {"jenis_event": None, "tipe_tiket": None, "source": None}
         self.current_user_role = "guest"
 
         # Page references — dibuat lazy
@@ -223,6 +223,7 @@ class MainWindow(QMainWindow):
                 "penyelenggara"    : row.get("nama_eo", "") or "",       # ← TAMBAH
                 "tipe_tiket"       : row.get("tipe_tiket", "Free") or "Free",  # ← TAMBAH
                 "harga_tiket"      : row.get("harga_tiket", "0") or "0",      # ← TAMBAH
+                "source"           : row.get("source", "") or "",              # ← TAMBAH
             }
             data_untuk_ui.append(event_dict)
             
@@ -241,12 +242,15 @@ class MainWindow(QMainWindow):
             self.btn_clear_search.hide()
 
         # Reset filter chips ke "All"
-        self.active_filters = {"jenis_event": None, "tipe_tiket": None}
+        self.active_filters = {"jenis_event": None, "tipe_tiket": None, "source": None}
         if hasattr(self, '_jenis_chips') and hasattr(self, '_tiket_chips'):
             for i, btn in enumerate(self._jenis_chips):
                 btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
             for i, btn in enumerate(self._tiket_chips):
                 btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
+            if hasattr(self, '_sumber_chips'):
+                for i, btn in enumerate(self._sumber_chips):
+                    btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
 
         self.navbar_container.show()
         self.spacing_after_navbar.show()
@@ -561,7 +565,7 @@ class MainWindow(QMainWindow):
         bar_layout.addWidget(lbl_tiket)
 
         tiket_chips = []
-        for label, value in [("All", None), ("Free", "Free"), ("Paid", "Paid")]:
+        for label, value in [("All", None), ("Free", "Free"), ("Berbayar", "Berbayar")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(28)
@@ -574,6 +578,32 @@ class MainWindow(QMainWindow):
             bar_layout.addWidget(btn)
 
         self._tiket_chips = tiket_chips
+
+        # Pemisah
+        sep2 = QLabel("|")
+        sep2.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 14px;")
+        bar_layout.addWidget(sep2)
+        bar_layout.addSpacing(4)
+
+        # ── Grup Sumber ───────────────────────────────────────────
+        lbl_sumber = QLabel("Sumber:")
+        lbl_sumber.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
+        bar_layout.addWidget(lbl_sumber)
+
+        sumber_chips = []
+        for label, value in [("All", None), ("Resmi Polban", "scraping"), ("Partnership", "manual")]:
+            btn = QPushButton(label)
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setFixedHeight(28)
+            is_active = (value == self.active_filters["source"])
+            btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
+            btn.clicked.connect(
+                lambda _, v=value, b=btn, grp=sumber_chips: self._on_filter_chip_clicked("source", v, b, grp)
+            )
+            sumber_chips.append(btn)
+            bar_layout.addWidget(btn)
+
+        self._sumber_chips = sumber_chips
 
         bar_layout.addStretch()
         self.layout_utama.addWidget(self.filter_bar_widget)
@@ -696,23 +726,33 @@ class MainWindow(QMainWindow):
 
     def filter_event_cards(self):
         query        = self.search_bar.text().strip().lower()
-        f_jenis      = self.active_filters.get("jenis_event")   # None = semua
-        f_tiket      = self.active_filters.get("tipe_tiket")    # None = semua
+        f_jenis      = self.active_filters.get("jenis_event")
+        f_tiket      = self.active_filters.get("tipe_tiket")
+        f_source     = self.active_filters.get("source")
 
         cocok = []
         for card in self.all_cards:
             if not hasattr(card, 'event_data'):
                 continue
-            data  = card.event_data
-            nama  = data.get('nama_event', '').lower()
-            jenis = data.get('jenis_event', '').strip().title()
-            tiket = data.get('tipe_tiket', 'Free').strip()
+            data   = card.event_data
+            nama   = data.get('nama_event', '').lower()
+            jenis  = data.get('jenis_event', '').strip().title()
+            tiket  = data.get('tipe_tiket', 'Free').strip()
+            source = data.get('source', '').strip().lower()
 
             match_search = (not query) or (query in nama)
             match_jenis  = (f_jenis is None) or (jenis == f_jenis)
             match_tiket  = (f_tiket is None) or (tiket == f_tiket)
 
-            if match_search and match_jenis and match_tiket:
+            # source di DB: URL panjang = hasil scraping, "manual" = input EO
+            is_scraped   = source.startswith("http")
+            match_source = (
+                f_source is None or
+                (f_source == "scraping" and is_scraped) or
+                (f_source == "manual"   and not is_scraped)
+            )
+
+            if match_search and match_jenis and match_tiket and match_source:
                 cocok.append(card)
 
         # Cabut semua kartu dari grid dulu
