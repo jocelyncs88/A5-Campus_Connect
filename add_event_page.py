@@ -488,8 +488,10 @@ class AddEventPage(QWidget):
             self.tampilkan_error("Event date cannot be in the past!")
             return
 
-        # 2. Jika tanggal hari ini, jam tidak boleh lewat
-        if tanggal_pilih == tanggal_sekarang:
+        # 2. Jika tanggal hari ini, jam tidak boleh lewat (khusus mode create).
+        # Untuk mode edit, event lama bisa saja sudah berlalu namun tetap boleh diedit
+        # (mis. perbaikan deskripsi/poster) sebelum dikirim ulang ke admin.
+        if tanggal_pilih == tanggal_sekarang and not self.data_event:
             if waktu_pilih < waktu_sekarang:
                 self.tampilkan_error("For today's event, the time cannot be earlier than the current time!")
                 return
@@ -546,7 +548,27 @@ class AddEventPage(QWidget):
 
     # ----------------------------------------------------------
     def tampilkan_error(self, pesan):
-        QMessageBox.warning(self, "Incomplete Form", pesan)
+        teks = (pesan or "Please check all required fields and try again.").strip()
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle("Validation Failed")
+        msg.setText(teks)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setStyleSheet("""
+            QMessageBox { background-color: #ffffff; }
+            QMessageBox QLabel { color: #1a1a1a; min-width: 320px; }
+            QMessageBox QPushButton {
+                min-width: 80px;
+                padding: 6px 12px;
+                border: 1px solid #CBD5E0;
+                border-radius: 6px;
+                background-color: #f8fafc;
+                color: #1a1a1a;
+            }
+            QMessageBox QPushButton:hover { background-color: #eef2f7; }
+        """)
+        msg.exec_()
 
     # ----------------------------------------------------------
     def pilih_jenis(self, jenis):
