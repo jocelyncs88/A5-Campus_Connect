@@ -265,9 +265,10 @@ class MainWindow(QMainWindow):
         self.scroll.show()
 
     def _register_wheel_forwarding(self, widget):
+        # Hanya pasang event filter pada root widget kartu saja.
+        # Memasang ke semua child menyebabkan banyak pemanggilan eventFilter
+        # yang berulang-ulang dan menurunkan performa saat wheel event.
         widget.installEventFilter(self)
-        for child in widget.findChildren(QWidget):
-            child.installEventFilter(self)
 
     def eventFilter(self, watched, event):
         if hasattr(self, "scroll") and event.type() == QEvent.Wheel:
@@ -278,7 +279,10 @@ class MainWindow(QMainWindow):
             }
             if watched in sources or self.scroll_content.isAncestorOf(watched):
                 hbar = self.scroll.horizontalScrollBar()
-                if hbar.maximum() <= 0 and not (hasattr(self, 'search_bar') and self.search_bar.text().strip()):
+                # Jika tidak ada jangkauan horizontal, biarkan Qt menangani
+                # wheel event (vertikal) secara default. Jangan override
+                # hanya karena ada teks pencarian.
+                if hbar.maximum() <= 0:
                     return super().eventFilter(watched, event)
 
                 pixel_delta = event.pixelDelta()
