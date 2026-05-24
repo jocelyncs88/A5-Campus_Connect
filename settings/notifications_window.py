@@ -42,6 +42,17 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from toggle_widget import ToggleSwitch
 
+# Import db_manager untuk baca/simpan preferensi toggle ke database
+import sys as _sys
+import os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+try:
+    import db_manager as _db
+    _DB_AVAILABLE = True
+except ImportError:
+    _db = None
+    _DB_AVAILABLE = False
+
 
 # ==============================================================
 # KONSTANTA WARNA
@@ -79,6 +90,7 @@ class NotificationsPanel(QWidget):
         # Menyimpan status setiap toggle notification
         # Key: nama_setting, Value: bool (True=ON, False=OFF)
         self.notif_states = {}
+        self.email_user = self.user_data.get("email", "")  # untuk simpan ke DB
 
         self._load_fonts()
         self.setStyleSheet("background: transparent;")
@@ -438,8 +450,18 @@ class NotificationsPanel(QWidget):
           - Garis pembatas bawah: warna #888780
         """
 
+        # Baca preferensi dari DB jika tersedia, fallback ke default_on
+        if _DB_AVAILABLE and self.email_user:
+            try:
+                actual_on = _db.get_notif_pref(self.email_user, nama_setting)
+            except Exception:
+                actual_on = default_on
+        else:
+            actual_on = default_on
+
         # Simpan status awal ke dictionary
-        self.notif_states[nama_setting] = default_on
+        self.notif_states[nama_setting] = actual_on
+        default_on = actual_on   # ganti default_on agar toggle & label render sesuai DB
 
         # ---- CONTAINER BARIS ITEM ----
         item_widget = QWidget()
@@ -493,13 +515,19 @@ class NotificationsPanel(QWidget):
             else f"color: {COLOR_TEXT_MUTED};"
         )
 
-        # Saat toggle diklik → update status + warna label Push
+        # Saat toggle diklik → update notif_states + simpan ke DB
         def on_toggled(is_on, key=nama_setting, lbl=lbl_push):
             self.notif_states[key] = is_on
             lbl.setStyleSheet(
                 f"color: {COLOR_TEAL_DARK};" if is_on
                 else f"color: {COLOR_TEXT_MUTED};"
             )
+            # Simpan preferensi ke database agar persistent lintas sesi
+            if _DB_AVAILABLE and self.email_user:
+                try:
+                    _db.set_notif_pref(self.email_user, key, is_on)
+                except Exception as _e:
+                    print(f"[NOTIF PREF] Gagal simpan: {_e}")
 
         toggle.toggled.connect(on_toggled)
 

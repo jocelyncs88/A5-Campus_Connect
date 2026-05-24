@@ -93,24 +93,8 @@ class MainWindow(QMainWindow):
         self.layout_utama = QVBoxLayout(self.central_widget)
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         
-        # 4. INISIALISASI STATE (harus sebelum init UI)
-        self.event_data_map = {}
-        self.all_cards = []
-        self.active_filters = {"jenis_event": None, "tipe_tiket": None, "source": None}
-        self.current_user_role = "guest"
-
-        # Page references — dibuat lazy
-        self.about_page = None
-        self.faq_page = None
-        self.add_event_page = None
-        self.success_page = None
-        self.settings_page = None
-        self.login_page = None
-        self.admin_page = None
-        self.detail_event_page = None
-        self.notif_page = None
-
-        # 5. INISIALISASI KOMPONEN UI
+        # 4. INISIALISASI KOMPONEN UI
+# SESUDAH:
         self.init_header()
         self.spacing_after_navbar = QWidget()   # ← jadikan widget, bisa di-hide
         self.spacing_after_navbar.setFixedHeight(40)
@@ -123,8 +107,22 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(self.spacing_after_hero)
         self.init_scroll_area()
         self.render_event_cards(dummy_events) # Mengisi Kartu dengan Data
-
+        
         self.layout_utama.addStretch() # Mendorong semua ke atas
+
+        # Page references — dibuat lazy (None dulu, baru dibuat saat pertama dibuka)
+        self.about_page = None
+        self.faq_page = None  # ← TAMBAHAN
+        self.add_event_page = None  
+        self.success_page = None 
+        self.settings_page = None
+        self.login_page = None
+        self.admin_page = None
+        self.detail_event_page = None
+        self.notif_page = None          # ← TAMBAHAN: halaman notifikasi
+        self.event_data_map = {} 
+        self.all_cards = []   
+        self.current_user_role = "guest"
         self.current_user_email = ""  # Email user yang sedang login
         self.update_navbar_berdasarkan_role()
         
@@ -142,7 +140,24 @@ class MainWindow(QMainWindow):
         # during application startup. To avoid running the scraper twice in quick
         # succession, do not trigger `jalankan_auto_update()` here immediately.
         # The periodic timer will run the first auto-update after its interval.
+
+        # === TIMER H-1 REMINDER (jalan setiap jam) ===
+        # Cek booked events mahasiswa yang tanggalnya besok.
+        # Interval 1 jam (3_600_000 ms) lebih aman dari 24 jam —
+        # app bisa dibuka kapan saja dalam hari H-1.
+        self.timer_h1 = QTimer(self)
+        self.timer_h1.timeout.connect(self._jalankan_cek_h1)
+        self.timer_h1.start(3_600_000)   # 1 jam
         
+    def _jalankan_cek_h1(self):
+        """Dipanggil setiap jam oleh timer_h1. Cek H-1 reminder untuk mahasiswa aktif."""
+        if self.current_user_role == "mahasiswa" and self.current_user_email:
+            try:
+                db_manager.cek_dan_kirim_reminder_h1(self.current_user_email)
+                self._refresh_bell_badge()
+            except Exception as e:
+                print(f"[H1 TIMER] {e}")
+
     def jalankan_auto_update(self):
         print("[AUTO UPDATE] Memulai sinkronisasi data di latar belakang...")
         
@@ -222,7 +237,6 @@ class MainWindow(QMainWindow):
                 "penyelenggara"    : row.get("nama_eo", "") or "",       # ← TAMBAH
                 "tipe_tiket"       : row.get("tipe_tiket", "Free") or "Free",  # ← TAMBAH
                 "harga_tiket"      : row.get("harga_tiket", "0") or "0",      # ← TAMBAH
-                "source"           : row.get("source", "") or "",              # ← TAMBAH
             }
             data_untuk_ui.append(event_dict)
             
@@ -231,8 +245,8 @@ class MainWindow(QMainWindow):
         
     def show_home_page(self):
         self._hide_all_pages()
-
-        # REFRESH DATA SETIAP KALI KE HOME
+        
+        # REFRESH DATA SETIAP KALI KE HOME (Biar langsung update tanpa close program!)
         self.refresh_tampilan_homepage()
         if hasattr(self, 'search_bar'):
             self.search_bar.blockSignals(True)
@@ -240,22 +254,9 @@ class MainWindow(QMainWindow):
             self.search_bar.blockSignals(False)
             self.btn_clear_search.hide()
 
-        # Reset filter chips ke "All"
-        self.active_filters = {"jenis_event": None, "tipe_tiket": None, "source": None}
-        if hasattr(self, '_jenis_chips') and hasattr(self, '_tiket_chips'):
-            for i, btn in enumerate(self._jenis_chips):
-                btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
-            for i, btn in enumerate(self._tiket_chips):
-                btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
-            if hasattr(self, '_sumber_chips'):
-                for i, btn in enumerate(self._sumber_chips):
-                    btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
-
         self.navbar_container.show()
         self.spacing_after_navbar.show()
         self.spacing_after_hero.show()
-        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
-            self.filter_bar_widget.show()
 
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         self.layout_utama.setSpacing(0)
@@ -263,11 +264,12 @@ class MainWindow(QMainWindow):
         self.hero_widget.show()
         self.event_title.show()
         self.scroll.show()
-
+        
     def _register_wheel_forwarding(self, widget):
+        # Hanya pasang event filter pada root widget kartu saja.
+        # Memasang ke semua child menyebabkan banyak pemanggilan eventFilter
+        # yang berulang-ulang dan menurunkan performa saat wheel event.
         widget.installEventFilter(self)
-        for child in widget.findChildren(QWidget):
-            child.installEventFilter(self)
 
     def eventFilter(self, watched, event):
         if hasattr(self, "scroll") and event.type() == QEvent.Wheel:
@@ -278,7 +280,10 @@ class MainWindow(QMainWindow):
             }
             if watched in sources or self.scroll_content.isAncestorOf(watched):
                 hbar = self.scroll.horizontalScrollBar()
-                if hbar.maximum() <= 0 and not (hasattr(self, 'search_bar') and self.search_bar.text().strip()):
+                # Jika tidak ada jangkauan horizontal, biarkan Qt menangani
+                # wheel event (vertikal) secara default. Jangan override
+                # hanya karena ada teks pencarian.
+                if hbar.maximum() <= 0:
                     return super().eventFilter(watched, event)
 
                 pixel_delta = event.pixelDelta()
@@ -318,8 +323,6 @@ class MainWindow(QMainWindow):
         self.scroll.hide()
         self.spacing_after_navbar.hide()
         self.spacing_after_hero.hide()
-        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
-            self.filter_bar_widget.hide()
         if self.about_page:
             self.about_page.hide()
         if self.faq_page:
@@ -519,103 +522,6 @@ class MainWindow(QMainWindow):
         # Reset timer setiap ketik — cegah spam trigger
         self.search_timer.start()
 
-    def init_filter_bar(self):
-        """Filter chips bar: Jenis Event + Tipe Tiket"""
-        self.filter_bar_widget = QWidget()
-        self.filter_bar_widget.setStyleSheet("background: transparent;")
-        bar_layout = QHBoxLayout(self.filter_bar_widget)
-        bar_layout.setContentsMargins(4, 4, 4, 10)
-        bar_layout.setSpacing(8)
-
-        CHIP_ACTIVE   = "background: #516465; color: white; border-radius: 14px; padding: 5px 16px; font-size: 12px; border: none; font-weight: bold;"
-        CHIP_INACTIVE = "background: rgba(255,255,255,0.55); color: #516465; border-radius: 14px; padding: 5px 16px; font-size: 12px; border: 1px solid rgba(81,100,101,0.25);"
-
-        # ── Grup Jenis Event ──────────────────────────────────────
-        lbl_jenis = QLabel("Jenis:")
-        lbl_jenis.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
-        bar_layout.addWidget(lbl_jenis)
-
-        jenis_chips = []
-        for label, value in [("All", None), ("Internal", "Internal"), ("External", "External")]:
-            btn = QPushButton(label)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setFixedHeight(28)
-            is_active = (value == self.active_filters["jenis_event"])
-            btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
-            btn.clicked.connect(
-                lambda _, v=value, b=btn, grp=jenis_chips: self._on_filter_chip_clicked("jenis_event", v, b, grp)
-            )
-            jenis_chips.append(btn)
-            bar_layout.addWidget(btn)
-
-        self._jenis_chips = jenis_chips
-        self._chip_active_style   = CHIP_ACTIVE
-        self._chip_inactive_style = CHIP_INACTIVE
-
-        # Pemisah
-        sep = QLabel("|")
-        sep.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 14px;")
-        bar_layout.addWidget(sep)
-        bar_layout.addSpacing(4)
-
-        # ── Grup Tipe Tiket ───────────────────────────────────────
-        lbl_tiket = QLabel("Tiket:")
-        lbl_tiket.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
-        bar_layout.addWidget(lbl_tiket)
-
-        tiket_chips = []
-        for label, value in [("All", None), ("Free", "Free"), ("Paid", "Paid")]:
-            btn = QPushButton(label)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setFixedHeight(28)
-            is_active = (value == self.active_filters["tipe_tiket"])
-            btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
-            btn.clicked.connect(
-                lambda _, v=value, b=btn, grp=tiket_chips: self._on_filter_chip_clicked("tipe_tiket", v, b, grp)
-            )
-            tiket_chips.append(btn)
-            bar_layout.addWidget(btn)
-
-        self._tiket_chips = tiket_chips
-
-        # Pemisah
-        sep2 = QLabel("|")
-        sep2.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 14px;")
-        bar_layout.addWidget(sep2)
-        bar_layout.addSpacing(4)
-
-        # ── Grup Sumber ───────────────────────────────────────────
-        lbl_sumber = QLabel("Sumber:")
-        lbl_sumber.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
-        bar_layout.addWidget(lbl_sumber)
-
-        sumber_chips = []
-        for label, value in [("All", None), ("Resmi Polban", "scraping"), ("Submitted EO", "manual")]:
-            btn = QPushButton(label)
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setFixedHeight(28)
-            is_active = (value == self.active_filters["source"])
-            btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
-            btn.clicked.connect(
-                lambda _, v=value, b=btn, grp=sumber_chips: self._on_filter_chip_clicked("source", v, b, grp)
-            )
-            sumber_chips.append(btn)
-            bar_layout.addWidget(btn)
-
-        self._sumber_chips = sumber_chips
-
-        bar_layout.addStretch()
-        self.layout_utama.addWidget(self.filter_bar_widget)
-
-    def _on_filter_chip_clicked(self, filter_key, value, clicked_btn, btn_group):
-        """Toggle chip aktif dan trigger filter ulang."""
-        self.active_filters[filter_key] = value
-        for btn in btn_group:
-            btn.setStyleSheet(
-                self._chip_active_style if btn is clicked_btn else self._chip_inactive_style
-            )
-        self.filter_event_cards()
-
     def init_hero(self):
         self.hero_widget = QWidget()
         hero_widget = self.hero_widget
@@ -634,10 +540,9 @@ class MainWindow(QMainWindow):
         title = self.event_title
         title.setStyleSheet(f"font-weight: bold; font-size: 18px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
         self.layout_utama.addWidget(title)
-        self.init_filter_bar()
         
         self.scroll = QScrollArea()
-        self.scroll.setFixedHeight(550) 
+        self.scroll.setFixedHeight(350) 
         self.scroll.setWidgetResizable(True)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded) 
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -725,34 +630,15 @@ class MainWindow(QMainWindow):
             self.all_cards.append(card)
 
     def filter_event_cards(self):
-        query        = self.search_bar.text().strip().lower()
-        f_jenis      = self.active_filters.get("jenis_event")
-        f_tiket      = self.active_filters.get("tipe_tiket")
-        f_source     = self.active_filters.get("source")
+        query = self.search_bar.text().strip().lower()
 
+        # Pisahkan kartu cocok vs tidak
         cocok = []
         for card in self.all_cards:
             if not hasattr(card, 'event_data'):
                 continue
-            data   = card.event_data
-            nama   = data.get('nama_event', '').lower()
-            jenis  = data.get('jenis_event', '').strip().title()
-            tiket  = data.get('tipe_tiket', 'Free').strip()
-            source = data.get('source', '').strip().lower()
-
-            match_search = (not query) or (query in nama)
-            match_jenis  = (f_jenis is None) or (jenis == f_jenis)
-            match_tiket  = (f_tiket is None) or (tiket == f_tiket)
-
-            # source di DB: URL panjang = hasil scraping, "manual" = input EO
-            is_scraped   = source.startswith("http")
-            match_source = (
-                f_source is None or
-                (f_source == "scraping" and is_scraped) or
-                (f_source == "manual"   and not is_scraped)
-            )
-
-            if match_search and match_jenis and match_tiket and match_source:
+            nama = card.event_data.get('nama_event', '').lower()
+            if (not query) or (query in nama):
                 cocok.append(card)
 
         # Cabut semua kartu dari grid dulu
@@ -951,16 +837,17 @@ class MainWindow(QMainWindow):
     def show_home_page(self):
         self._hide_all_pages()
         self.navbar_container.show()
+
         self.spacing_after_navbar.show()
         self.spacing_after_hero.show()
-        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
-            self.filter_bar_widget.show()
+
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         self.layout_utama.setSpacing(0)
+
         self.hero_widget.show()
         self.event_title.show()
         self.scroll.show()
-
+    
     def show_login_page(self):
         self._hide_all_pages()
         self.navbar_container.hide()
@@ -1010,6 +897,7 @@ class MainWindow(QMainWindow):
         """Mengeksekusi persetujuan atau penolakan event dari Admin."""
         is_update_request = str(event_ref).startswith("REQ:")
         is_event_ref = str(event_ref).startswith("EVT:")
+        item_label = str(event_ref)
 
         if is_update_request:
             try:
@@ -1028,6 +916,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", "Gagal memproses request update.")
                 return
 
+            item_label = f"REQ:{request_id}"
             nama_event = request_data.get("nama_event", f"Request #{request_id}")
             email_eo = request_data.get("requested_by_email", "") or request_data.get("nama_eo", "")
             judul = "Event Update Approved ✅" if status_baru == "approved" else "Event Update Rejected ❌"
@@ -1042,6 +931,7 @@ class MainWindow(QMainWindow):
                 )
         else:
             event_id = str(event_ref).replace("EVT:", "") if is_event_ref else str(event_ref)
+            item_label = event_id
 
             # 1. Ubah status di database
             db_manager.update_event_status(event_id, status_baru)
@@ -1069,12 +959,27 @@ class MainWindow(QMainWindow):
         if email_eo:
             db_manager.simpan_notifikasi(email_eo, judul, pesan)
 
+        # ── STUDENT NOTIFICATIONS saat event di-approve ──
+        if status_baru == "approved" and not is_update_request:
+            try:
+                kategori    = data_event.get("kategori", "") or ""
+                jenis_event = data_event.get("jenis_event", "") or ""
+
+                # Interest Match: student yang liked event kategori sama
+                if kategori:
+                    db_manager.kirim_notif_interest_match(
+                        event_id, nama_event, kategori
+                    )
+
+                # Campus Spotlight: event Internal → semua mahasiswa
+                if jenis_event.lower() == "internal":
+                    db_manager.kirim_notif_campus_spotlight(event_id, nama_event)
+            except Exception as _e:
+                print(f"[STUDENT NOTIF] {_e}")
+
         # 4. Beri notifikasi ke Admin
-        aksi = status_baru.capitalize()
-        QMessageBox.information(self, "Success", f"Event {event_id} Successfully {status_baru.capitalize()}!")
-        
         aksi = "Approved" if status_baru == "approved" else "Rejected"
-        QMessageBox.information(self, "Success", f"Item {event_ref} successfully {aksi}!")
+        QMessageBox.information(self, "Success", f"Item {item_label} successfully {aksi}!")
 
         # 5. Refresh tabel di halaman admin
         self.admin_page.load_data_antrean()
@@ -1098,30 +1003,45 @@ class MainWindow(QMainWindow):
 
     def _refresh_bell_badge(self):
         """Hitung ulang notif belum-baca dari DB dan update badge."""
-        if self.current_user_role == "eo" and self.current_user_email:
+        if self.current_user_role in ("eo", "mahasiswa") and self.current_user_email:
             count = db_manager.hitung_notifikasi_belum_dibaca(self.current_user_email)
             self._set_badge(count)
         else:
             self._set_badge(0)
 
     def show_notif_page(self):
-        """Buka halaman daftar notifikasi EO."""
+        """Buka halaman daftar notifikasi (EO dan Student)."""
         self._hide_all_pages()
         self.navbar_container.hide()
         self.layout_utama.setContentsMargins(0, 0, 0, 0)
         self.layout_utama.setSpacing(0)
 
         if self.notif_page is None:
-            self.notif_page = NotificationPage(email_eo=self.current_user_email)
+            self.notif_page = NotificationPage(
+                email_user=self.current_user_email,
+                user_role=self.current_user_role,
+            )
             self.notif_page.kembali_diklik.connect(self.show_home_page)
             self.notif_page.badge_berubah.connect(self._set_badge)
+            # Sinyal khusus student
+            self.notif_page.buka_your_events.connect(self.buka_my_events)
+            self.notif_page.buka_detail_event.connect(self._on_buka_detail_event_dari_notif)
             self.layout_utama.insertWidget(4, self.notif_page)
             self.layout_utama.setStretchFactor(self.notif_page, 1)
         else:
-            # Update email kalau beda & muat ulang
-            self.notif_page.set_email(self.current_user_email)
+            self.notif_page.set_email(self.current_user_email, self.current_user_role)
 
         self.notif_page.show()
+
+    def _on_buka_detail_event_dari_notif(self, event_id_ref: str):
+        """
+        Dipanggil saat student klik notif H1_REMINDER / NEW_LIKED_MATCH /
+        CAMPUS_NEW_EVENT. Saat ini memanggil handle_card_click yang sudah ada.
+        Temanmu bisa mengubah ini untuk langsung buka pop up deskripsi.
+        """
+        if event_id_ref:
+            self.show_home_page()
+            self.handle_card_click(event_id_ref)
     
     def on_login_diklik(self, email, password):
             import account_db # Pastikan ini sudah di-import di atas
@@ -1138,7 +1058,7 @@ class MainWindow(QMainWindow):
                 
                 # CRITICAL: Create/ensure user exists in database.db users table
                 # This is required for booking functionality to work
-                db_manager.ensure_user_exists(email)
+                db_manager.ensure_user_exists(email, role=user_role)
 
                 self.settings_page = None
                 
@@ -1147,8 +1067,15 @@ class MainWindow(QMainWindow):
                 
                 # 3. Panggil fungsi untuk mengubah tampilan navbar
                 self.update_navbar_berdasarkan_role()
-                
-                # 4. Kembali ke halaman utama
+
+                # 4. Cek H-1 reminder saat login (khusus mahasiswa)
+                if user_role == "mahasiswa":
+                    try:
+                        db_manager.cek_dan_kirim_reminder_h1(email)
+                    except Exception as _e:
+                        print(f"[H1 CHECK] {_e}")
+
+                # 5. Kembali ke halaman utama
                 self.show_home_page()
             else:
                 QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
@@ -1159,9 +1086,9 @@ class MainWindow(QMainWindow):
         # 1. Bersihkan menu agar tidak terjadi penumpukan (duplikat)
         self.hamburger_menu.clear()
 
-        # Tampilkan lonceng hanya untuk EO
+        # Tampilkan lonceng untuk EO dan mahasiswa
         if hasattr(self, "bell_container"):
-            if self.current_user_role == "eo":
+            if self.current_user_role in ("eo", "mahasiswa"):
                 self.bell_container.show()
                 self._refresh_bell_badge()
             else:
