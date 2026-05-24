@@ -1010,6 +1010,7 @@ class MainWindow(QMainWindow):
         """Mengeksekusi persetujuan atau penolakan event dari Admin."""
         is_update_request = str(event_ref).startswith("REQ:")
         is_event_ref = str(event_ref).startswith("EVT:")
+        item_label = str(event_ref)
 
         if is_update_request:
             try:
@@ -1028,6 +1029,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", "Gagal memproses request update.")
                 return
 
+            item_label = f"REQ:{request_id}"
             nama_event = request_data.get("nama_event", f"Request #{request_id}")
             email_eo = request_data.get("requested_by_email", "") or request_data.get("nama_eo", "")
             judul = "Event Update Approved ✅" if status_baru == "approved" else "Event Update Rejected ❌"
@@ -1042,6 +1044,7 @@ class MainWindow(QMainWindow):
                 )
         else:
             event_id = str(event_ref).replace("EVT:", "") if is_event_ref else str(event_ref)
+            item_label = event_id
 
             # 1. Ubah status di database
             db_manager.update_event_status(event_id, status_baru)
@@ -1070,11 +1073,8 @@ class MainWindow(QMainWindow):
             db_manager.simpan_notifikasi(email_eo, judul, pesan)
 
         # 4. Beri notifikasi ke Admin
-        aksi = status_baru.capitalize()
-        QMessageBox.information(self, "Success", f"Event {event_id} Successfully {status_baru.capitalize()}!")
-        
         aksi = "Approved" if status_baru == "approved" else "Rejected"
-        QMessageBox.information(self, "Success", f"Item {event_ref} successfully {aksi}!")
+        QMessageBox.information(self, "Success", f"Item {item_label} successfully {aksi}!")
 
         # 5. Refresh tabel di halaman admin
         self.admin_page.load_data_antrean()
