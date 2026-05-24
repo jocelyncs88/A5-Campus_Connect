@@ -521,7 +521,7 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(title)
         
         self.scroll = QScrollArea()
-        self.scroll.setFixedHeight(350) 
+        self.scroll.setFixedHeight(550) 
         self.scroll.setWidgetResizable(True)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded) 
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
