@@ -193,9 +193,38 @@ def init_db():
         judul TEXT,
         pesan TEXT,
         is_read INTEGER DEFAULT 0,
-        created_at TEXT
+        created_at TEXT,
+        tipe_notif  TEXT DEFAULT 'EO_APPROVAL',
+        event_id_ref TEXT DEFAULT ''
     )
     """)
+
+    # =========================================================
+    # TABEL NOTIFICATION_PREFERENCES  ← TAMBAHAN BARU
+    # Menyimpan preferensi toggle notifikasi per user.
+    # Default ON — kalau row belum ada, dianggap menyala.
+    # =========================================================
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        email_user  TEXT NOT NULL,
+        nama_setting TEXT NOT NULL,
+        is_on       INTEGER DEFAULT 1,
+        UNIQUE(email_user, nama_setting)
+    )
+    """)
+
+    # Migration: tambah kolom baru ke notifications jika belum ada
+    notif_kolom_baru = [
+        ("tipe_notif",   "TEXT DEFAULT 'EO_APPROVAL'"),
+        ("event_id_ref", "TEXT DEFAULT ''"),
+    ]
+    for nama_kolom, tipe in notif_kolom_baru:
+        try:
+            cursor.execute(f"ALTER TABLE notifications ADD COLUMN {nama_kolom} {tipe}")
+            print(f"[DB] Kolom notifications.'{nama_kolom}' berhasil ditambahkan.")
+        except Exception:
+            pass  # Kolom sudah ada, skip
 
     # =========================================================
     # TABEL EVENT UPDATE REQUESTS
@@ -535,29 +564,7 @@ def apply_event_update_request(request_id, new_status):
 # NOTIFICATIONS — FUNGSI-FUNGSI BARU
 # =========================================================
 
-def simpan_notifikasi(email_user, judul, pesan):
-    """
-    Menyimpan satu notifikasi baru ke tabel notifications.
-    Dipanggil dari main_window.py saat admin approve/reject event.
-
-    Parameter:
-        email_user : email EO pemilik event (str)
-        judul      : judul singkat notifikasi (str)
-        pesan      : isi pesan lengkap (str)
-    """
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO notifications (email_user, judul, pesan, is_read, created_at)
-        VALUES (?, ?, ?, 0, ?)
-    """, (
-        email_user,
-        judul,
-        pesan,
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    ))
-    conn.commit()
-    conn.close()
+# simpan_notifikasi moved above with extended signature
 
 
 def get_notifikasi(email_user):
@@ -637,56 +644,447 @@ def tandai_semua_notifikasi_dibaca(email_user):
     conn.commit()
     conn.close()
 
-def ensure_user_exists(email_user):
-    """Create user in database.db if doesn't exist (called after login)"""
+# =========================================================
+# NOTIFICATION PREFERENCES — FUNGSI BARU
+# =========================================================
+
+def get_notif_pref(email_user: str, nama_setting: str) -> bool:
+    """
+    Mengambil preferensi toggle satu notifikasi milik user.
+    Default ON jika row belum pernah disimpan.
+
+    Parameter:
+        email_user   : email user (str)
+        nama_setting : nama toggle, contoh 'notif_event_reminder' (str)
+
+    Return:
+        bool — True = ON, False = OFF
+    """
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+    row = cursor.execute("""
+        SELECT is_on FROM notification_preferences
+        WHERE email_user = ? AND nama_setting = ?
+    """, (email_user, nama_setting)).fetchone()
+    conn.close()
+    return bool(row[0]) if row is not None else True   # default ON
+
+
+def set_notif_pref(email_user: str, nama_setting: str, is_on: bool):
+    """
+    Menyimpan/update preferensi toggle satu notifikasi.
+    Menggunakan INSERT OR REPLACE agar idempotent.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT OR REPLACE INTO notification_preferences
+            (email_user, nama_setting, is_on)
+        VALUES (?, ?, ?)
+    """, (email_user, nama_setting, 1 if is_on else 0))
+    conn.commit()
+    conn.close()
+
+
+# =========================================================
+# STUDENT NOTIFICATION TRIGGERS — FUNGSI BARU
+# =========================================================
+
+def _get_emails_booked_event(event_id: str) -> list:
+    """
+    Mengambil semua email student yang sudah booking event tertentu.
+    Dipakai sebagai target penerima notif Critical Updates.
+
+    Return: list of str (email)
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    rows = cursor.execute("""
+        SELECT u.email FROM users u
+        JOIN bookings b ON b.user_id = u.id
+        WHERE b.event_id = ? AND u.email IS NOT NULL AND u.email != ''
+    """, (event_id,)).fetchall()
+    conn.close()
+    return [r[0] for r in rows]
+
+
+def _get_emails_liked_same_category(kategori: str) -> list:
+    """
+    Mengambil semua email student yang pernah me-like event
+    dengan kategori yang sama. Dipakai untuk Interest Match.
+
+    Return: list of str (email), sudah di-deduplicate
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    rows = cursor.execute("""
+        SELECT DISTINCT u.email FROM users u
+        JOIN likes l ON l.user_id = u.id
+        JOIN events e ON e.event_id = l.event_id
+        WHERE LOWER(TRIM(e.kategori)) = LOWER(TRIM(?))
+          AND u.email IS NOT NULL AND u.email != ''
+          AND LOWER(TRIM(u.role)) = 'mahasiswa'
+    """, (kategori,)).fetchall()
+    conn.close()
+    return [r[0] for r in rows]
+
+
+def _get_all_student_emails() -> list:
+    """
+    Mengambil semua email user dengan role 'mahasiswa'.
+    Dipakai untuk Campus Spotlight (broadcast event Internal).
+
+    CATATAN: sengaja filter role = 'mahasiswa' secara eksplisit
+    agar EO dan admin tidak ikut menerima notifikasi ini,
+    meskipun mereka juga tercatat di tabel users.
+
+    Return: list of str (email)
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    rows = cursor.execute("""
+        SELECT email FROM users
+        WHERE LOWER(TRIM(role)) = 'mahasiswa'
+          AND email IS NOT NULL AND email != ''
+    """).fetchall()
+    conn.close()
+    return [r[0] for r in rows]
+
+
+def _sudah_ada_notif_h1(email_user: str, event_id: str) -> bool:
+    """
+    Mengecek apakah reminder H-1 untuk event tertentu sudah pernah
+    dibuat untuk user ini. Mencegah duplikat reminder.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    row = cursor.execute("""
+        SELECT 1 FROM notifications
+        WHERE email_user = ? AND event_id_ref = ? AND tipe_notif = 'H1_REMINDER'
+        LIMIT 1
+    """, (email_user, event_id)).fetchone()
+    conn.close()
+    return row is not None
+
+
+def simpan_notifikasi(email_user: str, judul: str, pesan: str,
+                      tipe_notif: str = "EO_APPROVAL",
+                      event_id_ref: str = ""):
+    """
+    Menyimpan satu notifikasi baru ke tabel notifications.
+
+    Parameter:
+        email_user   : email penerima (str)
+        judul        : judul singkat (str)
+        pesan        : isi pesan lengkap (str)
+        tipe_notif   : 'EO_APPROVAL' | 'H1_REMINDER' | 'EVENT_UPDATED'
+                       | 'NEW_LIKED_MATCH' | 'CAMPUS_NEW_EVENT'
+        event_id_ref : event_id yang relevan, untuk redirect (str)
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO notifications
+            (email_user, judul, pesan, is_read, created_at, tipe_notif, event_id_ref)
+        VALUES (?, ?, ?, 0, ?, ?, ?)
+    """, (
+        email_user,
+        judul,
+        pesan,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        tipe_notif,
+        event_id_ref,
+    ))
+    conn.commit()
+    conn.close()
+
+
+def kirim_notif_critical_update(event_id: str, nama_event: str):
+    """
+    Mengirim notifikasi Critical Update ke semua student
+    yang sudah booking event ini (jika preferensi mereka ON).
+    Dipanggil dari main_window.py saat admin/EO update detail event.
+    """
+    judul = f"📢 Event Update: {nama_event}"
+    pesan = (
+        f'"{nama_event}" has been updated by the organizer. '
+        f"Please check the latest event details to stay up to date."
+    )
+    for email in _get_emails_booked_event(event_id):
+        if get_notif_pref(email, "notif_critical_updates"):
+            simpan_notifikasi(email, judul, pesan,
+                              tipe_notif="EVENT_UPDATED",
+                              event_id_ref=event_id)
+
+
+def kirim_notif_interest_match(event_id: str, nama_event: str, kategori: str):
+    """
+    Mengirim notifikasi Interest Match ke student yang pernah
+    me-like event dengan kategori yang sama (jika preferensi ON).
+    Dipanggil dari main_window.py saat admin approve event baru.
+    """
+    judul = f"✨ New event you might like!"
+    pesan = (
+        f'"{nama_event}" is a new {kategori} event that matches '
+        f"your interests based on your liked events. Check it out!"
+    )
+    for email in _get_emails_liked_same_category(kategori):
+        if get_notif_pref(email, "notif_interest_match"):
+            simpan_notifikasi(email, judul, pesan,
+                              tipe_notif="NEW_LIKED_MATCH",
+                              event_id_ref=event_id)
+
+
+def kirim_notif_campus_spotlight(event_id: str, nama_event: str):
+    """
+    Mengirim notifikasi Campus Spotlight ke semua student
+    saat event Internal baru di-approve (jika preferensi ON).
+    Dipanggil dari main_window.py saat admin approve event berjenis Internal.
+    """
+    judul = f"🏫 New campus event: {nama_event}"
+    pesan = (
+        f'"{nama_event}" from your campus is now live on Campus Connect! '
+        f"Be the first to know and grab your spot."
+    )
+    for email in _get_all_student_emails():
+        if get_notif_pref(email, "notif_campus_spotlight"):
+            simpan_notifikasi(email, judul, pesan,
+                              tipe_notif="CAMPUS_NEW_EVENT",
+                              event_id_ref=event_id)
+
+
+def hitung_registrant_event(event_id: str) -> int:
+    """
+    Menghitung total registrant (booking) untuk sebuah event.
+    Dipakai untuk pesan notifikasi New Registrant ke EO.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    row = cursor.execute("""
+        SELECT COUNT(*) FROM bookings WHERE event_id = ?
+    """, (event_id,)).fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
+def kirim_notif_new_registrant(event_id: str, nama_event: str,
+                                email_student: str, email_eo: str):
+    """
+    Mengirim notifikasi New Registrant ke EO pemilik event
+    saat ada student yang booking, jika preferensi EO ON.
+
+    Parameter:
+        event_id      : ID event yang di-booking (str)
+        nama_event    : nama event (str)
+        email_student : email student yang baru booking (str)
+        email_eo      : email EO pemilik event (str)
+    """
+    if not email_eo:
+        return
+    if not get_notif_pref(email_eo, "notif_new_registrant"):
+        return   # EO matikan toggle ini
+
+    total = hitung_registrant_event(event_id)
+    judul = f"New Registrant for {nama_event}!"
+    suffix = "s" if total != 1 else ""
+    pesan = (
+        f"Congrats! There's a new registrant for \"{nama_event}\". "
+        f"Your event now has {total} registrant{suffix}. "
+        f"Keep up the momentum!"
+    )
+    simpan_notifikasi(email_eo, judul, pesan,
+                      tipe_notif="EO_APPROVAL",   # tampil dengan ikon ✅ di notif EO
+                      event_id_ref=event_id)
+
+
+def cek_dan_kirim_reminder_h1(email_user: str):
+    """
+    Mengecek semua event yang di-booking user, lalu membuat notifikasi
+    H-1 reminder untuk yang tanggalnya besok dan belum ada remindernya.
     
-    # Check if user already exists
-    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
-    
-    if user:
+    Dipanggil dari main_window.py:
+      - Sekali saat login
+      - Setiap jam via QTimer
+    """
+    if not get_notif_pref(email_user, "notif_event_reminder"):
+        return   # User matikan toggle ini
+
+    # Cari user_id berdasarkan email
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    user_row = cursor.execute(
+        "SELECT id FROM users WHERE email = ?", (email_user,)
+    ).fetchone()
+    if not user_row:
         conn.close()
-        return user[0]
-    
-    # User doesn't exist, create new user record
+        return
+    user_id = user_row[0]
+
+    # Ambil semua event yang di-booking user ini
+    rows = cursor.execute("""
+        SELECT e.event_id, e.nama_event, e.tanggal_waktu, e.waktu_display
+        FROM events e
+        JOIN bookings b ON b.event_id = e.event_id
+        WHERE b.user_id = ?
+    """, (user_id,)).fetchall()
+    conn.close()
+
+    from datetime import timedelta as _td
+    besok = (datetime.now() + _td(days=1)).date()
+
+    for event_id, nama_event, tanggal_waktu, waktu_display in rows:
+        parsed = _parse_event_datetime(tanggal_waktu)  # fungsi di file ini
+        if parsed is None:
+            continue
+        if parsed.date() != besok:
+            continue
+        if _sudah_ada_notif_h1(email_user, event_id):
+            continue   # Sudah pernah kirim, skip
+
+        waktu_str = waktu_display or tanggal_waktu or "the scheduled time"
+        judul = f"🔔 Reminder: {nama_event} is tomorrow!"
+        pesan = (
+            f"Don't forget — '{nama_event}' is happening tomorrow "
+            f"at {waktu_str}. See you there!"
+        )
+        simpan_notifikasi(email_user, judul, pesan,
+                          tipe_notif="H1_REMINDER",
+                          event_id_ref=event_id)
+
+
+def ensure_user_exists(email_user, role: str = "mahasiswa"):
+    """
+    Pastikan user ada di tabel users (database.db).
+    Dipanggil saat login agar booking & notifikasi bisa berjalan.
+
+    Parameter:
+        email_user : email user yang login (str)
+        role       : role dari accounts.db — 'mahasiswa', 'eo', 'admin' (str)
+                     Penting agar EO tidak masuk bucket 'mahasiswa' dan
+                     tidak ikut menerima Campus Spotlight / Interest Match.
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    existing = cursor.execute(
+        "SELECT id, role FROM users WHERE email = ?", (email_user,)
+    ).fetchone()
+
+    if existing:
+        user_id = existing[0]
+        existing_role = existing[1] or ""
+        # Update role jika berbeda (misal akun lama tersimpan dengan role salah)
+        if existing_role != role:
+            cursor.execute(
+                "UPDATE users SET role = ? WHERE email = ?", (role, email_user)
+            )
+            conn.commit()
+        conn.close()
+        return user_id
+
+    # User belum ada — buat baru dengan role yang benar
     cursor.execute("""
         INSERT INTO users (email, role)
         VALUES (?, ?)
-    """, (email_user, 'mahasiswa'))
-    
+    """, (email_user, role))
     conn.commit()
     new_user_id = cursor.lastrowid
-    
     conn.close()
     return new_user_id
 
 def book_event(email_user, event_id):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
+    user = cursor.execute(
+        "SELECT id FROM users WHERE email = ?", (email_user,)
+    ).fetchone()
 
-    if user:
-        cursor.execute("""
-            INSERT OR IGNORE INTO bookings (user_id, event_id, created_at)
-            VALUES (?, ?, ?)
-        """, (user[0], event_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-        conn.commit()
-        # Verify booking was inserted
-        verify = cursor.execute("SELECT * FROM bookings WHERE user_id = ? AND event_id = ?", (user[0], event_id)).fetchone()
-    else:
+    if not user:
         conn.close()
+        return
+
+    # Insert booking (IGNORE jika sudah ada — mencegah double notif)
+    cursor.execute("""
+        INSERT OR IGNORE INTO bookings (user_id, event_id, created_at)
+        VALUES (?, ?, ?)
+    """, (user[0], event_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    was_inserted = cursor.rowcount > 0   # 1 = baru, 0 = sudah ada sebelumnya
+    conn.commit()
+    conn.close()
+
+    # Kirim notif New Registrant ke EO hanya jika ini booking baru
+    if was_inserted:
+        try:
+            # Ambil info event: nama_event dan email_eo
+            ev_rows = get_all_events()
+            ev = next((e for e in ev_rows
+                       if str(e.get("event_id", "")) == str(event_id)), None)
+            if ev:
+                kirim_notif_new_registrant(
+                    event_id=str(event_id),
+                    nama_event=ev.get("nama_event", event_id),
+                    email_student=email_user,
+                    email_eo=ev.get("email_eo", ""),
+                )
+        except Exception as _e:
+            print(f"[NEW REGISTRANT NOTIF] {_e}")
+
+def kirim_notif_cancellation(event_id: str, nama_event: str,
+                              email_student: str, email_eo: str):
+    """
+    Mengirim notifikasi Registration Cancellation ke EO
+    saat student cancel booking, jika preferensi EO ON.
+    """
+    if not email_eo:
+        return
+    if not get_notif_pref(email_eo, "notif_cancellations"):
+        return
+
+    sisa = hitung_registrant_event(event_id)   # hitung SETELAH unbook
+    judul = f"📋 Cancellation: {nama_event}"
+    pesan = (
+        f'A participant has cancelled their registration for "{nama_event}". '
+        f'Your event now has {sisa} registrant{"s" if sisa != 1 else ""} remaining.'
+    )
+    simpan_notifikasi(email_eo, judul, pesan,
+                      tipe_notif="EO_APPROVAL",
+                      event_id_ref=event_id)
+
 
 def unbook_event(email_user, event_id):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
-    if user:
-        print(f"[unbook_event] Unbooking user_id={user[0]} with event_id={event_id}")
-        cursor.execute("DELETE FROM bookings WHERE user_id = ? AND event_id = ?",
-                       (user[0], event_id))
-        conn.commit()
+    user = cursor.execute(
+        "SELECT id FROM users WHERE email = ?", (email_user,)
+    ).fetchone()
+    if not user:
+        conn.close()
+        return
+
+    print(f"[unbook_event] Unbooking user_id={user[0]} with event_id={event_id}")
+    cursor.execute(
+        "DELETE FROM bookings WHERE user_id = ? AND event_id = ?",
+        (user[0], event_id)
+    )
+    was_deleted = cursor.rowcount > 0
+    conn.commit()
     conn.close()
+
+    # Kirim notif cancellation ke EO hanya jika memang ada row yang dihapus
+    if was_deleted:
+        try:
+            ev_rows = get_all_events()
+            ev = next((e for e in ev_rows
+                       if str(e.get("event_id", "")) == str(event_id)), None)
+            if ev:
+                kirim_notif_cancellation(
+                    event_id=str(event_id),
+                    nama_event=ev.get("nama_event", event_id),
+                    email_student=email_user,
+                    email_eo=ev.get("email_eo", ""),
+                )
+        except Exception as _e:
+            print(f"[CANCELLATION NOTIF] {_e}")
 
 def is_event_booked(email_user, event_id):
     conn = sqlite3.connect(DB_NAME)
