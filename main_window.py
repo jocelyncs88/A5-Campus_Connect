@@ -121,7 +121,6 @@ class MainWindow(QMainWindow):
         self.spacing_after_hero.setFixedHeight(30)
         self.spacing_after_hero.setStyleSheet("background: transparent;")
         self.layout_utama.addWidget(self.spacing_after_hero)
-        self.init_filter_bar()
         self.init_scroll_area()
         self.render_event_cards(dummy_events) # Mengisi Kartu dengan Data
 
@@ -525,7 +524,7 @@ class MainWindow(QMainWindow):
         self.filter_bar_widget = QWidget()
         self.filter_bar_widget.setStyleSheet("background: transparent;")
         bar_layout = QHBoxLayout(self.filter_bar_widget)
-        bar_layout.setContentsMargins(4, 0, 4, 8)
+        bar_layout.setContentsMargins(4, 4, 4, 10)
         bar_layout.setSpacing(8)
 
         CHIP_ACTIVE   = "background: #516465; color: white; border-radius: 14px; padding: 5px 16px; font-size: 12px; border: none; font-weight: bold;"
@@ -565,7 +564,7 @@ class MainWindow(QMainWindow):
         bar_layout.addWidget(lbl_tiket)
 
         tiket_chips = []
-        for label, value in [("All", None), ("Free", "Free"), ("Berbayar", "Berbayar")]:
+        for label, value in [("All", None), ("Free", "Free"), ("Paid", "Paid")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(28)
@@ -591,7 +590,7 @@ class MainWindow(QMainWindow):
         bar_layout.addWidget(lbl_sumber)
 
         sumber_chips = []
-        for label, value in [("All", None), ("Resmi Polban", "scraping"), ("Partnership", "manual")]:
+        for label, value in [("All", None), ("Resmi Polban", "scraping"), ("Submitted EO", "manual")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(28)
@@ -635,6 +634,7 @@ class MainWindow(QMainWindow):
         title = self.event_title
         title.setStyleSheet(f"font-weight: bold; font-size: 18px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
         self.layout_utama.addWidget(title)
+        self.init_filter_bar()
         
         self.scroll = QScrollArea()
         self.scroll.setFixedHeight(350) 
