@@ -637,6 +637,70 @@ def tandai_semua_notifikasi_dibaca(email_user):
     conn.commit()
     conn.close()
 
+def ensure_user_exists(email_user):
+    """Create user in database.db if doesn't exist (called after login)"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    # Check if user already exists
+    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
+    
+    if user:
+        conn.close()
+        return user[0]
+    
+    # User doesn't exist, create new user record
+    cursor.execute("""
+        INSERT INTO users (email, role)
+        VALUES (?, ?)
+    """, (email_user, 'mahasiswa'))
+    
+    conn.commit()
+    new_user_id = cursor.lastrowid
+    
+    conn.close()
+    return new_user_id
+
+def book_event(email_user, event_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
+
+    if user:
+        cursor.execute("""
+            INSERT OR IGNORE INTO bookings (user_id, event_id, created_at)
+            VALUES (?, ?, ?)
+        """, (user[0], event_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        conn.commit()
+        # Verify booking was inserted
+        verify = cursor.execute("SELECT * FROM bookings WHERE user_id = ? AND event_id = ?", (user[0], event_id)).fetchone()
+    else:
+        conn.close()
+
+def unbook_event(email_user, event_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
+    if user:
+        print(f"[unbook_event] Unbooking user_id={user[0]} with event_id={event_id}")
+        cursor.execute("DELETE FROM bookings WHERE user_id = ? AND event_id = ?",
+                       (user[0], event_id))
+        conn.commit()
+    conn.close()
+
+def is_event_booked(email_user, event_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
+    if not user:
+        conn.close()
+        return False
+    result = cursor.execute("""
+        SELECT 1 FROM bookings WHERE user_id = ? AND event_id = ?
+    """, (user[0], event_id)).fetchone()
+    conn.close()
+    return result is not None
+
 
 # =========================
 # TEST MANUAL

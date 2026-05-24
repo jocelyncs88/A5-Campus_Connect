@@ -120,7 +120,8 @@ class MainWindow(QMainWindow):
         self.admin_page = None
         self.detail_event_page = None
         self.notif_page = None          # ← TAMBAHAN: halaman notifikasi
-        self.event_data_map = {}    
+        self.event_data_map = {} 
+        self.all_cards = []   
         self.current_user_role = "guest"
         self.current_user_email = ""  # Email user yang sedang login
         self.update_navbar_berdasarkan_role()
@@ -230,6 +231,11 @@ class MainWindow(QMainWindow):
         
         # REFRESH DATA SETIAP KALI KE HOME (Biar langsung update tanpa close program!)
         self.refresh_tampilan_homepage()
+        if hasattr(self, 'search_bar'):
+            self.search_bar.blockSignals(True)
+            self.search_bar.clear()
+            self.search_bar.blockSignals(False)
+            self.btn_clear_search.hide()
 
         self.navbar_container.show()
         self.spacing_after_navbar.show()
@@ -256,7 +262,7 @@ class MainWindow(QMainWindow):
             }
             if watched in sources or self.scroll_content.isAncestorOf(watched):
                 hbar = self.scroll.horizontalScrollBar()
-                if hbar.maximum() <= 0:
+                if hbar.maximum() <= 0 and not (hasattr(self, 'search_bar') and self.search_bar.text().strip()):
                     return super().eventFilter(watched, event)
 
                 pixel_delta = event.pixelDelta()
@@ -339,33 +345,22 @@ class MainWindow(QMainWindow):
         self.btn_home.setStyleSheet(nav_style + "font-weight: bold;")
         self.btn_about.setStyleSheet(nav_style + "margin-left: 30px;")
 
-        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
+        # ← TAMBAHKAN BLOK INI DI SINI
         # Bagian Kanan (Login & Hamburger Menu)
         self.btn_login = QPushButton("  Login")
         self.btn_login.setIcon(QIcon("assets/user.png"))
         self.btn_login.setCursor(Qt.PointingHandCursor)
         self.btn_login.setStyleSheet("background-color: #ff99aa; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
-
         self.btn_login.clicked.connect(self.show_login_page)
-        
+
         self.btn_menu = QPushButton()
         self.btn_menu.setIcon(QIcon("assets/menu.png"))
         self.btn_menu.setIconSize(QSize(24, 24))
         self.btn_menu.setCursor(Qt.PointingHandCursor)
         self.btn_menu.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                border: none;
-            }
-            QPushButton::menu-indicator {
-                image: none;
-                width: 0px;
-                height: 0px;
-            }
+            QPushButton { background: transparent; border: none; }
+            QPushButton::menu-indicator { image: none; width: 0px; height: 0px; }
         """)
-
-        # Dropdown Menu Styling
         self.hamburger_menu = QMenu(self)
         self.hamburger_menu.setCursor(Qt.PointingHandCursor)
         self.hamburger_menu.setStyleSheet(f"""
@@ -373,22 +368,82 @@ class MainWindow(QMainWindow):
             QMenu::item {{ background-color: transparent; padding: 8px 25px 8px 10px; border-radius: 5px; }}
             QMenu::item:selected {{ background-color: #BDD7D8; color: #5D6B6B; }}
         """)
-        
-        #hamburger menu udh ada di self.hamburger_menu.addAction (update navbar berdasarkan role)
-        
-        # # Aksi di dalam Hamburger Menu
-        # self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input)
-        # # ← TAMBAHAN: connect FAQ ke show_faq_page
-        # self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
-        # self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
         self.btn_menu.setMenu(self.hamburger_menu)
 
-        # Masukkan semua ke layout navbar
+        # juga tambahin widget logo dan tombol nav ke layout SEBELUM spacer
         navbar_layout.addWidget(self.logo)
         navbar_layout.addSpacing(30)
         navbar_layout.addWidget(self.btn_home)
         navbar_layout.addWidget(self.btn_about)
-        navbar_layout.addSpacerItem(spacer)
+
+
+        # --- SEARCH BAR ---
+        search_container = QWidget()
+        search_container.setFixedWidth(400)
+        search_container.setFixedHeight(38)
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(10, 0, 10, 0)
+        search_layout.setSpacing(6)
+
+        icon_search = QLabel()
+        icon_search.setFixedSize(18, 18)
+        icon_search.setStyleSheet("background: transparent; border: none;")
+
+        pix = QPixmap("assets/search.png").scaled(
+            18, 18,
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+        icon_search.setPixmap(pix)
+
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search events...")
+        self.search_bar.setStyleSheet("""
+            QLineEdit {
+                background: transparent;
+                border: none;
+                font-size: 13px;
+                color: #516465;
+            }
+        """)
+
+        self.btn_clear_search = QPushButton("✕")
+        self.btn_clear_search.setFixedSize(18, 18)
+        self.btn_clear_search.setCursor(Qt.PointingHandCursor)
+        self.btn_clear_search.setStyleSheet("""
+            QPushButton {
+                background: transparent; border: none;
+                color: #888; font-size: 11px;
+            }
+            QPushButton:hover { color: #516465; }
+        """)
+        self.btn_clear_search.hide()
+        self.btn_clear_search.clicked.connect(lambda: self.search_bar.clear())
+
+        search_layout.addWidget(icon_search)
+        search_layout.addWidget(self.search_bar)
+        search_layout.addWidget(self.btn_clear_search)
+
+        search_container.setStyleSheet("""
+            QWidget {
+                background: rgba(255,255,255,0.55);
+                border-radius: 18px;
+                border: 1px solid rgba(81,100,101,0.2);
+            }
+        """)
+
+        # Debounce timer — cegah lag, tunggu 250ms setelah stop ketik
+        self.search_timer = QTimer()
+        self.search_timer.setSingleShot(True)
+        self.search_timer.setInterval(250)
+        self.search_timer.timeout.connect(self.filter_event_cards)
+        self.search_bar.textChanged.connect(self._on_search_text_changed)
+
+        spacer_kiri = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        spacer_kanan = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        navbar_layout.addSpacerItem(spacer_kiri)
+        navbar_layout.addWidget(search_container)
+        navbar_layout.addSpacerItem(spacer_kanan)
         navbar_layout.addWidget(self.btn_login)
         navbar_layout.addSpacing(12)
 
@@ -437,6 +492,14 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(navbar_container)
         self.btn_about.clicked.connect(self.show_about_page)
         self.btn_home.clicked.connect(self.show_home_page)
+
+    def _on_search_text_changed(self, text):
+        if text:
+            self.btn_clear_search.show()
+        else:
+            self.btn_clear_search.hide()
+        # Reset timer setiap ketik — cegah spam trigger
+        self.search_timer.start()
 
     def init_hero(self):
         self.hero_widget = QWidget()
@@ -518,6 +581,7 @@ class MainWindow(QMainWindow):
                 widget.deleteLater()
 
         self.event_data_map = {}
+        self.all_cards = [] 
 
         CARDS_PER_ROW = 7  # ← ganti angka ini sesuai selera
 
@@ -542,6 +606,32 @@ class MainWindow(QMainWindow):
             row = i // CARDS_PER_ROW   # ← baris ke berapa
             col = i % CARDS_PER_ROW    # ← kolom ke berapa
             self.card_layout.addWidget(card, row, col)
+            self.all_cards.append(card)
+
+    def filter_event_cards(self):
+        query = self.search_bar.text().strip().lower()
+
+        # Pisahkan kartu cocok vs tidak
+        cocok = []
+        for card in self.all_cards:
+            if not hasattr(card, 'event_data'):
+                continue
+            nama = card.event_data.get('nama_event', '').lower()
+            if (not query) or (query in nama):
+                cocok.append(card)
+
+        # Cabut semua kartu dari grid dulu
+        for card in self.all_cards:
+            self.card_layout.removeWidget(card)
+            card.setVisible(False)
+
+        # Pasang ulang hanya yang cocok mulai dari posisi 0,0
+        CARDS_PER_ROW = 7
+        for i, card in enumerate(cocok):
+            row = i // CARDS_PER_ROW
+            col = i % CARDS_PER_ROW
+            self.card_layout.addWidget(card, row, col)
+            card.setVisible(True)
 
     def handle_card_click(self, event_id):
         print(f"Card diklik: {event_id}")
