@@ -17,7 +17,9 @@ from PyQt5.QtWidgets import *
 from settings.account_window import AccountPanel
 from settings.notifications_window import NotificationsPanel
 from settings.your_events_window import YourEventsPanel
+from settings.language_window import LanguagePanel
 from setting_item_widget import SettingItem
+from language_manager import lang
 
 
 COLOR_PINK_LIGHT = "#F7CBCA"
@@ -37,7 +39,6 @@ class SettingsWindow(QWidget):
 
     def __init__(self, user_data=None, parent=None):
         super().__init__(parent)
-        self.setObjectName("settings_window_root")
 
         self.user_data = user_data or {
             "nama": "",
@@ -68,11 +69,9 @@ class SettingsWindow(QWidget):
         )
 
         self.setStyleSheet(f"""
-            #settings_window_root {{
-                background: transparent;
-            }}
-            #settings_window_root QWidget {{
+            QWidget {{
                 font-family: '{self.font_sans}';
+                background: transparent;
             }}
         """)
 
@@ -111,7 +110,7 @@ class SettingsWindow(QWidget):
             stacked_widget=self.stacked_widget,
         )
         self.panel_appearance = self.buat_panel_appearance()
-        self.panel_language = self.buat_panel_language()
+        self.panel_language = LanguagePanel()
 
         self.stacked_widget.addWidget(self.panel_account)
         self.stacked_widget.addWidget(self.panel_your_events)
@@ -266,33 +265,6 @@ class SettingsWindow(QWidget):
     def _simpan_perubahan_event(self, existing_event, form_data, panel):
         import db_manager
 
-        def _show_message(kind, title, text):
-            box = QMessageBox(panel)
-            box.setWindowTitle(title)
-            box.setText(text)
-            box.setStandardButtons(QMessageBox.Ok)
-            box.setIcon(QMessageBox.Information if kind == "info" else QMessageBox.Warning)
-            box.setStyleSheet("""
-                QMessageBox { background-color: #ffffff; }
-                QMessageBox QLabel { color: #1a1a1a; min-width: 320px; }
-            """)
-
-            ok_btn = box.button(QMessageBox.Ok)
-            if ok_btn:
-                ok_btn.setStyleSheet("""
-                    QPushButton {
-                        min-width: 80px;
-                        padding: 6px 12px;
-                        border: 1px solid #CBD5E0;
-                        border-radius: 6px;
-                        background-color: #f8fafc;
-                        color: #1a1a1a;
-                    }
-                    QPushButton:hover { background-color: #eef2f7; }
-                    QPushButton:pressed { background-color: #dde6ef; }
-                """)
-            box.exec_()
-
         try:
             tanggal_raw = form_data.get("tanggal", "")
             waktu_raw = form_data.get("waktu", "")
@@ -325,13 +297,13 @@ class SettingsWindow(QWidget):
             }
 
             db_manager.create_event_update_request(request_payload)
-            _show_message(
-                "info",
+            QMessageBox.information(
+                panel,
                 "Request Terkirim",
                 "Perubahan event sudah dikirim ke admin untuk divalidasi."
             )
         except Exception as exc:
-            _show_message("warn", "Error Database", f"Gagal mengirim request perubahan:\n{exc}")
+            QMessageBox.warning(self, "Error Database", f"Gagal mengirim request perubahan:\n{exc}")
             return
 
         self._tutup_edit_event(panel)
@@ -389,22 +361,6 @@ class SettingsWindow(QWidget):
         layout.addStretch()
         return panel
 
-    def buat_panel_language(self):
-        panel = QWidget()
-        panel.setStyleSheet("background: transparent;")
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(50, 40, 50, 40)
-        layout.setSpacing(16)
-
-        lbl_judul = QLabel("Language")
-        lbl_judul.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
-        layout.addWidget(lbl_judul)
-
-        lbl_info = QLabel("Pengaturan bahasa antarmuka akan hadir di sprint berikutnya.")
-        lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px; font-style: italic;")
-        layout.addWidget(lbl_info)
-        layout.addStretch()
-        return panel
 
 
 if __name__ == "__main__":
