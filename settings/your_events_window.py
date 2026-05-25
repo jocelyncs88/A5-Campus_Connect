@@ -21,6 +21,7 @@
 
 import sys
 import os
+import requests
 
 # Tambahkan root ke sys.path agar bisa import dari luar folder settings/
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -185,6 +186,32 @@ DUMMY_EVENTS_STUDENT = [
         "is_booked"      : False,
     },
 ]
+
+
+def _apply_poster_image(label, image_source, placeholder_color="#D2E6E5"):
+    """Tampilkan poster dari path lokal atau URL ke QLabel."""
+    pixmap = QPixmap()
+    source = str(image_source or "").strip()
+
+    if source.startswith(("http://", "https://")):
+        try:
+            response = requests.get(source, timeout=10)
+            response.raise_for_status()
+            pixmap.loadFromData(response.content)
+        except Exception:
+            pixmap = QPixmap()
+    elif source and os.path.exists(source):
+        pixmap = QPixmap(source)
+
+    if not pixmap.isNull():
+        scaled = pixmap.scaled(
+            label.size(),
+            Qt.KeepAspectRatioByExpanding,
+            Qt.SmoothTransformation,
+        )
+        label.setPixmap(scaled)
+    else:
+        label.setStyleSheet(f"background-color: {placeholder_color}; border-radius: 8px;")
 
 
 # ==============================================================
@@ -723,13 +750,7 @@ class YourEventsPanel(QWidget):
         lbl_poster.setScaledContents(True)
         lbl_poster.setStyleSheet("border-radius: 10px;")
 
-        path = event.get("gambar_poster", "")
-        if path and os.path.exists(path):
-            lbl_poster.setPixmap(QPixmap(path))
-        else:
-            lbl_poster.setStyleSheet(
-                "background-color: #D2E6E5; border-radius: 10px;"
-            )
+        _apply_poster_image(lbl_poster, event.get("gambar_poster", ""), placeholder_color="#D2E6E5")
 
         # Icon hati di pojok kanan bawah poster
         # Mulai dengan liked (ikon hati penuh)
@@ -958,13 +979,7 @@ class YourEventsPanel(QWidget):
         lbl_poster.setScaledContents(True)
         lbl_poster.setStyleSheet("border-radius: 10px;")
 
-        path = event.get("gambar_poster", "")
-        if path and os.path.exists(path):
-            lbl_poster.setPixmap(QPixmap(path))
-        else:
-            lbl_poster.setStyleSheet(
-                "background-color: #D2E6E5; border-radius: 10px;"
-            )
+        _apply_poster_image(lbl_poster, event.get("gambar_poster", ""), placeholder_color="#D2E6E5")
 
         # Icon hati di bawah poster
         btn_hati_desk = QPushButton()
