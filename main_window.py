@@ -25,6 +25,7 @@ from login_page import LoginPage
 from admin_page import AdminPage
 from detail_event_page import DetailEventPage
 from notification_page import NotificationPage
+from signup_page import SignUpPage
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtGui import QColor
 
@@ -120,6 +121,7 @@ class MainWindow(QMainWindow):
         self.admin_page = None
         self.detail_event_page = None
         self.notif_page = None          # ← TAMBAHAN: halaman notifikasi
+        self.signup_page = None
         self.event_data_map = {} 
         self.all_cards = []   
         self.current_user_role = "guest"
@@ -341,6 +343,8 @@ class MainWindow(QMainWindow):
             self.detail_event_page.hide()
         if self.notif_page:                 # ← TAMBAHAN
             self.notif_page.hide()
+        if self.signup_page:
+            self.signup_page.hide()
 
     def init_header(self):
         """Membangun bagian navigasi atas (Navbar)"""
@@ -833,26 +837,18 @@ class MainWindow(QMainWindow):
 
         if self.success_page:
             self.success_page.show()
-
-    def show_home_page(self):
-        self._hide_all_pages()
-        self.navbar_container.show()
-
-        self.spacing_after_navbar.show()
-        self.spacing_after_hero.show()
-
-        self.layout_utama.setContentsMargins(60, 20, 60, 40)
-        self.layout_utama.setSpacing(0)
-
-        self.hero_widget.show()
-        self.event_title.show()
-        self.scroll.show()
     
     def show_login_page(self):
         self._hide_all_pages()
         self.navbar_container.hide()
         self.layout_utama.setContentsMargins(0, 0, 0, 0)
         self.layout_utama.setSpacing(0)
+
+        # HAPUS signup page lama
+        if self.signup_page is not None:
+            self.layout_utama.removeWidget(self.signup_page)
+            self.signup_page.deleteLater()
+            self.signup_page = None
 
         # Jika login_page sudah pernah dibuat sebelumnya, hapus dulu
         # agar tidak ada duplikat widget di layout
@@ -865,6 +861,8 @@ class MainWindow(QMainWindow):
         self.login_page = LoginPage()
         # Hubungkan sinyal login_diklik ke fungsi yang mengecek email & password ke database
         self.login_page.login_diklik.connect(self.on_login_diklik)
+        # pindah ke signup page saat tombol signup diklik di halaman login
+        self.login_page.signup_diklik.connect(self.show_signup_page)
         # saat user klik tombol kembali di halaman login, apllikasi akan kembali ke homepage
         self.login_page.kembali_diklik.connect(self.show_home_page)
 
@@ -1032,6 +1030,35 @@ class MainWindow(QMainWindow):
             self.notif_page.set_email(self.current_user_email, self.current_user_role)
 
         self.notif_page.show()
+    
+    def show_signup_page(self):
+        self._hide_all_pages()
+        self.navbar_container.hide()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
+        self.layout_utama.setSpacing(0)
+
+        # Hapus page lama agar fresh
+        if self.signup_page is not None:
+            self.layout_utama.removeWidget(self.signup_page)
+            self.signup_page.deleteLater()
+            self.signup_page = None
+
+        # Buat signup page baru
+        self.signup_page = SignUpPage()
+
+        # Tombol kembali → Login page
+        self.signup_page.kembali_diklik.connect(self.show_login_page)
+
+        # Tombol sign up → proses registrasi akun
+        self.signup_page.signup_diklik.connect(self.on_signup_diklik)
+
+        # Tombol "Already have an account? Sign In"
+        self.signup_page.login_diklik.connect(self.show_login_page)
+
+        self.layout_utama.insertWidget(4, self.signup_page)
+        self.layout_utama.setStretchFactor(self.signup_page, 1)
+
+        self.signup_page.show()
 
     def _on_buka_detail_event_dari_notif(self, event_id_ref: str):
         """
@@ -1042,7 +1069,23 @@ class MainWindow(QMainWindow):
         if event_id_ref:
             self.show_home_page()
             self.handle_card_click(event_id_ref)
-    
+
+    def on_signup_diklik(self, nama, email, phone, university, password):
+        """Handle sign up dari halaman signup dan simpan akun ke accounts.db."""
+        if account_db.register_account(email, password, role="mahasiswa"):
+            QMessageBox.information(
+                self,
+                "Success",
+                "Account created successfully. Please login."
+            )
+            self.show_login_page()
+        else:
+            QMessageBox.warning(
+                self,
+                "Registration Failed",
+                "This email is already registered. Please use another email or login."
+            )
+
     def on_login_diklik(self, email, password):
             import account_db # Pastikan ini sudah di-import di atas
 

@@ -108,7 +108,7 @@ class LoginPage(QWidget):
 
         # ---- TEKS "Do you already have an account..." ----
 
-        self.teks_akun = QLabel("Do you already have an account for Event Organizer?")
+        self.teks_akun = QLabel("Do you already have an account?")
         self.teks_akun.setObjectName("teks_akun")
         self.teks_akun.setAlignment(Qt.AlignCenter)
         self.teks_akun.setWordWrap(True)
