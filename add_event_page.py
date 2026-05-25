@@ -271,7 +271,7 @@ class AddEventPage(QWidget):
         self.label_harga = QLabel("Ticket Price (Rp) *")
         self.label_harga.setObjectName("label_field")
         self.input_harga = QLineEdit()
-        self.input_harga.setPlaceholderText("Enter ticket price using numbers only, e.g. 50000")
+        self.input_harga.setPlaceholderText("Enter ticket price using numbers only, e.g. 1000")
         # QIntValidator(1, 999999999) = hanya angka dari 1 sampai 999999999
         # angka 0 tidak bisa karena minimum 1
         validator = QIntValidator(1, 999999999, self)
@@ -510,11 +510,18 @@ class AddEventPage(QWidget):
             self.tampilkan_error("Please upload the event poster!")
             return
         # Validasi tambahan harga tiket
+        # Validasi tambahan harga tiket
         if self.toggle_tiket.is_on():
             harga_text = self.input_harga.text().strip()
-            if not harga_text or int(harga_text) < 1:
-                self.tampilkan_error("Ticket price must be a number greater than 0!")
+
+            if not harga_text:
+                self.tampilkan_error("Please enter the ticket price!")
                 return
+
+            if int(harga_text) < 1000:
+                self.tampilkan_error("Ticket price must be at least 4 digits (minimum Rp1000)!")
+                return
+            
         # ---- BANGUN DICT ----
         data_event = {
             "nama_event"       : self.input_nama.text().strip(),

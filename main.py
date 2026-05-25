@@ -9,6 +9,7 @@ import requests
 
 import db_manager
 import scraper
+import account_db
 import main_window
 from main_window import MainWindow
 
@@ -179,8 +180,9 @@ def _sync_scraped_events_to_db():
 
 def main():
     """Entry point aplikasi: init DB, siapkan data UI, lalu jalankan PyQt app."""
-    # Ensure local database and table exist before UI is shown.
+    # Ensure local database and tables exist before UI is shown.
     db_manager.init_db()
+    account_db.create_table()
 
      # Jalankan scraping saat aplikasi dimulai agar data yang tampil selalu diperbarui.
     _sync_scraped_events_to_db()
