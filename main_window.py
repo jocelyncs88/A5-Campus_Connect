@@ -1106,7 +1106,7 @@ class MainWindow(QMainWindow):
         self.layout_utama.setSpacing(0)
 
         if self.notif_page is None:
-            self.notif_page = NotificationPage(email_eo=self.current_user_email)
+            self.notif_page = NotificationPage(email_user=self.current_user_email)
             self.notif_page.kembali_diklik.connect(self.show_home_page)
             self.notif_page.badge_berubah.connect(self._set_badge)
             self.layout_utama.insertWidget(4, self.notif_page)
