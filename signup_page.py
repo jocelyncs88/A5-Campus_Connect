@@ -185,7 +185,6 @@ class SignUpPage(QWidget):
         self.title.setFont(title_font)
 
         right_layout.addWidget(self.title)
-        right_layout.addSpacing(10)
 
         # SUBTITLE
         self.subtitle = QLabel(
@@ -199,7 +198,6 @@ class SignUpPage(QWidget):
         self.subtitle.setFont(sub_font)
 
         right_layout.addWidget(self.subtitle)
-        right_layout.addSpacing(30)
 
         # FONT
         label_font = QFont("Inter", 11)
@@ -225,7 +223,6 @@ class SignUpPage(QWidget):
         self.input_name.setFont(input_font)
 
         right_layout.addWidget(self.input_name)
-        right_layout.addSpacing(18)
 
         # ======================================================
         # EMAIL
@@ -382,7 +379,7 @@ class SignUpPage(QWidget):
         confirm_widget.setLayout(confirm_layout)
 
         right_layout.addWidget(confirm_widget)
-        right_layout.addSpacing(28)
+        right_layout.addSpacing(18)
 
         # ======================================================
         # BUTTON SIGN UP

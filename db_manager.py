@@ -1022,6 +1022,7 @@ def ensure_user_exists(email_user, role: str = "mahasiswa"):
             )
             conn.commit()
         conn.close()
+        print(f"[ensure_user_exists] existing user id={user_id}, email={email_user}, role={existing_role}")
         return user_id
 
     # User belum ada — buat baru dengan role yang benar
@@ -1032,6 +1033,7 @@ def ensure_user_exists(email_user, role: str = "mahasiswa"):
     conn.commit()
     new_user_id = cursor.lastrowid
     conn.close()
+    print(f"[ensure_user_exists] created new user id={new_user_id}, email={email_user}, role={role}")
     return new_user_id
 
 def book_event(email_user, event_id):
@@ -1043,6 +1045,7 @@ def book_event(email_user, event_id):
 
     if not user:
         conn.close()
+        print(f"[book_event] user not found for email={email_user}; cannot book event_id={event_id}")
         return
 
     # Insert booking (IGNORE jika sudah ada — mencegah double notif)
@@ -1134,10 +1137,12 @@ def is_event_booked(email_user, event_id):
     user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
     if not user:
         conn.close()
+        print(f"[is_event_booked] user not found for email={email_user}; event_id={event_id} -> returning False")
         return False
     result = cursor.execute("""
         SELECT 1 FROM bookings WHERE user_id = ? AND event_id = ?
     """, (user[0], event_id)).fetchone()
+    print(f"[is_event_booked] checked user_id={user[0]} email={email_user} event_id={event_id} -> {result is not None}")
     conn.close()
     return result is not None
 
