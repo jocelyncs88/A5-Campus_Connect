@@ -110,14 +110,12 @@ class SettingsWindow(QWidget):
             user_data=self.user_data,
             stacked_widget=self.stacked_widget,
         )
-        self.panel_appearance = self.buat_panel_appearance()
         self.panel_language = self.buat_panel_language()
 
-        self.stacked_widget.addWidget(self.panel_account)
-        self.stacked_widget.addWidget(self.panel_your_events)
-        self.stacked_widget.addWidget(self.panel_notif)
-        self.stacked_widget.addWidget(self.panel_appearance)
-        self.stacked_widget.addWidget(self.panel_language)
+        self.stacked_widget.addWidget(self.panel_account)      # index 0
+        self.stacked_widget.addWidget(self.panel_your_events)  # index 1
+        self.stacked_widget.addWidget(self.panel_notif)        # index 2
+        self.stacked_widget.addWidget(self.panel_language)     # index 3
 
         body_layout.addWidget(self.stacked_widget, stretch=1)
         root_layout.addWidget(body, stretch=1)
@@ -181,11 +179,10 @@ class SettingsWindow(QWidget):
         layout.setSpacing(4)
 
         menus = [
-            ("Account", 0, "profile"),
-            ("Your events", 1, "event"),
+            ("Account",       0, "profile"),
+            ("Your events",   1, "event"),
             ("Notifications", 2, "bell"),
-            ("Appearance", 3, "paint"),
-            ("Language", 4, "language"),
+            ("Language",      3, "language"),
         ]
 
         self.sidebar_buttons = []
@@ -369,23 +366,6 @@ class SettingsWindow(QWidget):
                 default_on=True,
             )
         )
-        layout.addStretch()
-        return panel
-
-    def buat_panel_appearance(self):
-        panel = QWidget()
-        panel.setStyleSheet("background: transparent;")
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(50, 40, 50, 40)
-        layout.setSpacing(16)
-
-        lbl_judul = QLabel("Appearance")
-        lbl_judul.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
-        layout.addWidget(lbl_judul)
-
-        lbl_info = QLabel("Pengaturan tema dan tampilan akan hadir di sprint berikutnya.")
-        lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px; font-style: italic;")
-        layout.addWidget(lbl_info)
         layout.addStretch()
         return panel
 
