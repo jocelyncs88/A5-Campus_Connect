@@ -28,6 +28,7 @@ from notification_page import NotificationPage
 from signup_page import SignUpPage
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtGui import QColor
+from language_manager import lang
 
 
 
@@ -94,24 +95,8 @@ class MainWindow(QMainWindow):
         self.layout_utama = QVBoxLayout(self.central_widget)
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         
-        # 4. INISIALISASI STATE (harus sebelum init UI)
-        self.event_data_map = {}
-        self.all_cards = []
-        self.active_filters = {"jenis_event": None, "tipe_tiket": None, "source": None}
-        self.current_user_role = "guest"
-
-        # Page references — dibuat lazy
-        self.about_page = None
-        self.faq_page = None
-        self.add_event_page = None
-        self.success_page = None
-        self.settings_page = None
-        self.login_page = None
-        self.admin_page = None
-        self.detail_event_page = None
-        self.notif_page = None
-
-        # 5. INISIALISASI KOMPONEN UI
+        # 4. INISIALISASI KOMPONEN UI
+# SESUDAH:
         self.init_header()
         self.spacing_after_navbar = QWidget()   # ← jadikan widget, bisa di-hide
         self.spacing_after_navbar.setFixedHeight(40)
@@ -124,6 +109,7 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(self.spacing_after_hero)
         self.init_scroll_area()
         self.render_event_cards(dummy_events) # Mengisi Kartu dengan Data
+<<<<<<< HEAD
         # Reflow sekali setelah window benar-benar tampil agar perhitungan
         # kolom memakai lebar viewport final (tidak nyangkut 1-2 kolom).
         QTimer.singleShot(0, self.filter_event_cards)
@@ -142,7 +128,24 @@ class MainWindow(QMainWindow):
         self.event_data_map = {} 
         self.all_cards = []   
         self.current_user_role = "guest"
+=======
+        
+>>>>>>> 03378552103ff492791740a1bc2f54d47ac07c90
         self.layout_utama.addStretch() # Mendorong semua ke atas
+
+        # Page references — dibuat lazy (None dulu, baru dibuat saat pertama dibuka)
+        self.about_page = None
+        self.faq_page = None  # ← TAMBAHAN
+        self.add_event_page = None  
+        self.success_page = None 
+        self.settings_page = None
+        self.login_page = None
+        self.admin_page = None
+        self.detail_event_page = None
+        self.notif_page = None          # ← TAMBAHAN: halaman notifikasi
+        self.event_data_map = {} 
+        self.all_cards = []   
+        self.current_user_role = "guest"
         self.current_user_email = ""  # Email user yang sedang login
         self.update_navbar_berdasarkan_role()
         
@@ -160,7 +163,33 @@ class MainWindow(QMainWindow):
         # during application startup. To avoid running the scraper twice in quick
         # succession, do not trigger `jalankan_auto_update()` here immediately.
         # The periodic timer will run the first auto-update after its interval.
+
+        # ── LANGUAGE ──────────────────────────────────────────────────────
+        # Daftarkan listener: setiap kali bahasa diganti dari Language Setting,
+        # _retranslate() dipanggil otomatis untuk memperbarui semua teks UI.
+        lang.language_changed.connect(self._retranslate)
         
+    def _retranslate(self):
+        """
+        Dipanggil otomatis oleh lang.language_changed signal.
+        Perbarui semua teks UI di MainWindow sesuai bahasa aktif.
+
+        PENTING: Hanya teks UI (label, tombol, placeholder) yang diubah.
+        Konten event (nama_event, deskripsi, dll.) dari database
+        TIDAK disentuh — ditampilkan apa adanya dari EO.
+        """
+        # ── NAVBAR ────────────────────────────────────────────────────────
+        self.btn_home.setText(lang.t("nav.home"))
+        self.btn_about.setText(lang.t("nav.about"))
+        self.search_bar.setPlaceholderText(lang.t("home.search_placeholder"))
+
+        # btn_login teksnya dinamis (tergantung role aktif)
+        # — cukup panggil ulang fungsi yang sudah mengaturnya
+        self.update_navbar_berdasarkan_role()
+
+        # ── BODY ──────────────────────────────────────────────────────────
+        self.event_title.setText(lang.t("home.upcoming"))
+
     def jalankan_auto_update(self):
         print("[AUTO UPDATE] Memulai sinkronisasi data di latar belakang...")
         
@@ -209,8 +238,8 @@ class MainWindow(QMainWindow):
             self.scroll_content = QWidget()
             self.scroll_content.setStyleSheet("background: transparent;")
             self.card_layout = QGridLayout(self.scroll_content)
-            self.card_layout.setSpacing(16)
-            self.card_layout.setContentsMargins(6, 0, 6, 10)
+            self.card_layout.setSpacing(25)
+            self.card_layout.setContentsMargins(10, 0, 10, 10)
             self.card_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)
             self.scroll.setWidget(self.scroll_content)
             self.scroll_content.installEventFilter(self)
@@ -240,7 +269,6 @@ class MainWindow(QMainWindow):
                 "penyelenggara"    : row.get("nama_eo", "") or "",       # ← TAMBAH
                 "tipe_tiket"       : row.get("tipe_tiket", "Free") or "Free",  # ← TAMBAH
                 "harga_tiket"      : row.get("harga_tiket", "0") or "0",      # ← TAMBAH
-                "source"           : row.get("source", "") or "",              # ← TAMBAH
             }
             data_untuk_ui.append(event_dict)
             
@@ -249,8 +277,8 @@ class MainWindow(QMainWindow):
         
     def show_home_page(self):
         self._hide_all_pages()
-
-        # REFRESH DATA SETIAP KALI KE HOME
+        
+        # REFRESH DATA SETIAP KALI KE HOME (Biar langsung update tanpa close program!)
         self.refresh_tampilan_homepage()
         if hasattr(self, 'search_bar'):
             self.search_bar.blockSignals(True)
@@ -258,22 +286,9 @@ class MainWindow(QMainWindow):
             self.search_bar.blockSignals(False)
             self.btn_clear_search.hide()
 
-        # Reset filter chips ke "All"
-        self.active_filters = {"jenis_event": None, "tipe_tiket": None, "source": None}
-        if hasattr(self, '_jenis_chips') and hasattr(self, '_tiket_chips'):
-            for i, btn in enumerate(self._jenis_chips):
-                btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
-            for i, btn in enumerate(self._tiket_chips):
-                btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
-            if hasattr(self, '_sumber_chips'):
-                for i, btn in enumerate(self._sumber_chips):
-                    btn.setStyleSheet(self._chip_active_style if i == 0 else self._chip_inactive_style)
-
         self.navbar_container.show()
         self.spacing_after_navbar.show()
         self.spacing_after_hero.show()
-        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
-            self.filter_bar_widget.show()
 
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         self.layout_utama.setSpacing(0)
@@ -281,37 +296,52 @@ class MainWindow(QMainWindow):
         self.hero_widget.show()
         self.event_title.show()
         self.scroll.show()
-
+        
     def _register_wheel_forwarding(self, widget):
-        # Hanya pasang event filter pada root widget kartu saja.
-        # Memasang ke semua child menyebabkan banyak pemanggilan eventFilter
-        # yang berulang-ulang dan menurunkan performa saat wheel event.
         widget.installEventFilter(self)
-
-    def _get_cards_per_row(self):
-        """Hitung jumlah kartu per baris berdasarkan lebar viewport saat ini."""
-        if not hasattr(self, "scroll") or not hasattr(self, "card_layout"):
-            return 1
-
-        card_width = 220
-        spacing = self.card_layout.horizontalSpacing()
-        if spacing < 0:
-            spacing = 25
-
-        margins = self.card_layout.contentsMargins()
-        available = max(0, self.scroll.viewport().width() - margins.left() - margins.right())
-
-        # Fallback saat fase awal render: viewport kadang belum punya ukuran final.
-        if available < card_width:
-            available = max(available, self.scroll.width() - margins.left() - margins.right())
-
-        # n*card + (n-1)*spacing <= available
-        per_row = (available + spacing) // (card_width + spacing)
-        return max(1, int(per_row))
+        for child in widget.findChildren(QWidget):
+            child.installEventFilter(self)
 
     def eventFilter(self, watched, event):
-        # Biarkan QScrollArea menangani wheel event secara default (vertikal).
-        # Ini memastikan scroll selalu atas-bawah, termasuk saat window di-minimize.
+        if hasattr(self, "scroll") and event.type() == QEvent.Wheel:
+            sources = {
+                self.scroll,
+                self.scroll.viewport(),
+                self.scroll_content,
+            }
+            if watched in sources or self.scroll_content.isAncestorOf(watched):
+                hbar = self.scroll.horizontalScrollBar()
+                if hbar.maximum() <= 0 and not (hasattr(self, 'search_bar') and self.search_bar.text().strip()):
+                    return super().eventFilter(watched, event)
+
+                pixel_delta = event.pixelDelta()
+                angle_delta = event.angleDelta()
+                modifiers = event.modifiers()
+
+                step_size = max(hbar.singleStep(), 40)
+                move_by = 0
+
+                if not pixel_delta.isNull():
+                    if pixel_delta.x() != 0:
+                        move_by = -pixel_delta.x()
+                    else:
+                        move_by = -pixel_delta.y()
+                elif not angle_delta.isNull():
+                    if angle_delta.x() != 0:
+                        steps = angle_delta.x() / 120
+                        move_by = int(-steps * step_size)
+                    else:
+                        steps = angle_delta.y() / 120
+                        if modifiers & Qt.ShiftModifier:
+                            move_by = int(-steps * step_size)
+                        else:
+                            move_by = int(-steps * step_size)
+
+                if move_by:
+                    hbar.setValue(hbar.value() + move_by)
+                    event.accept()
+                    return True
+
         return super().eventFilter(watched, event)
 
     def _hide_all_pages(self):
@@ -321,8 +351,6 @@ class MainWindow(QMainWindow):
         self.scroll.hide()
         self.spacing_after_navbar.hide()
         self.spacing_after_hero.hide()
-        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
-            self.filter_bar_widget.hide()
         if self.about_page:
             self.about_page.hide()
         if self.faq_page:
@@ -356,11 +384,11 @@ class MainWindow(QMainWindow):
         self.logo = QLabel(f"<span style='font-family: \"{self.font_lobster}\"; font-size: 26px; color: #516465;'>Campus</span><br><span style='font-family: \"{self.font_lobster}\"; font-size: 26px; font-weight: bold; color: #F7CBCA;'>Connect</span>")
         
         # Tombol Navigasi Kiri
-        self.btn_home = QPushButton("  Home")
+        self.btn_home = QPushButton(lang.t("nav.home"))
         self.btn_home.setIcon(QIcon("assets/home.png"))
         self.btn_home.setCursor(Qt.PointingHandCursor)
         
-        self.btn_about = QPushButton("  About Us")
+        self.btn_about = QPushButton(lang.t("nav.about"))
         self.btn_about.setIcon(QIcon("assets/information-button.png"))
         self.btn_about.setCursor(Qt.PointingHandCursor)
         
@@ -370,7 +398,7 @@ class MainWindow(QMainWindow):
 
         # ← TAMBAHKAN BLOK INI DI SINI
         # Bagian Kanan (Login & Hamburger Menu)
-        self.btn_login = QPushButton("  Login")
+        self.btn_login = QPushButton(lang.t("nav.login"))
         self.btn_login.setIcon(QIcon("assets/user.png"))
         self.btn_login.setCursor(Qt.PointingHandCursor)
         self.btn_login.setStyleSheet("background-color: #ff99aa; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
@@ -420,7 +448,7 @@ class MainWindow(QMainWindow):
         icon_search.setPixmap(pix)
 
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search events...")
+        self.search_bar.setPlaceholderText(lang.t("home.search_placeholder"))
         self.search_bar.setStyleSheet("""
             QLineEdit {
                 background: transparent;
@@ -524,6 +552,7 @@ class MainWindow(QMainWindow):
         # Reset timer setiap ketik — cegah spam trigger
         self.search_timer.start()
 
+<<<<<<< HEAD
     def init_filter_bar(self):
         """Filter chips bar: Jenis Event + Tipe Tiket"""
         self.filter_bar_widget = QWidget()
@@ -621,6 +650,8 @@ class MainWindow(QMainWindow):
             )
         self.filter_event_cards()
 
+=======
+>>>>>>> 03378552103ff492791740a1bc2f54d47ac07c90
     def init_hero(self):
         self.hero_widget = QWidget()
         hero_widget = self.hero_widget
@@ -635,14 +666,13 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(hero_widget)
 
     def init_scroll_area(self):
-        self.event_title = QLabel("Highlight / Upcoming Events")
+        self.event_title = QLabel(lang.t("home.upcoming"))
         title = self.event_title
         title.setStyleSheet(f"font-weight: bold; font-size: 18px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
         self.layout_utama.addWidget(title)
-        self.init_filter_bar()
         
         self.scroll = QScrollArea()
-        self.scroll.setFixedHeight(550) 
+        self.scroll.setFixedHeight(350) 
         self.scroll.setWidgetResizable(True)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded) 
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -684,8 +714,8 @@ class MainWindow(QMainWindow):
         self.scroll_content = QWidget()
         self.scroll_content.setStyleSheet("background: transparent;") 
         self.card_layout = QGridLayout(self.scroll_content)
-        self.card_layout.setSpacing(16)
-        self.card_layout.setContentsMargins(6, 0, 6, 10)
+        self.card_layout.setSpacing(25)
+        self.card_layout.setContentsMargins(10, 0, 10, 10)
         self.card_layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         
         self.scroll.setWidget(self.scroll_content)
@@ -704,7 +734,7 @@ class MainWindow(QMainWindow):
         self.event_data_map = {}
         self.all_cards = [] 
 
-        CARDS_PER_ROW = self._get_cards_per_row()
+        CARDS_PER_ROW = 7  # ← ganti angka ini sesuai selera
 
         for i, e in enumerate(data):
             card = EventCard(e)
@@ -730,34 +760,15 @@ class MainWindow(QMainWindow):
             self.all_cards.append(card)
 
     def filter_event_cards(self):
-        query        = self.search_bar.text().strip().lower()
-        f_jenis      = self.active_filters.get("jenis_event")
-        f_tiket      = self.active_filters.get("tipe_tiket")
-        f_source     = self.active_filters.get("source")
+        query = self.search_bar.text().strip().lower()
 
+        # Pisahkan kartu cocok vs tidak
         cocok = []
         for card in self.all_cards:
             if not hasattr(card, 'event_data'):
                 continue
-            data   = card.event_data
-            nama   = data.get('nama_event', '').lower()
-            jenis  = data.get('jenis_event', '').strip().title()
-            tiket  = data.get('tipe_tiket', 'Free').strip()
-            source = data.get('source', '').strip().lower()
-
-            match_search = (not query) or (query in nama)
-            match_jenis  = (f_jenis is None) or (jenis == f_jenis)
-            match_tiket  = (f_tiket is None) or (tiket == f_tiket)
-
-            # source di DB: URL panjang = hasil scraping, "manual" = input EO
-            is_scraped   = source.startswith("http")
-            match_source = (
-                f_source is None or
-                (f_source == "scraping" and is_scraped) or
-                (f_source == "manual"   and not is_scraped)
-            )
-
-            if match_search and match_jenis and match_tiket and match_source:
+            nama = card.event_data.get('nama_event', '').lower()
+            if (not query) or (query in nama):
                 cocok.append(card)
 
         # Cabut semua kartu dari grid dulu
@@ -766,18 +777,12 @@ class MainWindow(QMainWindow):
             card.setVisible(False)
 
         # Pasang ulang hanya yang cocok mulai dari posisi 0,0
-        CARDS_PER_ROW = self._get_cards_per_row()
+        CARDS_PER_ROW = 7
         for i, card in enumerate(cocok):
             row = i // CARDS_PER_ROW
             col = i % CARDS_PER_ROW
             self.card_layout.addWidget(card, row, col)
             card.setVisible(True)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        # Saat ukuran jendela berubah, susun ulang grid agar card ikut wrap.
-        if hasattr(self, "all_cards") and self.all_cards:
-            self.filter_event_cards()
 
     def handle_card_click(self, event_id):
         print(f"Card diklik: {event_id}")
@@ -963,16 +968,17 @@ class MainWindow(QMainWindow):
     def show_home_page(self):
         self._hide_all_pages()
         self.navbar_container.show()
+
         self.spacing_after_navbar.show()
         self.spacing_after_hero.show()
-        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
-            self.filter_bar_widget.show()
+
         self.layout_utama.setContentsMargins(60, 20, 60, 40)
         self.layout_utama.setSpacing(0)
+
         self.hero_widget.show()
         self.event_title.show()
         self.scroll.show()
-
+    
     def show_login_page(self):
         self._hide_all_pages()
         self.navbar_container.hide()
@@ -1030,7 +1036,6 @@ class MainWindow(QMainWindow):
         """Mengeksekusi persetujuan atau penolakan event dari Admin."""
         is_update_request = str(event_ref).startswith("REQ:")
         is_event_ref = str(event_ref).startswith("EVT:")
-        item_label = str(event_ref)
 
         if is_update_request:
             try:
@@ -1049,7 +1054,6 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", "Gagal memproses request update.")
                 return
 
-            item_label = f"REQ:{request_id}"
             nama_event = request_data.get("nama_event", f"Request #{request_id}")
             email_eo = request_data.get("requested_by_email", "") or request_data.get("nama_eo", "")
             judul = "Event Update Approved ✅" if status_baru == "approved" else "Event Update Rejected ❌"
@@ -1064,7 +1068,6 @@ class MainWindow(QMainWindow):
                 )
         else:
             event_id = str(event_ref).replace("EVT:", "") if is_event_ref else str(event_ref)
-            item_label = event_id
 
             # 1. Ubah status di database
             db_manager.update_event_status(event_id, status_baru)
@@ -1093,8 +1096,11 @@ class MainWindow(QMainWindow):
             db_manager.simpan_notifikasi(email_eo, judul, pesan)
 
         # 4. Beri notifikasi ke Admin
+        aksi = status_baru.capitalize()
+        QMessageBox.information(self, "Success", f"Event {event_id} Successfully {status_baru.capitalize()}!")
+        
         aksi = "Approved" if status_baru == "approved" else "Rejected"
-        QMessageBox.information(self, "Success", f"Item {item_label} successfully {aksi}!")
+        QMessageBox.information(self, "Success", f"Item {event_ref} successfully {aksi}!")
 
         # 5. Refresh tabel di halaman admin
         self.admin_page.load_data_antrean()
@@ -1245,7 +1251,7 @@ class MainWindow(QMainWindow):
 
         if self.current_user_role == "guest":
             # --- TAMPILAN GUEST ---
-            self.btn_login.setText("  Login")
+            self.btn_login.setText(lang.t("nav.login"))
             self.btn_login.setStyleSheet("background-color: #ff99aa; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
             
             try: self.btn_login.clicked.disconnect() 
@@ -1253,12 +1259,12 @@ class MainWindow(QMainWindow):
             self.btn_login.clicked.connect(self.show_login_page)
 
             # Guest BISA melihat FAQ dan Setting, tapi TIDAK ADA Add Event
-            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
-            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
 
         elif self.current_user_role == "eo":
             # --- TAMPILAN EVENT ORGANIZER ---
-            self.btn_login.setText("  Hi, Event Organizer!")
+            self.btn_login.setText(lang.t("nav.hi_eo"))
             self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
             
             try: self.btn_login.clicked.disconnect() 
@@ -1266,14 +1272,14 @@ class MainWindow(QMainWindow):
             self.btn_login.clicked.connect(self.proses_logout)
 
             # EO punya akses lengkap
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Add Event").triggered.connect(self.buka_form_input) 
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(self.buka_my_events)
-            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
-            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), lang.t("home.add_event_btn")).triggered.connect(self.buka_form_input) 
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), lang.t("your_events.title")).triggered.connect(self.buka_my_events)
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
 
         elif self.current_user_role == "admin":
             # --- TAMPILAN ADMIN ---
-            self.btn_login.setText("  Admin Panel")
+            self.btn_login.setText(lang.t("nav.admin_panel"))
             self.btn_login.setStyleSheet("background-color: #516465; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
             
             try: self.btn_login.clicked.disconnect() 
@@ -1281,13 +1287,13 @@ class MainWindow(QMainWindow):
             self.btn_login.clicked.connect(self.proses_logout)
 
             # Menu khusus Admin
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "Validation Dashboard").triggered.connect(self.show_admin_page)
-            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
-            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), lang.t("admin.title")).triggered.connect(self.show_admin_page)
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
         
         elif self.current_user_role in ["mahasiswa"]:
             # --- TAMPILAN MAHASISWA / USER AUDIENCE ---
-            self.btn_login.setText("  Hi, Student!")
+            self.btn_login.setText(lang.t("nav.hi_student"))
             self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
             
             try: self.btn_login.clicked.disconnect() 
@@ -1296,9 +1302,9 @@ class MainWindow(QMainWindow):
 
             # Sesuai aturan RBAC: Mahasiswa TIDAK BISA "Add Event", 
             # menu hamburger mereka dibuat bersih langsung ke riwayat tiket/event mereka
-            self.hamburger_menu.addAction(QIcon("assets/event.png"), "My Events").triggered.connect(self.buka_my_events)
-            self.hamburger_menu.addAction(QIcon("assets/question.png"), "FAQ").triggered.connect(self.show_faq_page)
-            self.hamburger_menu.addAction(QIcon("assets/gear.png"), "Setting").triggered.connect(self.buka_settings)
+            self.hamburger_menu.addAction(QIcon("assets/event.png"), lang.t("your_events.title")).triggered.connect(self.buka_my_events)
+            self.hamburger_menu.addAction(QIcon("assets/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon("assets/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
             
     def proses_logout(self):
         # Konfirmasi logout
