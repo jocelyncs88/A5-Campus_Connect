@@ -224,10 +224,10 @@ class EventCard(QWidget):
         # Mengambil nilai "nama_event" dari dictionary
         nama = self.event_data.get("nama_event", "")
 
-        # Memotong nama jika lebih dari 60 karakter agar tampilan konsisten
-        # Karakter ke-61 dst diganti "..." sebagai tanda ada teks yang dipotong
-        if len(nama) > 60:
-            nama = nama[:60] + "..."
+        # Memotong nama jika lebih dari 40 karakter agar tampilan konsisten
+        # Karakter ke-41 dst diganti "..." sebagai tanda ada teks yang dipotong
+        if len(nama) > 40:
+            nama = nama[:40] + "..."
 
         # Membuat label nama event
         self.nama_label = QLabel(nama)
@@ -243,7 +243,7 @@ class EventCard(QWidget):
         self.nama_label.setWordWrap(True)
 
         # Tinggi maksimal 60px agar semua kartu punya tinggi yang konsisten
-        self.nama_label.setMaximumHeight(60)
+        self.nama_label.setMaximumHeight(44)
 
         # Menambahkan nama event ke layout teks
         text_layout.addWidget(self.nama_label)
