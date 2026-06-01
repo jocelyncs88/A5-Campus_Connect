@@ -1254,8 +1254,19 @@ class MainWindow(QMainWindow):
                 
                 # 3. Panggil fungsi untuk mengubah tampilan navbar
                 self.update_navbar_berdasarkan_role()
-                
-                # 4. Kembali ke halaman utama
+
+                # 4. Cek apakah ada pending redirect setelah login
+                #    (contoh: user dibawa ke sini dari dialog "Login Required" di Account Settings)
+                pending = getattr(self, "_pending_after_login", None)
+                if pending:
+                    self._pending_after_login = None
+                    dest, *args = pending
+                    if dest == "settings":
+                        panel_index = args[0] if args else 0
+                        QTimer.singleShot(100, lambda: self.buka_settings(panel_index=panel_index))
+                        return
+
+                # 5. Kembali ke halaman utama (default)
                 self.show_home_page()
             else:
                 QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
@@ -1443,11 +1454,117 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
     
+    def _tampil_dialog_login_diperlukan(self, panel_index=0):
+        """
+        Menampilkan dialog pop-up ketika user mencoba membuka Account Settings
+        tanpa login terlebih dahulu.
+        - Tombol 'Log In'  → navigasi ke halaman login, setelah berhasil login
+                             otomatis kembali ke Account Settings.
+        - Tombol 'Cancel'  → kembali ke Homepage.
+        """
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Login Required")
+        dialog.setFixedSize(420, 240)
+        dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        dialog.setModal(True)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #FFFFFF;
+                border-radius: 16px;
+            }
+        """)
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(36, 32, 36, 28)
+        layout.setSpacing(0)
+
+        # ── Icon peringatan ──
+        lbl_icon = QLabel("🔒")
+        lbl_icon.setAlignment(Qt.AlignCenter)
+        lbl_icon.setStyleSheet("font-size: 36px; background: transparent;")
+        layout.addWidget(lbl_icon)
+        layout.addSpacing(12)
+
+        # ── Judul ──
+        lbl_title = QLabel("Login Required")
+        lbl_title.setAlignment(Qt.AlignCenter)
+        lbl_title.setStyleSheet(
+            "font-size: 18px; font-weight: bold; color: #2D3748; background: transparent;"
+        )
+        layout.addWidget(lbl_title)
+        layout.addSpacing(8)
+
+        # ── Pesan ──
+        lbl_msg = QLabel(
+            "You need to log in first to access\nAccount Settings."
+        )
+        lbl_msg.setAlignment(Qt.AlignCenter)
+        lbl_msg.setWordWrap(True)
+        lbl_msg.setStyleSheet(
+            "font-size: 13px; color: #718096; background: transparent;"
+        )
+        layout.addWidget(lbl_msg)
+        layout.addSpacing(24)
+
+        # ── Tombol ──
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(12)
+
+        btn_cancel = QPushButton("Cancel")
+        btn_cancel.setFixedHeight(40)
+        btn_cancel.setCursor(Qt.PointingHandCursor)
+        btn_cancel.setStyleSheet("""
+            QPushButton {
+                background-color: #EDF2F7;
+                color: #4A5568;
+                border: none;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 0 20px;
+            }
+            QPushButton:hover { background-color: #E2E8F0; }
+        """)
+
+        btn_login = QPushButton("Log In")
+        btn_login.setFixedHeight(40)
+        btn_login.setCursor(Qt.PointingHandCursor)
+        btn_login.setStyleSheet("""
+            QPushButton {
+                background-color: #CC3366;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 0 20px;
+            }
+            QPushButton:hover { background-color: #AA2255; }
+        """)
+
+        btn_row.addWidget(btn_cancel)
+        btn_row.addWidget(btn_login)
+        layout.addLayout(btn_row)
+
+        # ── Aksi tombol ──
+        btn_cancel.clicked.connect(dialog.reject)
+        btn_cancel.clicked.connect(self.show_home_page)
+
+        def _ke_login_lalu_settings():
+            dialog.accept()
+            # Tandai bahwa setelah login sukses harus buka Account Settings
+            self._pending_after_login = ("settings", panel_index)
+            self.show_login_page()
+
+        btn_login.clicked.connect(_ke_login_lalu_settings)
+
+        dialog.exec_()
+
     def buka_settings(self, panel_index=0):
         from settings.setting_window import SettingsWindow
+
         self._hide_all_pages()
         self.navbar_container.hide()
-
         self.layout_utama.setContentsMargins(0, 0, 0, 0)
         self.layout_utama.setSpacing(0)
 
