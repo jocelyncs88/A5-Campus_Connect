@@ -109,7 +109,6 @@ class MainWindow(QMainWindow):
         self.layout_utama.addWidget(self.spacing_after_hero)
         self.init_scroll_area()
         self.render_event_cards(dummy_events) # Mengisi Kartu dengan Data
-<<<<<<< HEAD
         # Reflow sekali setelah window benar-benar tampil agar perhitungan
         # kolom memakai lebar viewport final (tidak nyangkut 1-2 kolom).
         QTimer.singleShot(0, self.filter_event_cards)
@@ -128,9 +127,6 @@ class MainWindow(QMainWindow):
         self.event_data_map = {} 
         self.all_cards = []   
         self.current_user_role = "guest"
-=======
-        
->>>>>>> 03378552103ff492791740a1bc2f54d47ac07c90
         self.layout_utama.addStretch() # Mendorong semua ke atas
 
         # Page references — dibuat lazy (None dulu, baru dibuat saat pertama dibuka)
@@ -552,7 +548,6 @@ class MainWindow(QMainWindow):
         # Reset timer setiap ketik — cegah spam trigger
         self.search_timer.start()
 
-<<<<<<< HEAD
     def init_filter_bar(self):
         """Filter chips bar: Jenis Event + Tipe Tiket"""
         self.filter_bar_widget = QWidget()
@@ -649,9 +644,6 @@ class MainWindow(QMainWindow):
                 self._chip_active_style if btn is clicked_btn else self._chip_inactive_style
             )
         self.filter_event_cards()
-
-=======
->>>>>>> 03378552103ff492791740a1bc2f54d47ac07c90
     def init_hero(self):
         self.hero_widget = QWidget()
         hero_widget = self.hero_widget

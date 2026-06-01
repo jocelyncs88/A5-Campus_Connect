@@ -17,7 +17,9 @@ from PyQt5.QtWidgets import *
 from settings.account_window import AccountPanel
 from settings.notifications_window import NotificationsPanel
 from settings.your_events_window import YourEventsPanel
+from settings.language_window import LanguagePanel
 from setting_item_widget import SettingItem
+from language_manager import lang
 
 
 COLOR_PINK_LIGHT = "#F7CBCA"
@@ -78,6 +80,17 @@ class SettingsWindow(QWidget):
 
         self.setup_ui()
 
+        lang.language_changed.connect(self._retranslate)
+
+    def _retranslate(self, _code: str = ""):
+        if hasattr(self, "lbl_settings_title"):
+            self.lbl_settings_title.setText(lang.t("settings.title"))
+        if hasattr(self, "btn_home"):
+            self.btn_home.setText(lang.t("settings.home_btn"))
+        if hasattr(self, "sidebar_buttons") and hasattr(self, "_sidebar_menu_defs"):
+            for btn, (key, _, __) in zip(self.sidebar_buttons, self._sidebar_menu_defs):
+                btn.setText(f"  {lang.t(key)}")
+
     def setup_ui(self):
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
@@ -110,7 +123,7 @@ class SettingsWindow(QWidget):
             user_data=self.user_data,
             stacked_widget=self.stacked_widget,
         )
-        self.panel_language = self.buat_panel_language()
+        self.panel_language = LanguagePanel()
 
         self.stacked_widget.addWidget(self.panel_account)      # index 0
         self.stacked_widget.addWidget(self.panel_your_events)  # index 1
@@ -133,12 +146,12 @@ class SettingsWindow(QWidget):
         icon_menu = QLabel("≡")
         icon_menu.setStyleSheet(f"font-size: 22px; color: {COLOR_TEXT_PRIMARY}; font-weight: bold;")
 
-        lbl_title = QLabel("Settings")
-        lbl_title.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
+        self.lbl_settings_title = QLabel(lang.t("settings.title"))
+        self.lbl_settings_title.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.btn_home = QPushButton("  Home")
+        self.btn_home = QPushButton(lang.t("settings.home_btn"))
         self.btn_home.setIcon(QIcon("assets/home.png"))
         self.btn_home.setIconSize(QSize(16, 16))
         self.btn_home.setCursor(Qt.PointingHandCursor)
@@ -162,7 +175,7 @@ class SettingsWindow(QWidget):
 
         layout.addWidget(icon_menu)
         layout.addSpacing(10)
-        layout.addWidget(lbl_title)
+        layout.addWidget(self.lbl_settings_title)
         layout.addSpacerItem(spacer)
         layout.addWidget(self.btn_home)
         layout.addSpacing(8)
@@ -178,16 +191,16 @@ class SettingsWindow(QWidget):
         layout.setContentsMargins(0, 20, 0, 20)
         layout.setSpacing(4)
 
-        menus = [
-            ("Account",       0, "profile"),
-            ("Your events",   1, "event"),
-            ("Notifications", 2, "bell"),
-            ("Language",      3, "language"),
+        self._sidebar_menu_defs = [
+            ("settings.account",       0, "profile"),
+            ("settings.your_events",   1, "event"),
+            ("settings.notifications", 2, "bell"),
+            ("settings.language",      3, "language"),
         ]
 
         self.sidebar_buttons = []
-        for label, index, icon_file in menus:
-            btn = QPushButton(f"  {label}")
+        for key, index, icon_file in self._sidebar_menu_defs:
+            btn = QPushButton(f"  {lang.t(key)}")
             btn.setIcon(QIcon(f"assets/{icon_file}.png"))
             btn.setIconSize(QSize(18, 18))
             btn.setCursor(Qt.PointingHandCursor)
@@ -196,7 +209,7 @@ class SettingsWindow(QWidget):
             btn.setStyleSheet(self._style_sidebar_btn(False))
             btn.clicked.connect(lambda checked, i=index: self.switch_panel(i))
 
-            if label == "Your events" and self.role not in [ROLE_ORGANIZER, ROLE_MAHASISWA]:
+            if key == "settings.your_events" and self.role not in [ROLE_ORGANIZER, ROLE_MAHASISWA]:
                 btn.hide()
 
             layout.addWidget(btn)
@@ -273,17 +286,13 @@ class SettingsWindow(QWidget):
                 QMessageBox { background-color: #ffffff; }
                 QMessageBox QLabel { color: #1a1a1a; min-width: 320px; }
             """)
-
             ok_btn = box.button(QMessageBox.Ok)
             if ok_btn:
                 ok_btn.setStyleSheet("""
                     QPushButton {
-                        min-width: 80px;
-                        padding: 6px 12px;
-                        border: 1px solid #CBD5E0;
-                        border-radius: 6px;
-                        background-color: #f8fafc;
-                        color: #1a1a1a;
+                        min-width: 80px; padding: 6px 12px;
+                        border: 1px solid #CBD5E0; border-radius: 6px;
+                        background-color: #f8fafc; color: #1a1a1a;
                     }
                     QPushButton:hover { background-color: #eef2f7; }
                     QPushButton:pressed { background-color: #dde6ef; }
@@ -295,7 +304,6 @@ class SettingsWindow(QWidget):
             waktu_raw = form_data.get("waktu", "")
             try:
                 from datetime import datetime
-
                 months = [
                     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
                     "Juli", "Agustus", "September", "Oktober", "November", "Desember",
@@ -322,11 +330,8 @@ class SettingsWindow(QWidget):
             }
 
             db_manager.create_event_update_request(request_payload)
-            _show_message(
-                "info",
-                "Request Terkirim",
-                "Perubahan event sudah dikirim ke admin untuk divalidasi."
-            )
+            _show_message("info", "Request Terkirim",
+                          "Perubahan event sudah dikirim ke admin untuk divalidasi.")
         except Exception as exc:
             _show_message("warn", "Error Database", f"Gagal mengirim request perubahan:\n{exc}")
             return
@@ -366,23 +371,6 @@ class SettingsWindow(QWidget):
                 default_on=True,
             )
         )
-        layout.addStretch()
-        return panel
-
-    def buat_panel_language(self):
-        panel = QWidget()
-        panel.setStyleSheet("background: transparent;")
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(50, 40, 50, 40)
-        layout.setSpacing(16)
-
-        lbl_judul = QLabel("Language")
-        lbl_judul.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
-        layout.addWidget(lbl_judul)
-
-        lbl_info = QLabel("Pengaturan bahasa antarmuka akan hadir di sprint berikutnya.")
-        lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px; font-style: italic;")
-        layout.addWidget(lbl_info)
         layout.addStretch()
         return panel
 

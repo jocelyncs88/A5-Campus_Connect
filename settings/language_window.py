@@ -183,7 +183,7 @@ class LanguagePanel(QWidget):
 
         layout.addSpacing(6)
 
-        # "Select your preferred language for the interface and manage how event information is translated for you." — size 20, #828282
+        # "Select your preferred language ..." — size 20, #828282
         self._lbl_subtitle = QLabel(lang.t("lang.panel_subtitle"))
         f2 = QFont(); f2.setPointSize(20)
         self._lbl_subtitle.setFont(f2)

@@ -49,7 +49,7 @@ _TRANSLATIONS = {
 
     # ── LANGUAGE PANEL ─────────────────────────────────────────
     "lang.panel_title":         {"en": "Language Setting",                  "id": "Pengaturan Bahasa"},
-    "lang.panel_subtitle":      {"en": "Select your preferred language for the interface and manage how event information is translated for you.", "id": "Pilih bahasa yang kamu inginkan ..."},
+    "lang.panel_subtitle":      {"en": "Select your preferred language ...", "id": "Pilih bahasa yang kamu inginkan ..."},
     "lang.section_label":       {"en": "App Language",                      "id": "Bahasa Aplikasi"},
     "lang.default_label":       {"en": "Default Language",                  "id": "Bahasa Default"},
     "lang.default_desc":        {"en": "Choose the main language for the Campus Connect interface.",
