@@ -315,15 +315,13 @@ class LoginPage(QWidget):
         main_layout.addSpacing(12)
 
 
-        # ---- TOMBOL CONTACT US (WhatsApp) ----
-
+        # ---- TOMBOL CONTACT US + SIGN UP BERDAMPINGAN ----
         self.btn_contact = QPushButton()
         self.btn_contact.setObjectName("btn_contact")
         self.btn_contact.setFixedHeight(48)
         self.btn_contact.setCursor(Qt.PointingHandCursor)
         self.btn_contact.setFont(font_btn)
 
-        # Cek apakah icon WhatsApp tersedia di folder assets
         wa_icon_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "assets", "whatsapp.png"
@@ -333,31 +331,7 @@ class LoginPage(QWidget):
             self.btn_contact.setText("  Contact us")
         else:
             self.btn_contact.setText("📱  Contact us")
-
-        # Saat diklik → buka WhatsApp
         self.btn_contact.clicked.connect(self.buka_whatsapp)
-        main_layout.addWidget(self.btn_contact)
-        main_layout.addSpacing(10)
-
-
-        # ---- TEKS "Contact admin to register..." ----
-
-        self.teks_admin = QLabel("Contact the admin to register as an Event Organizer")
-        self.teks_admin.setObjectName("teks_admin")
-        self.teks_admin.setAlignment(Qt.AlignCenter)
-
-        # WordWrap agar teks tidak terpotong
-        self.teks_admin.setWordWrap(True)
-
-        font_admin = QFont("Inter", 11)
-        font_admin.setWeight(QFont.Normal)
-        self.teks_admin.setFont(font_admin)
-
-        main_layout.addWidget(self.teks_admin)
-        main_layout.addSpacing(12)
-
-        
-        # ---- TOMBOL SIGN UP ----
 
         self.btn_signup = QPushButton("Sign Up")
         self.btn_signup.setObjectName("btn_signup")
@@ -366,17 +340,24 @@ class LoginPage(QWidget):
         self.btn_signup.setFont(font_btn)
         self.btn_signup.clicked.connect(self.on_signup_diklik)
 
-        main_layout.addWidget(self.btn_signup)
+        # Layout horizontal: Contact us | Sign Up
+        row_btn_layout = QHBoxLayout()
+        row_btn_layout.setSpacing(10)
+        row_btn_layout.setContentsMargins(0, 0, 0, 0)
+        row_btn_layout.addWidget(self.btn_contact)
+        row_btn_layout.addWidget(self.btn_signup)
+        main_layout.addLayout(row_btn_layout)
         main_layout.addSpacing(8)
 
-        # ---- TEKS BAWAH SIGN UP ----
-
-        self.teks_signup = QLabel("Sign up as a student")
-        self.teks_signup.setObjectName("teks_signup")
-        self.teks_signup.setAlignment(Qt.AlignCenter)
-        self.teks_signup.setFont(font_admin)
-
-        main_layout.addWidget(self.teks_signup)
+        # ---- TEKS BAWAH DUA TOMBOL ----
+        self.teks_admin = QLabel(
+            "Contact the admin to register as an Event Organizer or sign up as a student"
+        )
+        self.teks_admin.setObjectName("teks_admin")
+        self.teks_admin.setAlignment(Qt.AlignCenter)
+        self.teks_admin.setWordWrap(True)
+        self.teks_admin.setFont(QFont("Inter", 11))
+        main_layout.addWidget(self.teks_admin)
         # Terapkan layout ke card
         self.card.setLayout(main_layout)
 

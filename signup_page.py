@@ -74,7 +74,8 @@ class SignUpPage(QWidget):
         self.card = QWidget()
         self.card.setObjectName("signup_card")
         self.card.setMinimumWidth(1200)
-        self.card.setMinimumHeight(720)
+        self.card.setMinimumHeight(680)
+        self.card.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         card_layout = QHBoxLayout()
         card_layout.setContentsMargins(0, 0, 0, 0)
@@ -171,8 +172,8 @@ class SignUpPage(QWidget):
         right_widget = QWidget()
 
         right_layout = QVBoxLayout()
-        right_layout.setContentsMargins(50, 40, 50, 40)
-        right_layout.setSpacing(0)
+        right_layout.setContentsMargins(50, 30, 50, 30)
+        right_layout.setSpacing(8)
 
         # TITLE
         self.title = QLabel("Sign Up")
@@ -185,7 +186,6 @@ class SignUpPage(QWidget):
         self.title.setFont(title_font)
 
         right_layout.addWidget(self.title)
-        right_layout.addSpacing(10)
 
         # SUBTITLE
         self.subtitle = QLabel(
@@ -199,7 +199,7 @@ class SignUpPage(QWidget):
         self.subtitle.setFont(sub_font)
 
         right_layout.addWidget(self.subtitle)
-        right_layout.addSpacing(30)
+        right_layout.addSpacing(16)
 
         # FONT
         label_font = QFont("Inter", 11)
@@ -216,16 +216,16 @@ class SignUpPage(QWidget):
         self.label_name.setFont(label_font)
 
         right_layout.addWidget(self.label_name)
-        right_layout.addSpacing(6)
 
         self.input_name = QLineEdit()
         self.input_name.setObjectName("input_field")
         self.input_name.setPlaceholderText("Enter your full name")
         self.input_name.setFixedHeight(48)
         self.input_name.setFont(input_font)
+        self.input_name.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         right_layout.addWidget(self.input_name)
-        right_layout.addSpacing(18)
+        right_layout.addSpacing(6)
 
         # ======================================================
         # EMAIL
@@ -236,16 +236,16 @@ class SignUpPage(QWidget):
         self.label_email.setFont(label_font)
 
         right_layout.addWidget(self.label_email)
-        right_layout.addSpacing(6)
 
         self.input_email = QLineEdit()
         self.input_email.setObjectName("input_field")
         self.input_email.setPlaceholderText("Enter your email address")
         self.input_email.setFixedHeight(48)
         self.input_email.setFont(input_font)
+        self.input_email.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         right_layout.addWidget(self.input_email)
-        right_layout.addSpacing(18)
+        right_layout.addSpacing(6)
 
         # ======================================================
         # PHONE NUMBER + UNIVERSITY (1 ROW)
@@ -253,6 +253,7 @@ class SignUpPage(QWidget):
 
         row_layout = QHBoxLayout()
         row_layout.setSpacing(14)
+        row_layout.setContentsMargins(0, 0, 0, 0)
 
         # ----------------------------------
         # PHONE NUMBER COLUMN
@@ -270,6 +271,7 @@ class SignUpPage(QWidget):
         self.input_phone.setPlaceholderText("Enter your phone number")
         self.input_phone.setFixedHeight(48)
         self.input_phone.setFont(input_font)
+        self.input_phone.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         phone_layout.addWidget(self.label_phone)
         phone_layout.addWidget(self.input_phone)
@@ -290,6 +292,7 @@ class SignUpPage(QWidget):
         self.input_university.setPlaceholderText("Enter your university")
         self.input_university.setFixedHeight(48)
         self.input_university.setFont(input_font)
+        self.input_university.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         university_layout.addWidget(self.label_university)
         university_layout.addWidget(self.input_university)
@@ -298,15 +301,20 @@ class SignUpPage(QWidget):
         # MASUKKAN KE ROW
         # ----------------------------------
 
-        row_layout.addLayout(phone_layout)
-        row_layout.addLayout(university_layout)
+        row_layout.addLayout(phone_layout, 1)
+        row_layout.addLayout(university_layout, 1)
 
         right_layout.addLayout(row_layout)
-        right_layout.addSpacing(18)
+        right_layout.addSpacing(6)
 
         # =========================================
         # PASSWORD INPUT + EYE BUTTON
         # =========================================
+
+        self.label_password = QLabel("Password")
+        self.label_password.setObjectName("label_field")
+        self.label_password.setFont(label_font)
+        right_layout.addWidget(self.label_password)
 
         password_widget = QWidget()
 
@@ -320,6 +328,7 @@ class SignUpPage(QWidget):
         self.input_password.setEchoMode(QLineEdit.Password)
         self.input_password.setFixedHeight(48)
         self.input_password.setFont(input_font)
+        self.input_password.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.btn_password_eye = QPushButton()
         self.btn_password_eye.setObjectName("btn_eye")
@@ -342,11 +351,16 @@ class SignUpPage(QWidget):
         password_widget.setLayout(password_layout)
 
         right_layout.addWidget(password_widget)
-        right_layout.addSpacing(18)
+        right_layout.addSpacing(6)
 
         # =========================================
         # CONFIRM PASSWORD + EYE BUTTON
         # =========================================
+
+        self.label_confirm = QLabel("Confirm Password")
+        self.label_confirm.setObjectName("label_field")
+        self.label_confirm.setFont(label_font)
+        right_layout.addWidget(self.label_confirm)
 
         confirm_widget = QWidget()
 
@@ -360,6 +374,7 @@ class SignUpPage(QWidget):
         self.input_confirm.setEchoMode(QLineEdit.Password)
         self.input_confirm.setFixedHeight(48)
         self.input_confirm.setFont(input_font)
+        self.input_confirm.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self.btn_confirm_eye = QPushButton()
         self.btn_confirm_eye.setObjectName("btn_eye")
@@ -382,7 +397,7 @@ class SignUpPage(QWidget):
         confirm_widget.setLayout(confirm_layout)
 
         right_layout.addWidget(confirm_widget)
-        right_layout.addSpacing(28)
+        right_layout.addSpacing(20)
 
         # ======================================================
         # BUTTON SIGN UP
@@ -413,7 +428,7 @@ class SignUpPage(QWidget):
             self.kembali_diklik.emit
         )
 
-        right_layout.addSpacing(14)
+        right_layout.addSpacing(6)
         right_layout.addWidget(self.btn_back)
 
         # ======================================================

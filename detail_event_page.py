@@ -55,6 +55,7 @@ class DetailEventPage(QWidget):
         self.booked_events = {}
         self.current_user_email = current_user_email
         self.current_user_role = "guest" 
+        self.liked = False
 
         self.setObjectName("detail_event_page")
         self.setup_ui()
@@ -175,15 +176,27 @@ class DetailEventPage(QWidget):
         self.btn_get_ticket.clicked.connect(self.toggle_booking)
 
         bawah_poster_layout.addWidget(self.info_bawah_label)
-        bawah_poster_layout.addWidget(self.btn_get_ticket)
 
-        # Container kiri (poster)
-        kiri_layout = QVBoxLayout()
-        kiri_layout.setSpacing(0)
-        kiri_layout.setContentsMargins(0, 0, 0, 0)
-        kiri_layout.addWidget(self.poster_label)
+        # Row horizontal: tombol Book + tombol Love berdampingan
+        book_row_layout = QHBoxLayout()
+        book_row_layout.setSpacing(8)
+        book_row_layout.setContentsMargins(0, 0, 0, 0)
+        book_row_layout.addWidget(self.btn_get_ticket)
 
-        konten_layout.addLayout(kiri_layout, stretch=0)
+        self.btn_love = QPushButton()
+        self.btn_love.setObjectName("btn_love")
+        self.btn_love.setFixedSize(48, 48)
+        self.btn_love.setCursor(Qt.PointingHandCursor)
+        self.btn_love.setFlat(True)
+        try:
+            self.btn_love.setIcon(QIcon(os.path.join("assets", "unliked.png")))
+        except Exception:
+            pass
+        self.btn_love.setIconSize(QSize(28, 28))
+        self.btn_love.clicked.connect(self.toggle_like)
+
+        book_row_layout.addWidget(self.btn_love)
+        bawah_poster_layout.addLayout(book_row_layout)
 
         # ==============================================
         # BAGIAN KANAN: INFO EVENT
@@ -355,6 +368,13 @@ class DetailEventPage(QWidget):
         info_layout.addWidget(self.deskripsi_label)
         info_layout.addStretch()
 
+        # Tambahkan bagian kiri (poster) ke konten_layout
+        kiri_layout = QVBoxLayout()
+        kiri_layout.setSpacing(0)
+        kiri_layout.setContentsMargins(0, 0, 0, 0)
+        kiri_layout.addWidget(self.poster_label)
+
+        konten_layout.addLayout(kiri_layout, stretch=0)
         konten_layout.addWidget(info_widget, alignment=Qt.AlignTop)
 
         scroll.setWidget(konten_widget)
@@ -388,6 +408,17 @@ class DetailEventPage(QWidget):
 
         # Simpan data untuk referensi
         self.data_event = data
+
+        # Reset tampilan like sesuai event yang dibuka
+        if not hasattr(self, "liked_events"):
+            self.liked_events = {}
+        event_id = str(data.get("event_id") or data.get("db_id") or data.get("id") or "")
+        self.liked = self.liked_events.get(event_id, False)
+        icon_path = "liked.png" if self.liked else "unliked.png"
+        try:
+            self.btn_love.setIcon(QIcon(os.path.join("assets", icon_path)))
+        except Exception:
+            pass
 
         # ---- POSTER ----
         # Coba load dari path lokal dulu
@@ -507,7 +538,20 @@ class DetailEventPage(QWidget):
     def toggle_booking(self):
         if not self.current_user_email:
             from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.warning(None, "Login Required", "You must login first to book this event.")
+            QMessageBox.warning(None, "Login Required", "You must login as a student first to book this event.")
+            return
+
+        # =========================
+        # HANYA MAHASISWA
+        # =========================
+        if self.current_user_role.lower() != "mahasiswa":
+            from PyQt5.QtWidgets import QMessageBox
+
+            QMessageBox.warning(
+                None,
+                "Access Denied",
+                "Only student accounts can book events."
+            )
             return
 
         event_id = self.get_event_id()
@@ -515,23 +559,49 @@ class DetailEventPage(QWidget):
         if not event_id:
             return
 
-        if not self.is_booked:
-            self.is_booked = True
-            db_manager.book_event(self.current_user_email, event_id)
-        else:
-            self.is_booked = False
-            db_manager.unbook_event(self.current_user_email, event_id)
+        # Kalau sudah booked → unbook
+        if self.is_booked:
+            if hasattr(db_manager, "unbook_event"):
+                db_manager.unbook_event(self.current_user_email, event_id)
 
-        # Update cached event data dan tampilan tombol secara langsung
-        self.data_event["is_booked"] = self.is_booked
-        self.btn_get_ticket.setText("Booked" if self.is_booked else "Book")
-        self.btn_get_ticket.setProperty("booked", "true" if self.is_booked else "false")
-        self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
-        self.btn_get_ticket.setEnabled(True)
-        self.btn_get_ticket.style().unpolish(self.btn_get_ticket)
-        self.btn_get_ticket.style().polish(self.btn_get_ticket)
-        self.btn_get_ticket.update()
-        
+        # Kalau belum booked → book
+        else:
+            if hasattr(db_manager, "book_event"):
+                db_manager.book_event(self.current_user_email, event_id)
+
+        # Refresh tampilan tombol
+        self.refresh_booking_status()
+
+    def toggle_like(self):
+        # Hanya mahasiswa yang bisa like
+        if not self.current_user_email:
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.warning(None, "Login Required", "You must login as a student first to like this event.")
+            return
+
+        if self.current_user_role.lower() != "mahasiswa":
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.warning(None, "Access Denied", "Only student accounts can like events.")
+            return
+
+        event_id = self.get_event_id()
+        if not hasattr(self, "liked_events"):
+            self.liked_events = {}
+
+        # Toggle state hanya untuk event ini
+        current = self.liked_events.get(event_id, False)
+        self.liked_events[event_id] = not current
+        self.liked = self.liked_events[event_id]
+
+        icon_path = "liked.png" if self.liked else "unliked.png"
+        try:
+            self.btn_love.setIcon(QIcon(os.path.join("assets", icon_path)))
+        except Exception:
+            pass
+        self.btn_love.style().unpolish(self.btn_love)
+        self.btn_love.style().polish(self.btn_love)
+        self.btn_love.update()
+            
     def get_event_id(self):
         event_id = str(
             self.data_event.get("event_id")
@@ -655,6 +725,18 @@ class DetailEventPage(QWidget):
 
             QPushButton#btn_get_ticket:hover {
                 background-color: #6b7777;
+            }
+
+            /* Love icon button */
+            QPushButton#btn_love {
+                background-color: transparent;
+                border: none;
+                padding: 6px;
+            }
+
+            QPushButton#btn_love:hover {
+                background-color: rgba(0, 0, 0, 0.04);
+                border-radius: 8px;
             }
 
             /* Saat booked */

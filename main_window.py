@@ -839,6 +839,7 @@ class MainWindow(QMainWindow):
             self.layout_utama.setStretchFactor(self.detail_event_page, 1)
 
         self.detail_event_page.current_user_email = self.current_user_email
+        self.detail_event_page.current_user_role = self.current_user_role
         self.detail_event_page.set_data(data_event)
         self.detail_event_page.show()
         
@@ -846,16 +847,28 @@ class MainWindow(QMainWindow):
     
     def proses_booking(self, data_event):
 
-        # Kalau belum login
-        if self.current_user_role == "guest":
-            QMessageBox.warning(
-                self,
-                "Login Required",
-                "You must login first to book this event."
-            )
+        # Hanya mahasiswa yang boleh booking
+        if self.current_user_role != "mahasiswa":
+            
+            # Kalau belum login
+            if self.current_user_role == "guest":
+                QMessageBox.warning(
+                    self,
+                    "Login Required",
+                    "You must login as a student first to book this event."
+                )
+
+            # Kalau login tapi bukan mahasiswa
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Access Denied",
+                    "Only student accounts can book events."
+                )
+
             return
 
-        # Kalau sudah login
+        # Kalau mahasiswa → booking berhasil
         QMessageBox.information(
             self,
             "Booking Success",
@@ -970,20 +983,6 @@ class MainWindow(QMainWindow):
 
         if self.success_page:
             self.success_page.show()
-    
-
-    def show_home_page(self):
-        self._hide_all_pages()
-        self.navbar_container.show()
-        self.spacing_after_navbar.show()
-        self.spacing_after_hero.show()
-        if hasattr(self, 'filter_bar_widget') and self.filter_bar_widget:
-            self.filter_bar_widget.show()
-        self.layout_utama.setContentsMargins(60, 20, 60, 40)
-        self.layout_utama.setSpacing(0)
-        self.hero_widget.show()
-        self.event_title.show()
-        self.scroll.show()
 
     def show_login_page(self):
         self._hide_all_pages()
