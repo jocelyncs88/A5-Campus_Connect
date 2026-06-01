@@ -41,6 +41,16 @@ class AccountPanel(QWidget):
         self.stacked_widget = stacked_widget
         self.panel_edit_aktif = None
         self.foto_profil = self.user_data.get("foto_profil", None)
+
+        # Jika foto belum di memori tapi path sudah ada di user_data (dari database),
+        # load QPixmap dari file
+        if self.foto_profil is None:
+            foto_path = self.user_data.get("foto_profil_path", "")
+            if foto_path and os.path.exists(foto_path):
+                pix = QPixmap(foto_path)
+                if not pix.isNull():
+                    self.foto_profil = pix
+                    self.user_data["foto_profil"] = pix
         self.setStyleSheet("background: transparent;")
         self._render_account()
 
@@ -170,9 +180,7 @@ class AccountPanel(QWidget):
 
     # ----------------------------------------------------------
     def _upload_foto(self):
-        """Buka file dialog → CropDialog → simpan hasil crop."""
-        # Pastikan parent widget sudah ditampilkan sebelum buka dialog
-        # untuk menghindari forced close
+        """Buka file dialog → CropDialog → simpan hasil crop ke file & database."""
         try:
             path, _ = QFileDialog.getOpenFileName(
                 self,
@@ -199,9 +207,64 @@ class AccountPanel(QWidget):
                 if hasil_crop and not hasil_crop.isNull():
                     self.foto_profil = hasil_crop
                     self.user_data["foto_profil"] = hasil_crop
+
+                    # Simpan foto ke folder assets/profile_pictures/
+                    # Nama file menggunakan email user agar unik per akun
+                    foto_path = self._simpan_foto_ke_file(hasil_crop)
+                    if foto_path:
+                        self.user_data["foto_profil_path"] = foto_path
+                        # Simpan path ke database
+                        email = self.user_data.get("email", "")
+                        if email:
+                            try:
+                                import db_manager
+                                db_manager.update_profile(
+                                    email=email,
+                                    foto_profil_path=foto_path
+                                )
+                            except Exception as db_err:
+                                print(f"[AccountPanel] Gagal simpan foto ke DB: {db_err}")
+
                     self._render_account()
+                    # Beritahu main_window agar navbar diperbarui
+                    self._notify_foto_changed()
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Gagal membuka crop dialog:\n{e}")
+
+    def _simpan_foto_ke_file(self, pixmap) -> str:
+        """
+        Menyimpan QPixmap hasil crop ke folder assets/profile_pictures/.
+        Nama file = email user (karakter khusus diganti '_') + .png
+
+        Return: path file yang disimpan (str), atau "" jika gagal.
+        """
+        try:
+            folder = os.path.join(_BASE_DIR, "assets", "profile_pictures")
+            os.makedirs(folder, exist_ok=True)
+
+            email = self.user_data.get("email", "unknown")
+            # Bersihkan karakter yang tidak aman untuk nama file
+            safe_email = "".join(c if c.isalnum() or c in "-_." else "_" for c in email)
+            file_path = os.path.join(folder, f"{safe_email}.png")
+
+            pixmap.save(file_path, "PNG")
+            return file_path
+        except Exception as e:
+            print(f"[AccountPanel] Gagal simpan foto ke file: {e}")
+            return ""
+
+    def _notify_foto_changed(self):
+        """
+        Beritahu main_window agar avatar di navbar diperbarui.
+        Dicari parent chain sampai menemukan objek yang punya
+        method refresh_avatar_navbar().
+        """
+        widget = self.parent()
+        while widget is not None:
+            if hasattr(widget, "refresh_avatar_navbar"):
+                widget.refresh_avatar_navbar()
+                break
+            widget = widget.parent() if hasattr(widget, "parent") else None
 
     def _hapus_foto(self):
         self.foto_profil = None
@@ -629,8 +692,39 @@ class AccountPanel(QWidget):
         key = field_ke_key.get(field)
         if key:
             self.user_data[key] = nilai_baru
+
+        # Simpan ke database
+        email = self.user_data.get("email", "")
+        if email:
+            try:
+                import db_manager
+                db_manager.update_profile(
+                    email=email,
+                    nama=self.user_data.get("nama") or None,
+                    bio=self.user_data.get("bio") or None,
+                    kontak=self.user_data.get("kontak") or None,
+                )
+            except Exception as db_err:
+                print(f"[AccountPanel] Gagal simpan ke DB: {db_err}")
+
+        # Jika nama diubah, beritahu main_window untuk update greeting
+        if field == "Name":
+            self._notify_nama_changed()
+
         self.tutup_panel_edit()
         self._render_account()
+
+    def _notify_nama_changed(self):
+        """
+        Beritahu main_window agar teks greeting di navbar diperbarui
+        sesuai nama terbaru user.
+        """
+        widget = self.parent()
+        while widget is not None:
+            if hasattr(widget, "refresh_greeting_navbar"):
+                widget.refresh_greeting_navbar()
+                break
+            widget = widget.parent() if hasattr(widget, "parent") else None
 
 
 # ==============================================================

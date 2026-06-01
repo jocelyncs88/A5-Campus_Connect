@@ -145,6 +145,8 @@ class MainWindow(QMainWindow):
         self.current_user_role = "guest"
         self.layout_utama.addStretch() # Mendorong semua ke atas
         self.current_user_email = ""  # Email user yang sedang login
+        self.current_user_nama  = ""  # Nama user yang sedang login
+        self.current_user_foto_path = ""  # Path foto profil user
         self.update_navbar_berdasarkan_role()
         
         # === FITUR AUTO UPDATE 15 MENIT ===
@@ -523,6 +525,20 @@ class MainWindow(QMainWindow):
         self.bell_container.hide()   # hanya tampil saat login sebagai EO
 
         navbar_layout.addSpacing(12)
+
+        # ---- AVATAR LINGKARAN POJOK KANAN ----
+        # Menampilkan foto profil user (atau inisial jika belum ada foto)
+        self.navbar_avatar = QLabel()
+        self.navbar_avatar.setFixedSize(36, 36)
+        self.navbar_avatar.setAlignment(Qt.AlignCenter)
+        self.navbar_avatar.setStyleSheet(
+            "background-color: #2D6A6A; color: white; font-weight: bold; "
+            "font-size: 13px; border-radius: 18px;"
+        )
+        self.navbar_avatar.hide()  # hanya tampil saat login
+        navbar_layout.addWidget(self.navbar_avatar)
+        navbar_layout.addSpacing(8)
+
         navbar_layout.addWidget(self.btn_menu)
         self.layout_utama.addWidget(navbar_container)
         self.btn_about.clicked.connect(self.show_about_page)
@@ -1226,6 +1242,11 @@ class MainWindow(QMainWindow):
                 # This is required for booking functionality to work
                 db_manager.ensure_user_exists(email)
 
+                # Load profil lengkap dari database (nama, foto, dll)
+                profil = db_manager.get_user_profile(email)
+                self.current_user_nama = profil.get("nama", "")
+                self.current_user_foto_path = profil.get("foto_profil_path", "")
+
                 self.settings_page = None
                 
                 # 2. Beri notifikasi sukses
@@ -1263,18 +1284,25 @@ class MainWindow(QMainWindow):
             except: pass
             self.btn_login.clicked.connect(self.show_login_page)
 
+            if hasattr(self, "navbar_avatar"):
+                self.navbar_avatar.hide()
+
             # Guest BISA melihat FAQ dan Setting, tapi TIDAK ADA Add Event
             self.hamburger_menu.addAction(QIcon("assets/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
 
         elif self.current_user_role == "eo":
             # --- TAMPILAN EVENT ORGANIZER ---
-            self.btn_login.setText(lang.t("nav.hi_eo"))
+            nama = getattr(self, "current_user_nama", "")
+            sapaan = f"  Halo, {nama}!" if nama else lang.t("nav.hi_eo")
+            self.btn_login.setText(sapaan)
             self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
             
             try: self.btn_login.clicked.disconnect() 
             except: pass
             self.btn_login.clicked.connect(self.proses_logout)
+
+            self.refresh_avatar_navbar()
 
             # EO punya akses lengkap
             self.hamburger_menu.addAction(QIcon("assets/event.png"), lang.t("home.add_event_btn")).triggered.connect(self.buka_form_input) 
@@ -1291,6 +1319,9 @@ class MainWindow(QMainWindow):
             except: pass
             self.btn_login.clicked.connect(self.proses_logout)
 
+            if hasattr(self, "navbar_avatar"):
+                self.navbar_avatar.hide()
+
             # Menu khusus Admin
             self.hamburger_menu.addAction(QIcon("assets/event.png"), lang.t("admin.title")).triggered.connect(self.show_admin_page)
             self.hamburger_menu.addAction(QIcon("assets/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
@@ -1298,12 +1329,16 @@ class MainWindow(QMainWindow):
         
         elif self.current_user_role in ["mahasiswa"]:
             # --- TAMPILAN MAHASISWA / USER AUDIENCE ---
-            self.btn_login.setText(lang.t("nav.hi_student"))
+            nama = getattr(self, "current_user_nama", "")
+            sapaan = f"  Halo, {nama}!" if nama else lang.t("nav.hi_student")
+            self.btn_login.setText(sapaan)
             self.btn_login.setStyleSheet("background-color: #2D6A6A; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
             
             try: self.btn_login.clicked.disconnect() 
             except: pass
             self.btn_login.clicked.connect(self.proses_logout)
+
+            self.refresh_avatar_navbar()
 
             # Sesuai aturan RBAC: Mahasiswa TIDAK BISA "Add Event", 
             # menu hamburger mereka dibuat bersih langsung ke riwayat tiket/event mereka
@@ -1311,6 +1346,74 @@ class MainWindow(QMainWindow):
             self.hamburger_menu.addAction(QIcon("assets/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
             self.hamburger_menu.addAction(QIcon("assets/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
             
+    def refresh_greeting_navbar(self):
+        """
+        Dipanggil dari account_window.py setelah user simpan nama baru.
+        Update current_user_nama dari database lalu refresh teks greeting.
+        """
+        email = getattr(self, "current_user_email", "")
+        if email:
+            profil = db_manager.get_user_profile(email)
+            self.current_user_nama = profil.get("nama", "")
+        self.update_navbar_berdasarkan_role()
+
+    def refresh_avatar_navbar(self):
+        """
+        Dipanggil dari account_window.py setelah user simpan foto baru,
+        dan dari update_navbar_berdasarkan_role() saat login.
+        Update lingkaran avatar di pojok kanan navbar.
+        """
+        if not hasattr(self, "navbar_avatar"):
+            return
+
+        # Reload path foto terbaru dari database
+        email = getattr(self, "current_user_email", "")
+        if email:
+            profil = db_manager.get_user_profile(email)
+            self.current_user_foto_path = profil.get("foto_profil_path", "")
+            if not self.current_user_nama:
+                self.current_user_nama = profil.get("nama", "")
+
+        foto_path = getattr(self, "current_user_foto_path", "")
+
+        if foto_path and os.path.exists(foto_path):
+            # Tampilkan foto sebagai lingkaran
+            pixmap = QPixmap(foto_path)
+            if not pixmap.isNull():
+                size = 36
+                pixmap = pixmap.scaled(size, size, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+                # Crop tengah jika tidak persegi
+                if pixmap.width() != size or pixmap.height() != size:
+                    x = (pixmap.width() - size) // 2
+                    y = (pixmap.height() - size) // 2
+                    pixmap = pixmap.copy(x, y, size, size)
+                # Buat mask lingkaran
+                hasil = QPixmap(size, size)
+                hasil.fill(Qt.transparent)
+                painter = QPainter(hasil)
+                painter.setRenderHint(QPainter.Antialiasing)
+                from PyQt5.QtGui import QPainterPath
+                path = QPainterPath()
+                path.addEllipse(0, 0, size, size)
+                painter.setClipPath(path)
+                painter.drawPixmap(0, 0, pixmap)
+                painter.end()
+                self.navbar_avatar.setPixmap(hasil)
+                self.navbar_avatar.setStyleSheet("border-radius: 18px; background: transparent;")
+                self.navbar_avatar.show()
+                return
+
+        # Fallback: tampilkan inisial
+        nama = getattr(self, "current_user_nama", "")
+        inisial = "".join(p[0].upper() for p in nama.strip().split()[:2]) if nama.strip() else ""
+        self.navbar_avatar.setPixmap(QPixmap())
+        self.navbar_avatar.setText(inisial if inisial else "")
+        self.navbar_avatar.setStyleSheet(
+            "background-color: #2D6A6A; color: white; font-weight: bold; "
+            "font-size: 13px; border-radius: 18px;"
+        )
+        self.navbar_avatar.show()
+
     def proses_logout(self):
         # Konfirmasi logout
         jawaban = QMessageBox.question(self, "Logout", "Are you sure you want to logout?", QMessageBox.Yes | QMessageBox.No)
@@ -1318,9 +1421,13 @@ class MainWindow(QMainWindow):
         if jawaban == QMessageBox.Yes:
             # Kembalikan state ke guest
             self.current_user_role = "guest"
-            self.current_user_email = ""  # Reset email saat logout
+            self.current_user_email = ""
+            self.current_user_nama  = ""
+            self.current_user_foto_path = ""
             self.settings_page = None
-            self.notif_page = None        # ← TAMBAHAN: reset halaman notifikasi
+            self.notif_page = None
+            if hasattr(self, "navbar_avatar"):
+                self.navbar_avatar.hide()
             # Kembalikan tampilan navbar
             self.update_navbar_berdasarkan_role()
             # Buka ulang halaman home
@@ -1350,12 +1457,13 @@ class MainWindow(QMainWindow):
             # Email disimpan saat login di self.current_user_email
             self.settings_page = SettingsWindow(
                 user_data={
-                    "nama"   : "",
-                    "bio"    : "",
-                    "email"  : getattr(self, "current_user_email", ""),
-                    "kontak" : "",
-                    "role"   : self.current_user_role,
-                    "inisial": ""
+                    "nama"            : getattr(self, "current_user_nama", ""),
+                    "bio"             : "",
+                    "email"           : getattr(self, "current_user_email", ""),
+                    "kontak"          : "",
+                    "role"            : self.current_user_role,
+                    "inisial"         : "",
+                    "foto_profil_path": getattr(self, "current_user_foto_path", ""),
                 }
             )
             self.settings_page.btn_home.clicked.connect(self.show_home_page)

@@ -169,9 +169,16 @@ def init_db():
         kontak TEXT,
         role TEXT DEFAULT 'mahasiswa',
         inisial TEXT,
-        password TEXT
+        password TEXT,
+        foto_profil_path TEXT
     )
     """)
+
+    # Migration: tambah kolom foto_profil_path jika belum ada (untuk database lama)
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN foto_profil_path TEXT")
+    except Exception:
+        pass  # Kolom sudah ada
 
     # =========================================================
     # TABEL BOOKINGS
@@ -1145,6 +1152,106 @@ def is_event_booked(email_user, event_id):
     print(f"[is_event_booked] checked user_id={user[0]} email={email_user} event_id={event_id} -> {result is not None}")
     conn.close()
     return result is not None
+
+
+# =========================
+# PROFILE USER
+# =========================
+
+def update_profile(email: str, nama: str = None, bio: str = None,
+                   kontak: str = None, inisial: str = None,
+                   foto_profil_path: str = None):
+    """
+    Menyimpan perubahan profil user ke tabel users.
+    Hanya kolom yang dikirim (bukan None) yang akan diupdate.
+
+    Dipanggil dari settings/account_window.py → simpan_edit() dan _upload_foto()
+
+    Parameter:
+        email            : email user yang sedang login (str)
+        nama             : nama baru, atau None jika tidak diubah
+        bio              : bio baru, atau None jika tidak diubah
+        kontak           : kontak baru, atau None jika tidak diubah
+        inisial          : inisial baru (opsional, biasanya 2 huruf pertama nama)
+        foto_profil_path : path file foto yang disimpan di assets/profile_pictures/,
+                           atau None jika tidak diubah
+    """
+    fields = []
+    values = []
+
+    if nama is not None:
+        fields.append("nama = ?")
+        values.append(nama)
+        # Update inisial otomatis dari nama jika tidak dikirim eksplisit
+        if inisial is None:
+            parts = nama.strip().split()
+            auto_inisial = "".join(p[0].upper() for p in parts[:2]) if parts else ""
+            fields.append("inisial = ?")
+            values.append(auto_inisial)
+
+    if bio is not None:
+        fields.append("bio = ?")
+        values.append(bio)
+
+    if kontak is not None:
+        fields.append("kontak = ?")
+        values.append(kontak)
+
+    if inisial is not None:
+        fields.append("inisial = ?")
+        values.append(inisial)
+
+    if foto_profil_path is not None:
+        fields.append("foto_profil_path = ?")
+        values.append(foto_profil_path)
+
+    if not fields:
+        return  # Tidak ada yang perlu diupdate
+
+    values.append(email)
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute(
+        f"UPDATE users SET {', '.join(fields)} WHERE email = ?",
+        values
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_user_profile(email: str) -> dict:
+    """
+    Mengambil data profil user dari tabel users.
+    Mengembalikan dictionary berisi nama, bio, email, kontak, role,
+    inisial, dan foto_profil_path.
+    Mengembalikan dict kosong jika user tidak ditemukan.
+
+    Dipanggil dari main_window.py saat login untuk mengisi user_data.
+
+    Parameter:
+        email : email user yang sedang login (str)
+    """
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    row = cursor.execute(
+        "SELECT nama, bio, email, kontak, role, inisial, foto_profil_path "
+        "FROM users WHERE email = ?",
+        (email,)
+    ).fetchone()
+    conn.close()
+
+    if not row:
+        return {}
+
+    return {
+        "nama"            : row[0] or "",
+        "bio"             : row[1] or "",
+        "email"           : row[2] or "",
+        "kontak"          : row[3] or "",
+        "role"            : row[4] or "mahasiswa",
+        "inisial"         : row[5] or "",
+        "foto_profil_path": row[6] or "",
+    }
 
 
 # =========================
