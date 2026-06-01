@@ -42,14 +42,14 @@ _TRANSLATIONS = {
 
     # ── SIDEBAR SETTINGS ───────────────────────────────────────
     "settings.account":     {"en": "Account",          "id": "Akun"},
-    "settings.your_events": {"en": "Your events",      "id": "Event kamu"},
+    "settings.your_events": {"en": "Your events",      "id": "Event Anda"},
     "settings.notifications":{"en": "Notifications",   "id": "Notifikasi"},
     "settings.appearance":  {"en": "Appearance",       "id": "Tampilan"},
     "settings.language":    {"en": "Language",         "id": "Bahasa"},
 
     # ── LANGUAGE PANEL ─────────────────────────────────────────
     "lang.panel_title":         {"en": "Language Setting",                  "id": "Pengaturan Bahasa"},
-    "lang.panel_subtitle":      {"en": "Select your preferred language ...", "id": "Pilih bahasa yang kamu inginkan ..."},
+    "lang.panel_subtitle":      {"en": "Select your preferred language for the interface.", "id": "Pilih bahasa yang Anda inginkan untuk tampilan aplikasi"},
     "lang.section_label":       {"en": "App Language",                      "id": "Bahasa Aplikasi"},
     "lang.default_label":       {"en": "Default Language",                  "id": "Bahasa Default"},
     "lang.default_desc":        {"en": "Choose the main language for the Campus Connect interface.",
@@ -96,11 +96,11 @@ _TRANSLATIONS = {
     # ── NOTIFIKASI PANEL ───────────────────────────────────────
     "notif.title":              {"en": "Notifications",                     "id": "Notifikasi"},
     "notif.desc_eo":            {"en": "Manage when you want notifications about registrants for your events.",
-                                 "id": "Atur kapan kamu ingin mendapat notifikasi tentang pendaftar event yang kamu buat."},
+                                 "id": "Atur kapan Anda ingin mendapat notifikasi tentang pendaftar event yang Anda buat."},
     "notif.desc_mahasiswa":     {"en": "Manage reminders for events you follow.",
-                                 "id": "Atur kapan kamu ingin mendapat pengingat untuk event yang kamu ikuti."},
+                                 "id": "Atur kapan Anda ingin mendapat pengingat untuk event yang Anda ikuti."},
     "notif.desc_umum":          {"en": "Manage your general notification preferences here.",
-                                 "id": "Atur preferensi notifikasi umum kamu di sini."},
+                                 "id": "Atur preferensi notifikasi umum Anda di sini."},
     "notif.new_registrant":     {"en": "New registrant",                    "id": "Pendaftar baru"},
     "notif.new_registrant_desc":{"en": "Get alerts every time a user registers",
                                  "id": "Dapatkan peringatan setiap kali pengguna mendaftar"},
@@ -134,15 +134,15 @@ _TRANSLATIONS = {
     "admin.pending":            {"en": "Pending",                           "id": "Menunggu"},
 
     # ── YOUR EVENTS ────────────────────────────────────────────
-    "your_events.title":        {"en": "Your Events",                       "id": "Event Kamu"},
-    "your_events.no_events":    {"en": "You have no events yet.",           "id": "Kamu belum punya event."},
+    "your_events.title":        {"en": "Your Events",                       "id": "Event Anda"},
+    "your_events.no_events":    {"en": "You have no events yet.",           "id": "Anda belum punya event."},
     "your_events.btn_add":      {"en": "+ Create New Event",                "id": "+ Buat Event Baru"},
     "your_events.btn_edit":     {"en": "Edit",                              "id": "Edit"},
     "your_events.btn_delete":   {"en": "Delete",                            "id": "Hapus"},
 
     # ── SUCCESS PAGE ───────────────────────────────────────────
     "success.title":            {"en": "Event Submitted!",                  "id": "Event Terkirim!"},
-    "success.message":          {"en": "Your event is pending admin review.", "id": "Event kamu menunggu review admin."},
+    "success.message":          {"en": "Your event is pending admin review.", "id": "Event Anda menunggu review admin."},
     "success.btn_home":         {"en": "Back to Home",                      "id": "Kembali ke Beranda"},
 
     # ── ABOUT ──────────────────────────────────────────────────

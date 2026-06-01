@@ -41,17 +41,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from toggle_widget import ToggleSwitch
-
-# Import db_manager untuk baca/simpan preferensi toggle ke database
-import sys as _sys
-import os as _os
-_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-try:
-    import db_manager as _db
-    _DB_AVAILABLE = True
-except ImportError:
-    _db = None
-    _DB_AVAILABLE = False
+from language_manager import lang
 
 
 # ==============================================================
@@ -90,10 +80,21 @@ class NotificationsPanel(QWidget):
         # Menyimpan status setiap toggle notification
         # Key: nama_setting, Value: bool (True=ON, False=OFF)
         self.notif_states = {}
-        self.email_user = self.user_data.get("email", "")  # untuk simpan ke DB
 
         self._load_fonts()
         self.setStyleSheet("background: transparent;")
+        self._render()
+
+        # Daftarkan listener bahasa agar teks UI ikut berubah
+        # saat user ganti bahasa dari Language Setting
+        lang.language_changed.connect(self._retranslate)
+
+    def _retranslate(self):
+        """
+        Dipanggil otomatis saat bahasa diganti.
+        Re-render seluruh panel agar teks UI ikut berubah.
+        Konten event dari database tidak disentuh.
+        """
         self._render()
 
 
@@ -165,19 +166,26 @@ class NotificationsPanel(QWidget):
         layout.setSpacing(0)
 
         # ---- JUDUL UTAMA ----
-        # Ukuran 55, warna #516465, font Inter SemiBold
-        lbl_judul = QLabel("Notification Settings")
+        lbl_judul = QLabel(lang.t("notif.title"))
         lbl_judul.setFont(QFont(self.font_semi, 30))
         lbl_judul.setStyleSheet(f"color: {COLOR_TEAL_DARK}; font-weight: bold;")
         layout.addWidget(lbl_judul)
         layout.addSpacing(8)
 
         # ---- KETERANGAN JUDUL ----
-        # Ukuran 23, warna #828282, font Inter Regular
-        lbl_ket = QLabel(
-            "We may still send you important notifications about your "
-            "account outside of your notification settings."
-        )
+        # Subtitle "We may still send..." pakai fallback hardcoded
+        # agar tidak crash jika key belum ada di language_manager
+        if self.role == ROLE_ORGANIZER:
+            ket = lang.t("notif.desc_eo",
+                "Manage when you want notifications about registrants for your events.")
+        elif self.role == ROLE_MAHASISWA:
+            ket = lang.t("notif.desc_mahasiswa",
+                "Manage reminders for events you follow.")
+        else:
+            ket = lang.t("notif.desc_umum",
+                "Manage your general notification preferences here.")
+
+        lbl_ket = QLabel(ket)
         lbl_ket.setFont(QFont(self.font_regular, 13))
         lbl_ket.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
         lbl_ket.setWordWrap(True)
@@ -450,18 +458,8 @@ class NotificationsPanel(QWidget):
           - Garis pembatas bawah: warna #888780
         """
 
-        # Baca preferensi dari DB jika tersedia, fallback ke default_on
-        if _DB_AVAILABLE and self.email_user:
-            try:
-                actual_on = _db.get_notif_pref(self.email_user, nama_setting)
-            except Exception:
-                actual_on = default_on
-        else:
-            actual_on = default_on
-
         # Simpan status awal ke dictionary
-        self.notif_states[nama_setting] = actual_on
-        default_on = actual_on   # ganti default_on agar toggle & label render sesuai DB
+        self.notif_states[nama_setting] = default_on
 
         # ---- CONTAINER BARIS ITEM ----
         item_widget = QWidget()
@@ -515,19 +513,13 @@ class NotificationsPanel(QWidget):
             else f"color: {COLOR_TEXT_MUTED};"
         )
 
-        # Saat toggle diklik → update notif_states + simpan ke DB
+        # Saat toggle diklik → update status + warna label Push
         def on_toggled(is_on, key=nama_setting, lbl=lbl_push):
             self.notif_states[key] = is_on
             lbl.setStyleSheet(
                 f"color: {COLOR_TEAL_DARK};" if is_on
                 else f"color: {COLOR_TEXT_MUTED};"
             )
-            # Simpan preferensi ke database agar persistent lintas sesi
-            if _DB_AVAILABLE and self.email_user:
-                try:
-                    _db.set_notif_pref(self.email_user, key, is_on)
-                except Exception as _e:
-                    print(f"[NOTIF PREF] Gagal simpan: {_e}")
 
         toggle.toggled.connect(on_toggled)
 

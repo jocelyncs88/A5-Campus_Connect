@@ -62,7 +62,7 @@ class _RadioOptionRow(QWidget):
 
         self._lbl = QLabel(label)
         font = QFont()
-        font.setPointSize(14)
+        font.setPointSize(13)
         self._lbl.setFont(font)
         self._lbl.setStyleSheet(f"color: {C_OPTION}; background: transparent;")
 
@@ -175,7 +175,7 @@ class LanguagePanel(QWidget):
 
         # "Language Setting" — size 55, #516465, bold
         self._lbl_title = QLabel(lang.t("lang.panel_title"))
-        f = QFont(); f.setPointSize(55); f.setBold(True)
+        f = QFont(); f.setPointSize(30); f.setBold(True)
         self._lbl_title.setFont(f)
         self._lbl_title.setStyleSheet(f"color: {C_TITLE}; background: transparent;")
         self._lbl_title.setWordWrap(True)
@@ -185,7 +185,7 @@ class LanguagePanel(QWidget):
 
         # "Select your preferred language ..." — size 20, #828282
         self._lbl_subtitle = QLabel(lang.t("lang.panel_subtitle"))
-        f2 = QFont(); f2.setPointSize(20)
+        f2 = QFont(); f2.setPointSize(13)
         self._lbl_subtitle.setFont(f2)
         self._lbl_subtitle.setStyleSheet(f"color: {C_SUBTITLE}; background: transparent;")
         self._lbl_subtitle.setWordWrap(True)
@@ -199,7 +199,7 @@ class LanguagePanel(QWidget):
 
         # "App Language" — size 27, #828282, bold
         self._lbl_section = QLabel(lang.t("lang.section_label"))
-        f3 = QFont(); f3.setPointSize(27); f3.setBold(True)
+        f3 = QFont(); f3.setPointSize(15); f3.setBold(True)
         self._lbl_section.setFont(f3)
         self._lbl_section.setStyleSheet(f"color: {C_SUBTITLE}; background: transparent;")
         layout.addWidget(self._lbl_section)
@@ -235,14 +235,14 @@ class LanguagePanel(QWidget):
 
         # "Default Language" — size 30, #516465, bold
         self._lbl_default = QLabel(lang.t("lang.default_label"))
-        f4 = QFont(); f4.setPointSize(30); f4.setBold(True)
+        f4 = QFont(); f4.setPointSize(16); f4.setBold(True)
         self._lbl_default.setFont(f4)
         self._lbl_default.setStyleSheet(f"color: {C_TITLE}; background: transparent;")
         vbox.addWidget(self._lbl_default)
 
         # "Choose the main language ..." — size 25, #828282
         self._lbl_choose = QLabel(lang.t("lang.default_desc"))
-        f5 = QFont(); f5.setPointSize(25)
+        f5 = QFont(); f5.setPointSize(12)
         self._lbl_choose.setFont(f5)
         self._lbl_choose.setStyleSheet(f"color: {C_SUBTITLE}; background: transparent;")
         self._lbl_choose.setWordWrap(True)
