@@ -220,12 +220,7 @@ class LanguagePanel(QWidget):
 
     def _build_language_card(self) -> QWidget:
         card = QWidget()
-        card.setStyleSheet("""
-            QWidget {
-                background: white;
-                border-radius: 12px;
-            }
-        """)
+        card.setStyleSheet("background: transparent;")
         card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         from PyQt5.QtWidgets import QVBoxLayout
