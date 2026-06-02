@@ -1563,6 +1563,10 @@ class MainWindow(QMainWindow):
     def buka_settings(self, panel_index=0):
         from settings.setting_window import SettingsWindow
 
+        if self.current_user_role == "guest":
+            self._tampil_dialog_login_diperlukan(panel_index)
+            return
+
         self._hide_all_pages()
         self.navbar_container.hide()
         self.layout_utama.setContentsMargins(0, 0, 0, 0)
