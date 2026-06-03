@@ -164,14 +164,10 @@ class SettingsWindow(QWidget):
         """)
         self.btn_home.clicked.connect(self.close)
 
-        avatar_text = self.user_data.get("inisial", "")
-        avatar = QLabel(avatar_text)
-        avatar.setFixedSize(36, 36)
-        avatar.setAlignment(Qt.AlignCenter)
-        avatar.setStyleSheet(f"""
-            background-color: {COLOR_TEAL_DARK}; color: white;
-            font-weight: bold; font-size: 13px; border-radius: 18px;
-        """)
+        self.avatar_topbar = QLabel()
+        self.avatar_topbar.setFixedSize(36, 36)
+        self.avatar_topbar.setAlignment(Qt.AlignCenter)
+        self.refresh_topbar_avatar()
 
         layout.addWidget(icon_menu)
         layout.addSpacing(10)
@@ -179,8 +175,97 @@ class SettingsWindow(QWidget):
         layout.addSpacerItem(spacer)
         layout.addWidget(self.btn_home)
         layout.addSpacing(8)
-        layout.addWidget(avatar)
+        layout.addWidget(self.avatar_topbar)
         return topbar
+
+    def refresh_topbar_avatar(self):
+        """
+        Refresh avatar kecil di pojok kanan atas halaman Settings.
+        Jika user sudah upload foto, tampilkan foto tersebut sebagai lingkaran.
+        Jika belum ada foto, fallback ke inisial user.
+        """
+        if not hasattr(self, "avatar_topbar"):
+            return
+
+        # Ambil data profil terbaru dari DB agar path foto selalu paling update.
+        email = (self.user_data.get("email") or "").strip()
+        if email:
+            try:
+                import db_manager
+                profil = db_manager.get_user_profile(email)
+                if profil:
+                    self.user_data.update({
+                        "nama": profil.get("nama", self.user_data.get("nama", "")),
+                        "inisial": profil.get("inisial", self.user_data.get("inisial", "")),
+                        "foto_profil_path": profil.get("foto_profil_path", self.user_data.get("foto_profil_path", "")),
+                    })
+            except Exception as err:
+                print(f"[SettingsWindow] Gagal refresh profil topbar: {err}")
+
+        foto_pixmap = self.user_data.get("foto_profil")
+        if foto_pixmap and not foto_pixmap.isNull():
+            self.avatar_topbar.setText("")
+            self.avatar_topbar.setPixmap(self._pixmap_ke_lingkaran(foto_pixmap, 36))
+            self.avatar_topbar.setStyleSheet("border-radius: 18px; background: transparent;")
+            return
+
+        foto_path = self.user_data.get("foto_profil_path", "")
+        if foto_path and os.path.exists(foto_path):
+            pixmap = QPixmap(foto_path)
+            if not pixmap.isNull():
+                self.avatar_topbar.setText("")
+                self.avatar_topbar.setPixmap(self._pixmap_ke_lingkaran(pixmap, 36))
+                self.avatar_topbar.setStyleSheet("border-radius: 18px; background: transparent;")
+                return
+
+        # Fallback kalau user belum upload foto profil.
+        inisial = self._ambil_inisial_user()
+        self.avatar_topbar.setPixmap(QPixmap())
+        self.avatar_topbar.setText(inisial)
+        self.avatar_topbar.setStyleSheet(f"""
+            background-color: {COLOR_TEAL_DARK}; color: white;
+            font-weight: bold; font-size: 13px; border-radius: 18px;
+        """)
+
+    def _ambil_inisial_user(self):
+        """Ambil inisial dari user_data, nama, atau email."""
+        inisial = (self.user_data.get("inisial") or "").strip()
+        if inisial:
+            return inisial[:2].upper()
+
+        nama = (self.user_data.get("nama") or "").strip()
+        if nama:
+            return "".join(part[0].upper() for part in nama.split()[:2])
+
+        email = (self.user_data.get("email") or "").strip()
+        return email[:1].upper() if email else ""
+
+    @staticmethod
+    def _pixmap_ke_lingkaran(pixmap, size):
+        """Crop QPixmap menjadi lingkaran ukuran `size` x `size`."""
+        scaled = pixmap.scaled(
+            size,
+            size,
+            Qt.KeepAspectRatioByExpanding,
+            Qt.SmoothTransformation,
+        )
+        if scaled.width() != size or scaled.height() != size:
+            x = (scaled.width() - size) // 2
+            y = (scaled.height() - size) // 2
+            scaled = scaled.copy(x, y, size, size)
+
+        hasil = QPixmap(size, size)
+        hasil.fill(Qt.transparent)
+
+        painter = QPainter(hasil)
+        painter.setRenderHint(QPainter.Antialiasing)
+        path = QPainterPath()
+        path.addEllipse(0, 0, size, size)
+        painter.setClipPath(path)
+        painter.drawPixmap(0, 0, scaled)
+        painter.end()
+
+        return hasil
 
     def buat_sidebar(self):
         sidebar = QWidget()

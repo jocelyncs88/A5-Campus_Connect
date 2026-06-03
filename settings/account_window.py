@@ -286,10 +286,21 @@ class AccountPanel(QWidget):
         method refresh_avatar_navbar().
         """
         widget = self.parent()
+        sudah_refresh_settings = False
+        sudah_refresh_navbar = False
+
         while widget is not None:
-            if hasattr(widget, "refresh_avatar_navbar"):
+            if hasattr(widget, "refresh_topbar_avatar") and not sudah_refresh_settings:
+                widget.refresh_topbar_avatar()
+                sudah_refresh_settings = True
+
+            if hasattr(widget, "refresh_avatar_navbar") and not sudah_refresh_navbar:
                 widget.refresh_avatar_navbar()
+                sudah_refresh_navbar = True
+
+            if sudah_refresh_settings and sudah_refresh_navbar:
                 break
+
             widget = widget.parent() if hasattr(widget, "parent") else None
 
     def _hapus_foto(self):
