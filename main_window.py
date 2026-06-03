@@ -1454,7 +1454,7 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
     
-    def _tampil_dialog_login_diperlukan(self, panel_index=0):
+    def _tampil_dialog_login_diperlukan(self, panel_index=0, untuk_edit=False):
         """
         Menampilkan dialog pop-up ketika user mencoba membuka Account Settings
         tanpa login terlebih dahulu.
@@ -1495,9 +1495,12 @@ class MainWindow(QMainWindow):
         layout.addSpacing(8)
 
         # ── Pesan ──
-        lbl_msg = QLabel(
-            "You need to log in first to access\nAccount Settings."
-        )
+        if untuk_edit:
+            pesan = "You need to log in first to edit\nAccount Settings."
+        else:
+            pesan = "You need to log in first to access\nAccount Settings."
+
+        lbl_msg = QLabel(pesan)
         lbl_msg.setAlignment(Qt.AlignCenter)
         lbl_msg.setWordWrap(True)
         lbl_msg.setStyleSheet(
@@ -1548,7 +1551,8 @@ class MainWindow(QMainWindow):
 
         # ── Aksi tombol ──
         btn_cancel.clicked.connect(dialog.reject)
-        btn_cancel.clicked.connect(self.show_home_page)
+        if not untuk_edit:
+            btn_cancel.clicked.connect(self.show_home_page)
 
         def _ke_login_lalu_settings():
             dialog.accept()
@@ -1563,9 +1567,11 @@ class MainWindow(QMainWindow):
     def buka_settings(self, panel_index=0):
         from settings.setting_window import SettingsWindow
 
-        if self.current_user_role == "guest":
-            self._tampil_dialog_login_diperlukan(panel_index)
-            return
+        # Guest tetap boleh membuka halaman Settings.
+        # Login baru diminta ketika guest mencoba mengedit Account Settings.
+        self._hide_all_pages()
+        self.navbar_container.hide()
+        self.layout_utama.setContentsMargins(0, 0, 0, 0)
 
         self._hide_all_pages()
         self.navbar_container.hide()
@@ -1598,7 +1604,7 @@ class MainWindow(QMainWindow):
 
         # Navigasi ke panel tertentu jika diminta
         # (contoh: index 1 = Your Events, dipanggil dari hamburger "My Events")
-        if panel_index != 0 and hasattr(self.settings_page, 'switch_panel'):
+        if hasattr(self.settings_page, 'switch_panel'):
             self.settings_page.switch_panel(panel_index)
 
     def buka_my_events(self):

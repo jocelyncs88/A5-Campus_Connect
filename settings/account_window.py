@@ -55,6 +55,28 @@ class AccountPanel(QWidget):
         self._render_account()
 
     # ----------------------------------------------------------
+    def _is_guest_user(self):
+        """True kalau Account Settings sedang dibuka oleh user yang belum login."""
+        role = (self.user_data.get("role") or "").lower().strip()
+        email = (self.user_data.get("email") or "").strip()
+        return role in ("", "guest") or not email
+
+    def _minta_login_untuk_edit(self):
+        """Tampilkan dialog Login Required saat guest mencoba edit Account Settings."""
+        widget = self.parent()
+        while widget is not None:
+            if hasattr(widget, "_tampil_dialog_login_diperlukan"):
+                widget._tampil_dialog_login_diperlukan(panel_index=0, untuk_edit=True)
+                return
+            widget = widget.parent() if hasattr(widget, "parent") else None
+
+        QMessageBox.warning(
+            self,
+            "Login Required",
+            "You need to log in first to edit Account Settings."
+        )
+
+    # ----------------------------------------------------------
     def _render_account(self):
         if self.layout():
             while self.layout().count():
@@ -181,6 +203,10 @@ class AccountPanel(QWidget):
     # ----------------------------------------------------------
     def _upload_foto(self):
         """Buka file dialog → CropDialog → simpan hasil crop ke file & database."""
+        if self._is_guest_user():
+            self._minta_login_untuk_edit()
+            return
+        
         try:
             path, _ = QFileDialog.getOpenFileName(
                 self,
@@ -384,6 +410,10 @@ class AccountPanel(QWidget):
 
     # ----------------------------------------------------------
     def buka_panel_edit(self, field):
+        if self._is_guest_user():
+            self._minta_login_untuk_edit()
+            return
+        
         panel_edit = QWidget()
         panel_edit.setStyleSheet("background: transparent;")
 
