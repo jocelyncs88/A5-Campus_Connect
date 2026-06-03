@@ -564,7 +564,7 @@ class MainWindow(QMainWindow):
         CHIP_INACTIVE = "background: rgba(255,255,255,0.55); color: #516465; border-radius: 14px; padding: 5px 16px; font-size: 12px; border: 1px solid rgba(81,100,101,0.25);"
 
         # ── Grup Jenis Event ──────────────────────────────────────
-        lbl_jenis = QLabel("Jenis:")
+        lbl_jenis = QLabel("Type:")
         lbl_jenis.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
         bar_layout.addWidget(lbl_jenis)
 
@@ -592,12 +592,12 @@ class MainWindow(QMainWindow):
         bar_layout.addSpacing(4)
 
         # ── Grup Tipe Tiket ───────────────────────────────────────
-        lbl_tiket = QLabel("Tiket:")
+        lbl_tiket = QLabel("Ticket:")
         lbl_tiket.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
         bar_layout.addWidget(lbl_tiket)
 
         tiket_chips = []
-        for label, value in [("All", None), ("Gratis", "Free"), ("Berbayar", "Paid")]:
+        for label, value in [("All", None), ("Free", "Free"), ("Paid", "Paid")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(28)
@@ -618,12 +618,12 @@ class MainWindow(QMainWindow):
         bar_layout.addSpacing(4)
 
         # ── Grup Sumber ───────────────────────────────────────────
-        lbl_sumber = QLabel("Sumber:")
+        lbl_sumber = QLabel("Source:")
         lbl_sumber.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
         bar_layout.addWidget(lbl_sumber)
 
         sumber_chips = []
-        for label, value in [("All", None), ("Resmi Polban", "scraping"), ("Partnership", "manual")]:
+        for label, value in [("All", None), ("Official Polban", "scraping"), ("Partnership", "manual")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(28)
