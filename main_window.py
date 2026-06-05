@@ -1519,41 +1519,52 @@ class MainWindow(QMainWindow):
         layout.addSpacing(24)
 
         # ── Tombol ──
-        btn_row = QHBoxLayout()
-        btn_row.setSpacing(12)
+        BUTTON_WIDTH = 168
+        BUTTON_HEIGHT = 44
+        BUTTON_RADIUS = 22
 
         btn_cancel = QPushButton("Cancel")
-        btn_cancel.setFixedHeight(40)
+        btn_cancel.setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT)
         btn_cancel.setCursor(Qt.PointingHandCursor)
-        btn_cancel.setStyleSheet("""
-            QPushButton {
-                background-color: #EDF2F7;
-                color: #4A5568;
+        btn_cancel.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #EEF3F5;
+                color: #243333;
                 border: none;
-                border-radius: 8px;
-                font-size: 13px;
+                border-radius: {BUTTON_RADIUS}px;
+                font-size: 15px;
                 font-weight: bold;
-                padding: 0 20px;
-            }
-            QPushButton:hover { background-color: #E2E8F0; }
+            }}
+            QPushButton:hover {{
+                background-color: #E3ECEF;
+            }}
+            QPushButton:pressed {{
+                background-color: #D6E2E5;
+            }}
         """)
 
         btn_login = QPushButton("Log In")
-        btn_login.setFixedHeight(40)
+        btn_login.setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT)
         btn_login.setCursor(Qt.PointingHandCursor)
-        btn_login.setStyleSheet("""
-            QPushButton {
-                background-color: #CC3366;
+        btn_login.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #516465;
                 color: white;
                 border: none;
-                border-radius: 8px;
-                font-size: 13px;
+                border-radius: {BUTTON_RADIUS}px;
+                font-size: 15px;
                 font-weight: bold;
-                padding: 0 20px;
-            }
-            QPushButton:hover { background-color: #AA2255; }
+            }}
+            QPushButton:hover {{
+                background-color: #405354;
+            }}
+            QPushButton:pressed {{
+                background-color: #334445;
+            }}
         """)
-
+        btn_row = QHBoxLayout()
+        btn_row.setContentsMargins(0, 0, 0, 0)
+        btn_row.setSpacing(12)
         btn_row.addWidget(btn_cancel)
         btn_row.addWidget(btn_login)
         layout.addLayout(btn_row)

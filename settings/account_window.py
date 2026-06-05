@@ -2,8 +2,10 @@
 # FILE: settings/account_window.py
 # ==============================================================
 
-import sys
 import os
+import re
+import shutil
+import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PyQt5.QtWidgets import *
@@ -596,6 +598,13 @@ class AccountPanel(QWidget):
             }.get(field, f"Edit {field}")
 
             input_widget = QLineEdit()
+            if field == "Contact":
+                input_widget.setMaxLength(13)
+                input_widget.textChanged.connect(
+                    lambda text: input_widget.setText("".join(ch for ch in text if ch.isdigit()))
+                    if text != "".join(ch for ch in text if ch.isdigit())
+                    else None
+                )
             input_widget.setPlaceholderText(placeholder)
             input_widget.setStyleSheet("""
                 QLineEdit {
@@ -663,6 +672,17 @@ class AccountPanel(QWidget):
             lbl_notif_tengah.setVisible(True)
             QTimer.singleShot(2000, lambda: lbl_notif_tengah.setVisible(False))
 
+        lbl_error = QLabel("")
+        lbl_error.setWordWrap(True)
+        lbl_error.hide()
+        lbl_error.setStyleSheet("""
+            color: #D65C5C;
+            font-size: 14px;
+            font-weight: 500;
+            background: transparent;
+        """)
+        layout.addWidget(lbl_error)
+        
         btn_save = QPushButton("Save")
         btn_save.setCursor(Qt.PointingHandCursor)
         btn_save.setEnabled(False)
@@ -710,68 +730,25 @@ class AccountPanel(QWidget):
         layout.addLayout(bottom_row)
 
         def on_text_changed():
-            text = input_widget.toPlainText() if field == "Bio" else input_widget.text()
-            jumlah = len(text)
-
             if field == "Bio":
-                if jumlah > batas:
-                    input_widget.blockSignals(True)
-                    input_widget.setPlainText(text[:batas])
-                    cursor = input_widget.textCursor()
-                    cursor.movePosition(QTextCursor.End)
-                    input_widget.setTextCursor(cursor)
-                    input_widget.blockSignals(False)
-                    tampil_notif_sementara()
-                    jumlah = batas
-
-                if lbl_counter:
-                    if jumlah == batas:
-                        lbl_counter.setText(f"<span style='color:#E05C5C;'>{jumlah}</span>/{batas}")
-                        lbl_counter.setTextFormat(Qt.RichText)
-                    else:
-                        lbl_counter.setText(f"{jumlah}/{batas}")
-                        lbl_counter.setTextFormat(Qt.PlainText)
-                        lbl_counter.setStyleSheet(f"font-size: 16px; color: {COLOR_TEXT_MUTED}; background: transparent;")
+                nilai = input_widget.toPlainText().strip()
             else:
-                if batas and jumlah > batas:
-                    if lbl_counter:
-                        lbl_counter.setText(f"<span style='color:#E05C5C;'>{jumlah}</span>/{batas}")
-                        lbl_counter.setTextFormat(Qt.RichText)
-                    if input_frame:
-                        input_frame.setStyleSheet(f"""
-                            QFrame#input_frame {{
-                                background-color: {COLOR_GRAY_LIGHT};
-                                border-radius: 14px;
-                                border: 2px solid #E05C5C;
-                            }}
-                        """)
-                    if lbl_warning:
-                        lbl_warning.setVisible(True)
-                    btn_save.setEnabled(False)
-                    btn_save.setStyleSheet(SAVE_DISABLED)
-                    return
-                elif batas:
-                    if lbl_counter:
-                        lbl_counter.setText(f"{jumlah}/{batas}")
-                        lbl_counter.setTextFormat(Qt.PlainText)
-                        lbl_counter.setStyleSheet(f"font-size: 16px; color: {COLOR_TEXT_MUTED}; background: transparent;")
-                    if input_frame:
-                        input_frame.setStyleSheet(f"""
-                            QFrame#input_frame {{
-                                background-color: {COLOR_GRAY_LIGHT};
-                                border-radius: 14px;
-                                border: 2px solid transparent;
-                            }}
-                        """)
-                    if lbl_warning:
-                        lbl_warning.setVisible(False)
+                nilai = input_widget.text().strip()
 
-            if jumlah > 0:
-                btn_save.setEnabled(True)
-                btn_save.setStyleSheet(SAVE_ACTIVE)
+            boleh_save = bool(nilai)
+
+            valid, pesan_error = self._validasi_input_edit(field, nilai)
+            if field in ["Email", "Contact"] and nilai:
+                boleh_save = boleh_save and valid
+
+            if field in ["Email", "Contact"] and pesan_error and nilai:
+                lbl_error.setText(pesan_error)
+                lbl_error.show()
             else:
-                btn_save.setEnabled(False)
-                btn_save.setStyleSheet(SAVE_DISABLED)
+                lbl_error.hide()
+
+            btn_save.setEnabled(boleh_save)
+            btn_save.setStyleSheet(SAVE_ACTIVE if boleh_save else SAVE_DISABLED)
 
         if field == "Bio":
             input_widget.textChanged.connect(on_text_changed)
@@ -790,6 +767,13 @@ class AccountPanel(QWidget):
             self.panel_edit_aktif = None
 
     def simpan_edit(self, field, nilai_baru, dialog=None):
+        nilai_baru = (nilai_baru or "").strip()
+
+        valid, pesan_error = self._validasi_input_edit(field, nilai_baru)
+        if not valid:
+            QMessageBox.warning(self, "Invalid Input", pesan_error)
+            return
+        
         field_ke_key = {
             "Name": "nama", "Bio": "bio", "Email": "email", "Contact": "kontak",
         }
@@ -831,6 +815,36 @@ class AccountPanel(QWidget):
                 widget.refresh_greeting_navbar()
                 break
             widget = widget.parent() if hasattr(widget, "parent") else None
+
+    def _validasi_input_edit(self, field, nilai):
+        nilai = (nilai or "").strip()
+
+        if field == "Email":
+            if not nilai:
+                return False, "Email cannot be empty."
+
+            pola_email = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+            if not re.match(pola_email, nilai):
+                return False, "Please enter a valid email address, e.g. mahasiswa@gmail.com."
+
+            return True, ""
+
+        if field == "Contact":
+            if not nilai:
+                return False, "Phone number cannot be empty."
+
+            if not nilai.isdigit():
+                return False, "Phone number can only contain numbers."
+
+            if not nilai.startswith("8"):
+                return False, "Phone number must start with 8 after +62."
+
+            if len(nilai) < 9 or len(nilai) > 13:
+                return False, "Phone number must be 9–13 digits after +62."
+
+            return True, ""
+
+        return True, ""
 
 
 # ==============================================================
