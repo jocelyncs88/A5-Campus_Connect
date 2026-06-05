@@ -1,3 +1,5 @@
+import os
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -6,10 +8,15 @@ from PyQt5.QtGui import *
 C_TITLE   = "#516465"
 C_SUB     = "#708080"
 C_BODY    = "#667777"
-C_FOOTER  = "#8A9A9A"
-C_PRIMARY = "#1f5555"
-C_AVATAR  = "#b7ecec"
-C_NAME    = "#0e1d25"
+C_MUTED = "#8A9A9A"
+C_CARD = "rgba(255,255,255,0.58)"
+C_CARD_SOFT = "rgba(255,255,255,0.72)"
+C_BORDER = "rgba(81,100,101,0.16)"
+C_PINK = "#EAA4A6"
+C_PINK_SOFT = "rgba(234,164,166,0.28)"
+C_TEAL_SOFT = "rgba(210,230,229,0.85)"
+C_AVATAR = "#BFE8E6"
+C_DARK = "#405354"
 
 
 # ── AVATAR ─────────────────────────────
@@ -17,17 +24,18 @@ class Avatar(QWidget):
     def __init__(self, text):
         super().__init__()
         self.text = text
-        self.setFixedSize(40, 40)
+        self.setFixedSize(46, 46)
 
     def paintEvent(self, e):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
+        
         p.setBrush(QColor(C_AVATAR))
         p.setPen(Qt.NoPen)
-        p.drawEllipse(0, 0, 40, 40)
+        p.drawEllipse(0, 0, 46, 46)
 
-        p.setPen(QColor(C_PRIMARY))
-        p.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        p.setPen(QColor(C_DARK))
+        p.setFont(QFont("Segoe UI", 11, QFont.Bold))
         p.drawText(self.rect(), Qt.AlignCenter, self.text)
 
 
@@ -45,202 +53,320 @@ class Line(QFrame):
 class AboutPage(QWidget):
     def __init__(self):
         super().__init__()
-        self.setStyleSheet("""
-            /* FIX GLOBAL: pastikan semua QLabel di page ini transparent */
-            QLabel {
-                background: transparent;
-                border: none;
-            }
-        """)
-        self.setProperty("class", "aboutPage")
+
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        id_lobster = QFontDatabase.addApplicationFont(
+            os.path.join(base_dir, "assets", "LobsterTwo-Regular.ttf")
+        )
+        self.font_lobster = (
+            QFontDatabase.applicationFontFamilies(id_lobster)[0]
+            if id_lobster != -1
+            else "serif"
+        )
+
         self.setFont(QFont("Segoe UI"))
         self.build()
 
     def build(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(32, 20, 32, 20)
+        root.setContentsMargins(48, 24, 48, 24)
         root.setSpacing(0)
 
-        root.addStretch(1)
+        # ===== HERO =====
+        hero = QVBoxLayout()
+        hero.setSpacing(8)
 
-        # ===== TITLE =====
-        t_wrap = QVBoxLayout()
-        t_wrap.setSpacing(4)
+        badge = QLabel(
+            f"<span style='font-family: \"{self.font_lobster}\"; "
+            f"font-size: 34px; font-weight: bold; color: #516465;'>Campus </span>"
+            f"<span style='font-family: \"{self.font_lobster}\"; "
+            f"font-size: 34px; font-weight: bold; color: #EAA4A6;'>Connect</span>"
+        )
+        badge.setAlignment(Qt.AlignCenter)
+        badge.setTextFormat(Qt.RichText)
+        badge.setStyleSheet("background: transparent;")
 
         title = QLabel("About Us")
         title.setAlignment(Qt.AlignCenter)
-        # FIX: tambahkan background:transparent & border:none eksplisit
-        title.setStyleSheet(f"font-size:34px; font-weight:bold; color:{C_TITLE}; background:transparent; border:none;")
-
-        sub = QLabel("Campus Connect")
-        sub.setAlignment(Qt.AlignCenter)
-        sub.setStyleSheet(f"font-size:14px; color:{C_SUB}; background:transparent; border:none;")
-
-        tag = QLabel("Connecting students with campus opportunities")
-        tag.setAlignment(Qt.AlignCenter)
-        tag.setStyleSheet(f"font-size:12px; color:{C_FOOTER}; background:transparent; border:none;")
-
-        t_wrap.addWidget(title)
-        t_wrap.addWidget(sub)
-        t_wrap.addWidget(tag)
-
-        root.addLayout(t_wrap)
-        root.addSpacing(18)
-
-        # ===== CARD =====
-        card = QFrame()
-        card.setObjectName("mainCard")
-        card.setStyleSheet("""
-            QFrame#mainCard {
-                background: rgba(255,255,255,0.45);
-                border-radius: 24px;
-                border: none;
-            }
+        title.setStyleSheet(f"""
+            color: {C_TITLE};
+            font-size: 42px;
+            font-weight: 800;
+            background: transparent;
         """)
 
-        cv = QVBoxLayout(card)
-        cv.setContentsMargins(36, 32, 36, 32)
-        cv.setSpacing(0)
+        subtitle = QLabel("Helping students discover campus events, communities, and opportunities in one place.")
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setWordWrap(True)
+        subtitle.setStyleSheet(f"""
+            color: {C_SUB};
+            font-size: 15px;
+            background: transparent;
+        """)
 
-        self.section(cv, "ℹ", "About the Application",
-            "Campus Connect adalah aplikasi desktop yang membantu mahasiswa menemukan "
-            "informasi event kampus secara cepat, mudah, dan terpusat. Dirancang untuk "
-            "menjembatani kesibukan akademik dengan kehidupan sosial kampus.")
+        hero.addWidget(badge)
+        hero.addWidget(title)
+        hero.addWidget(subtitle)
 
-        cv.addSpacing(20)
-        cv.addWidget(Line())
-        cv.addSpacing(20)
+        root.addLayout(hero)
+        root.addSpacing(22)
 
-        self.section(cv, "🚀", "Our Mission",
-            "Meningkatkan akses informasi kegiatan kampus dan mendorong keterlibatan "
-            "mahasiswa agar berkembang di luar kelas.")
+        # ===== MAIN CARD =====
+        main_card = QFrame()
+        main_card.setObjectName("aboutMainCard")
+        main_card.setStyleSheet(f"""
+            QFrame#aboutMainCard {{
+                background: {C_CARD};
+                border-radius: 28px;
+                border: 1px solid {C_BORDER};
+            }}
+        """)
 
-        cv.addSpacing(20)
-        cv.addWidget(Line())
-        cv.addSpacing(20)
+        card_layout = QVBoxLayout(main_card)
+        card_layout.setContentsMargins(34, 30, 34, 30)
+        card_layout.setSpacing(24)
 
-        self.team(cv)
+        # ===== INTRO ROW =====
+        intro_row = QHBoxLayout()
+        intro_row.setSpacing(22)
 
-        root.addWidget(card)
+        intro_box = self.big_info_card(
+            "🎓",
+            "Built for Campus Life",
+            "Campus Connect is a desktop application designed to help students find campus events faster, easier, and more centrally. "
+            "It connects academic life with social activities, so students can stay informed and involved."
+        )
+
+        mission_box = self.big_info_card(
+            "🚀",
+            "Our Mission",
+            "We aim to make campus information more accessible and encourage students to grow beyond the classroom through events, communities, and collaboration."
+        )
+
+        intro_row.addWidget(intro_box)
+        intro_row.addWidget(mission_box)
+
+        card_layout.addLayout(intro_row)
+
+        # ===== FEATURE CARDS ====
+        feature_row = QHBoxLayout()
+        feature_row.setSpacing(16)
+
+        feature_row.addWidget(self.feature_card("🔎", "Discover", "Find campus events quickly."))
+        feature_row.addWidget(self.feature_card("🤝", "Connect", "Bridge students and organizers."))
+        feature_row.addWidget(self.feature_card("✨", "Participate", "Explore opportunities beyond class."))
+
+        card_layout.addLayout(feature_row)
+
+        # ===== TEAM =====
+        self.team_section(card_layout)
+
+        root.addWidget(main_card)
 
         # ===== FOOTER =====
-        root.addSpacing(30)
+        root.addSpacing(18)
 
-        f_wrap = QVBoxLayout()
-        f_wrap.setSpacing(4)
+        footer = QLabel("© 2026 Campus Connect · Academic Serenity for the Modern Student")
+        footer.setAlignment(Qt.AlignCenter)
+        footer.setStyleSheet(f"""
+            color: {C_MUTED};
+            font-size: 12px;
+            background: transparent;
+        """)
+        root.addWidget(footer)
 
-        f_title = QLabel("Campus Connect")
-        f_title.setAlignment(Qt.AlignCenter)
-        f_title.setStyleSheet(f"font-size:14px; font-weight:bold; color:{C_TITLE}; background:transparent; border:none;")
+        root.addStretch()
+    
+    def big_info_card(self, icon, title, body):
+        card = QFrame()
+        card.setObjectName("bigInfoCard")
+        card.setStyleSheet(f"""
+            QFrame#bigInfoCard {{
+                background: {C_CARD_SOFT};
+                border-radius: 22px;
+                border: 1px solid {C_BORDER};
+            }}
+        """)
 
-        f_text = QLabel("© 2026 Campus Connect. Academic Serenity for the Modern Student.")
-        f_text.setAlignment(Qt.AlignCenter)
-        f_text.setStyleSheet(f"font-size:11px; color:{C_FOOTER}; background:transparent; border:none;")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(24, 22, 24, 22)
+        layout.setSpacing(12)
 
-        f_wrap.addWidget(f_title)
-        f_wrap.addWidget(f_text)
+        top = QHBoxLayout()
+        top.setSpacing(12)
 
-        root.addLayout(f_wrap)
+        icon_lbl = QLabel(icon)
+        icon_lbl.setFixedSize(38, 38)
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        icon_lbl.setStyleSheet(f"""
+            background: {C_PINK_SOFT};
+            border-radius: 19px;
+            font-size: 18px;
+        """)
 
-        root.addStretch(2)
+        title_lbl = QLabel(title)
+        title_lbl.setStyleSheet(f"""
+            color: {C_TITLE};
+            font-size: 22px;
+            font-weight: bold;
+        """)
 
-    # ===== SECTION =====
-    def section(self, layout, icon, title, text):
-        row = QHBoxLayout()
-        row.setSpacing(10)
+        top.addWidget(icon_lbl)
+        top.addWidget(title_lbl)
+        top.addStretch()
 
-        i = QLabel(icon)
-        i.setFixedSize(26, 26)
-        i.setAlignment(Qt.AlignCenter)
-        # FIX: tambahkan background:transparent & border:none
-        i.setStyleSheet(f"font-size:16px; color:{C_PRIMARY}; background:transparent; border:none;")
+        body_lbl = QLabel(body)
+        body_lbl.setWordWrap(True)
+        body_lbl.setStyleSheet(f"""
+            color: {C_BODY};
+            font-size: 14px;
+            line-height: 1.5;
+        """)
 
-        t = QLabel(title)
-        t.setStyleSheet(f"font-size:20px; font-weight:bold; color:{C_TITLE}; background:transparent; border:none;")
+        layout.addLayout(top)
+        layout.addWidget(body_lbl)
 
-        row.addWidget(i)
-        row.addWidget(t)
-        row.addStretch()
+        return card
+    
+    def feature_card(self, icon, title, body):
+        card = QFrame()
+        card.setObjectName("featureCard")
+        card.setFixedHeight(118)
+        card.setStyleSheet(f"""
+            QFrame#featureCard {{
+                background: rgba(255,255,255,0.68);
+                border-radius: 20px;
+                border: 1px solid {C_BORDER};
+            }}
+        """)
 
-        layout.addLayout(row)
-        layout.addSpacing(10)
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(6)
 
-        body = QLabel(text)
-        body.setWordWrap(True)
-        body.setStyleSheet(f"font-size:14px; color:{C_BODY}; background:transparent; border:none;")
+        icon_lbl = QLabel(icon)
+        icon_lbl.setStyleSheet("font-size: 24px;")
 
-        layout.addWidget(body)
+        title_lbl = QLabel(title)
+        title_lbl.setStyleSheet(f"""
+            color: {C_TITLE};
+            font-size: 18px;
+            font-weight: bold;
+        """)
 
-    # ===== TEAM =====
-    def team(self, layout):
-        row = QHBoxLayout()
+        body_lbl = QLabel(body)
+        body_lbl.setWordWrap(True)
+        body_lbl.setStyleSheet(f"""
+            color: {C_SUB};
+            font-size: 13px;
+        """)
 
-        i = QLabel("👥")
-        i.setFixedSize(26, 26)
-        i.setAlignment(Qt.AlignCenter)
-        # FIX: eksplisit transparent
-        i.setStyleSheet("background:transparent; border:none;")
+        layout.addWidget(icon_lbl)
+        layout.addWidget(title_lbl)
+        layout.addWidget(body_lbl)
 
-        t = QLabel("Development Team")
-        t.setStyleSheet(f"font-size:20px; font-weight:bold; color:{C_TITLE}; background:transparent; border:none;")
+        return card
+    
+    def team_section(self, parent_layout):
+        header = QHBoxLayout()
+        header.setSpacing(12)
 
-        row.addWidget(i)
-        row.addWidget(t)
-        row.addStretch()
+        icon_lbl = QLabel("👥")
+        icon_lbl.setFixedSize(38, 38)
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        icon_lbl.setStyleSheet(f"""
+            background: {C_TEAL_SOFT};
+            border-radius: 19px;
+            font-size: 18px;
+        """)
 
-        layout.addLayout(row)
-        layout.addSpacing(14)
+        title_wrap = QVBoxLayout()
+        title_wrap.setSpacing(2)
+
+        title = QLabel("Development Team")
+        title.setStyleSheet(f"""
+            color: {C_TITLE};
+            font-size: 23px;
+            font-weight: bold;
+        """)
 
         sub = QLabel("INFORMATICS A5 TEAM")
-        sub.setStyleSheet(f"font-size:11px; color:{C_SUB}; letter-spacing:2px; background:transparent; border:none;")
-        layout.addWidget(sub)
-        layout.addSpacing(12)
+        sub.setStyleSheet(f"""
+            color: {C_MUTED};
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        """)
+
+        title_wrap.addWidget(title)
+        title_wrap.addWidget(sub)
+
+        header.addWidget(icon_lbl)
+        header.addLayout(title_wrap)
+        header.addStretch()
+
+        parent_layout.addLayout(header)
 
         members = [
-            ("AF","Arsel Fahri Khadafi"),
-            ("JS","Jocelyn Christina Simamora"),
-            ("MR","Muhammad Rafi Al Rabbani"),
-            ("MS","Muhammad Salman Al Farisi"),
-            ("TR","Tania Putri Ramadhani"),
+            ("AF", "Arsel Fahri Khadafi"),
+            ("JS", "Jocelyn Christina Simamora"),
+            ("MR", "Muhammad Rafi Al Rabbani"),
+            ("MS", "Muhammad Salman Al Farisi"),
+            ("TR", "Tania Putri Ramadhani"),
         ]
 
-        # QGridLayout dengan 2 kolom equal — semua card otomatis sama lebar
         grid = QGridLayout()
-        grid.setSpacing(12)
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(14)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 1)
 
-        for idx, m in enumerate(members):
-            row_i = idx // 2
-            col_i = idx % 2
-            grid.addWidget(self.card(m[0], m[1]), row_i, col_i)
+        for idx, member in enumerate(members):
+            row = idx // 2
+            col = idx % 2
+            grid.addWidget(self.member_card(member[0], member[1]), row, col)
 
-        layout.addLayout(grid)
+        parent_layout.addLayout(grid)
 
-    # ===== MEMBER CARD =====
-    def card(self, init, name):
-        w = QWidget()
-        w.setFixedHeight(56)
-        w.setObjectName("memberCard")
-        w.setStyleSheet("""
-            QWidget#memberCard {
-                background: rgba(255,255,255,0.6);
-                border-radius: 12px;
-                border: 1px solid rgba(80,100,100,0.15);
-            }
+    
+    def member_card(self, initials, name):
+        card = QFrame()
+        card.setObjectName("memberCard")
+        card.setFixedHeight(68)
+        card.setStyleSheet(f"""
+            QFrame#memberCard {{
+                background: rgba(255,255,255,0.76);
+                border-radius: 18px;
+                border: 1px solid {C_BORDER};
+            }}
         """)
 
-        h = QHBoxLayout(w)
-        h.setContentsMargins(12, 8, 12, 8)
-        h.setSpacing(10)
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(14, 10, 14, 10)
+        layout.setSpacing(12)
 
-        h.addWidget(Avatar(init))
+        layout.addWidget(Avatar(initials))
 
-        lbl = QLabel(name)
-        # FIX: eksplisit transparent & border:none pada label nama
-        lbl.setStyleSheet(f"font-size:13px; color:{C_NAME}; background:transparent; border:none;")
-        h.addWidget(lbl)
+        text_wrap = QVBoxLayout()
+        text_wrap.setSpacing(2)
 
-        h.addStretch()
+        name_lbl = QLabel(name)
+        name_lbl.setStyleSheet(f"""
+            color: #243333;
+            font-size: 14px;
+            font-weight: bold;
+        """)
 
-        return w
+        role_lbl = QLabel("A5 Team Member")
+        role_lbl.setStyleSheet(f"""
+            color: {C_MUTED};
+            font-size: 12px;
+        """)
+
+        text_wrap.addWidget(name_lbl)
+        text_wrap.addWidget(role_lbl)
+
+        layout.addLayout(text_wrap)
+        layout.addStretch()
+
+        return card

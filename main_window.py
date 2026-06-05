@@ -53,6 +53,7 @@ except ImportError:
 # --- WARNA-WARNA UTAMA ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COLOR_PINK_LIGHT = "#F7CBCA"
+COLOR_PINK_LOGIN = "#ff99aa"
 COLOR_GRAY_LIGHT = "#D2E6E5"
 COLOR_TEXT_PRIMARY = "#5D6B6B"
 
@@ -367,7 +368,11 @@ class MainWindow(QMainWindow):
         navbar_layout.setContentsMargins(25, 10, 25, 10)
 
         # Logo dengan perpaduan font Lobster
-        self.logo = QLabel(f"<span style='font-family: \"{self.font_lobster}\"; font-size: 26px; color: #516465;'>Campus</span><br><span style='font-family: \"{self.font_lobster}\"; font-size: 26px; font-weight: bold; color: #F7CBCA;'>Connect</span>")
+        self.logo = QLabel(
+            f"<span style='font-family: \"{self.font_lobster}\"; font-size: 26px; color: {COLOR_TEXT_PRIMARY};'>Campus</span><br>"
+            f"<span style='font-family: \"{self.font_lobster}\"; font-size: 26px; font-weight: bold; color: {COLOR_PINK_LOGIN};'>Connect</span>"
+        )
+        self.logo.setTextFormat(Qt.RichText)
         
         # Tombol Navigasi Kiri
         self.btn_home = QPushButton(lang.t("nav.home"))
@@ -378,7 +383,7 @@ class MainWindow(QMainWindow):
         self.btn_about.setIcon(QIcon("assets/information-button.png"))
         self.btn_about.setCursor(Qt.PointingHandCursor)
         
-        nav_style = f"font-family: \"{self.font_sans}\"; background: transparent; color: {COLOR_TEXT_PRIMARY}; border: none; font-size: 14px;"
+        nav_style = f"font-family: \"{self.font_sans}\"; background: transparent; color: {COLOR_TEXT_PRIMARY}; border: none; font-size: 20px;"
         self.btn_home.setStyleSheet(nav_style + "font-weight: bold;")
         self.btn_about.setStyleSheet(nav_style + "margin-left: 30px;")
 
@@ -392,7 +397,7 @@ class MainWindow(QMainWindow):
 
         self.btn_menu = QPushButton()
         self.btn_menu.setIcon(QIcon("assets/menu.png"))
-        self.btn_menu.setIconSize(QSize(24, 24))
+        self.btn_menu.setIconSize(QSize(30, 30))
         self.btn_menu.setCursor(Qt.PointingHandCursor)
         self.btn_menu.setStyleSheet("""
             QPushButton { background: transparent; border: none; }
@@ -416,8 +421,8 @@ class MainWindow(QMainWindow):
 
         # --- SEARCH BAR ---
         search_container = QWidget()
-        search_container.setFixedWidth(400)
-        search_container.setFixedHeight(38)
+        search_container.setFixedWidth(520)
+        search_container.setFixedHeight(44)
         search_layout = QHBoxLayout(search_container)
         search_layout.setContentsMargins(10, 0, 10, 0)
         search_layout.setSpacing(6)
@@ -439,18 +444,18 @@ class MainWindow(QMainWindow):
             QLineEdit {
                 background: transparent;
                 border: none;
-                font-size: 13px;
+                font-size: 18px;
                 color: #516465;
             }
         """)
 
         self.btn_clear_search = QPushButton("✕")
-        self.btn_clear_search.setFixedSize(18, 18)
+        self.btn_clear_search.setFixedSize(22, 22)
         self.btn_clear_search.setCursor(Qt.PointingHandCursor)
         self.btn_clear_search.setStyleSheet("""
             QPushButton {
                 background: transparent; border: none;
-                color: #888; font-size: 11px;
+                color: #888; font-size: 18px;
             }
             QPushButton:hover { color: #516465; }
         """)
@@ -556,23 +561,24 @@ class MainWindow(QMainWindow):
         """Filter chips bar: Jenis Event + Tipe Tiket"""
         self.filter_bar_widget = QWidget()
         self.filter_bar_widget.setStyleSheet("background: transparent;")
+        
         bar_layout = QHBoxLayout(self.filter_bar_widget)
-        bar_layout.setContentsMargins(4, 4, 4, 10)
-        bar_layout.setSpacing(8)
+        bar_layout.setContentsMargins(4, 12, 4, 20)
+        bar_layout.setSpacing(14)
 
-        CHIP_ACTIVE   = "background: #516465; color: white; border-radius: 14px; padding: 5px 16px; font-size: 12px; border: none; font-weight: bold;"
-        CHIP_INACTIVE = "background: rgba(255,255,255,0.55); color: #516465; border-radius: 14px; padding: 5px 16px; font-size: 12px; border: 1px solid rgba(81,100,101,0.25);"
+        CHIP_ACTIVE   = "background: #516465; color: white; border-radius: 21px; padding: 9px 24px; font-size: 17px; border: none; font-weight: bold;"
+        CHIP_INACTIVE = "background: rgba(255,255,255,0.71); color: #516465; border-radius: 21px; padding: 9px 24px; font-size: 17px; border: none; font-weight: bold;"
 
         # ── Grup Jenis Event ──────────────────────────────────────
         lbl_jenis = QLabel("Type:")
-        lbl_jenis.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
+        lbl_jenis.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
         bar_layout.addWidget(lbl_jenis)
 
         jenis_chips = []
         for label, value in [("All", None), ("Internal", "Internal"), ("External", "External")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
-            btn.setFixedHeight(28)
+            btn.setFixedHeight(42)
             is_active = (value == self.active_filters["jenis_event"])
             btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
             btn.clicked.connect(
@@ -587,20 +593,20 @@ class MainWindow(QMainWindow):
 
         # Pemisah
         sep = QLabel("|")
-        sep.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 14px;")
+        sep.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 19px;")
         bar_layout.addWidget(sep)
         bar_layout.addSpacing(4)
 
         # ── Grup Tipe Tiket ───────────────────────────────────────
         lbl_tiket = QLabel("Ticket:")
-        lbl_tiket.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
+        lbl_tiket.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
         bar_layout.addWidget(lbl_tiket)
 
         tiket_chips = []
         for label, value in [("All", None), ("Free", "Free"), ("Paid", "Paid")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
-            btn.setFixedHeight(28)
+            btn.setFixedHeight(42)
             is_active = (value == self.active_filters["tipe_tiket"])
             btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
             btn.clicked.connect(
@@ -613,20 +619,20 @@ class MainWindow(QMainWindow):
 
         # Pemisah
         sep2 = QLabel("|")
-        sep2.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 14px;")
+        sep2.setStyleSheet("color: rgba(81,100,101,0.35); background: transparent; font-size: 19px;")
         bar_layout.addWidget(sep2)
-        bar_layout.addSpacing(4)
+        bar_layout.addSpacing(6)
 
         # ── Grup Sumber ───────────────────────────────────────────
         lbl_sumber = QLabel("Source:")
-        lbl_sumber.setStyleSheet("color: #516465; font-size: 12px; background: transparent;")
+        lbl_sumber.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
         bar_layout.addWidget(lbl_sumber)
 
         sumber_chips = []
         for label, value in [("All", None), ("Official Polban", "scraping"), ("Partnership", "manual")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
-            btn.setFixedHeight(28)
+            btn.setFixedHeight(42)
             is_active = (value == self.active_filters["source"])
             btn.setStyleSheet(CHIP_ACTIVE if is_active else CHIP_INACTIVE)
             btn.clicked.connect(
@@ -654,9 +660,12 @@ class MainWindow(QMainWindow):
         hero_widget = self.hero_widget
         layout = QVBoxLayout(hero_widget)
         l1 = QLabel("Welcome to,")
-        l1.setStyleSheet(f"font-size: 24px; font-style: italic; color: {COLOR_TEXT_PRIMARY};")
-        l2 = QLabel("Campus Connect")
-        l2.setStyleSheet(f"font-family: \"{self.font_lobster}\"; font-size: 72px; font-weight: bold; color: #516465;")
+        l1.setStyleSheet(f"font-size: 48px; font-style: italic; color: {COLOR_TEXT_PRIMARY};")
+        l2 = QLabel(
+            f"<span style='font-family: \"{self.font_lobster}\"; font-size: 165px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};'>Campus </span>"
+            f"<span style='font-family: \"{self.font_lobster}\"; font-size: 165px; font-weight: bold; color: #EAA4A6;'>Connect</span>"
+        )
+        l2.setTextFormat(Qt.RichText)
         layout.addWidget(l1)
         layout.addWidget(l2)
         layout.setAlignment(Qt.AlignLeft)
@@ -665,12 +674,12 @@ class MainWindow(QMainWindow):
     def init_scroll_area(self):
         self.event_title = QLabel(lang.t("home.upcoming"))
         title = self.event_title
-        title.setStyleSheet(f"font-weight: bold; font-size: 18px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
+        title.setStyleSheet(f"font-weight: bold; font-size: 32px; color: {COLOR_TEXT_PRIMARY}; margin-bottom: 10px;")
         self.layout_utama.addWidget(title)
         self.init_filter_bar()
         
         self.scroll = QScrollArea()
-        self.scroll.setFixedHeight(550) 
+        self.scroll.setFixedHeight(640) 
         self.scroll.setWidgetResizable(True)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded) 
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -712,7 +721,7 @@ class MainWindow(QMainWindow):
         self.scroll_content = QWidget()
         self.scroll_content.setStyleSheet("background: transparent;") 
         self.card_layout = QGridLayout(self.scroll_content)
-        self.card_layout.setSpacing(16)
+        self.card_layout.setSpacing(20)
         self.card_layout.setContentsMargins(6, 0, 6, 10)
         self.card_layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         

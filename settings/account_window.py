@@ -281,9 +281,9 @@ class AccountPanel(QWidget):
 
     def _notify_foto_changed(self):
         """
-        Beritahu main_window agar avatar di navbar diperbarui.
-        Dicari parent chain sampai menemukan objek yang punya
-        method refresh_avatar_navbar().
+        Beritahu SettingsWindow dan MainWindow agar avatar langsung diperbarui.
+        - SettingsWindow: avatar kecil di topbar Settings.
+        - MainWindow: avatar di navbar Homepage setelah user kembali ke Home.
         """
         widget = self.parent()
         sudah_refresh_settings = False
@@ -421,69 +421,126 @@ class AccountPanel(QWidget):
 
     # ----------------------------------------------------------
     def buka_panel_edit(self, field):
+        """Buka popup edit untuk Name/Bio/Email/Contact tanpa pindah halaman."""
         if self._is_guest_user():
             self._minta_login_untuk_edit()
             return
-        
-        panel_edit = QWidget()
-        panel_edit.setStyleSheet("background: transparent;")
 
-        root = QVBoxLayout(panel_edit)
-        root.setContentsMargins(0, 0, 0, 0)
+        dialog = QDialog(self)
+        dialog.setModal(True)
+        dialog.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
+        dialog.setAttribute(Qt.WA_TranslucentBackground)
+        dialog.setFixedSize(780, 430 if field == "Bio" else 370)
+
+        root = QVBoxLayout(dialog)
+        root.setContentsMargins(10, 10, 10, 10)
         root.setSpacing(0)
 
-        konten = QWidget()
-        konten.setStyleSheet("background: transparent;")
-        layout = QVBoxLayout(konten)
-        layout.setContentsMargins(50, 40, 50, 20)
-        layout.setSpacing(12)
+        popup_card = QFrame()
+        popup_card.setObjectName("editPopupCard")
+        popup_card.setStyleSheet(f"""
+            QFrame#editPopupCard {{
+                background: rgba(255, 255, 255, 0.96);
+                border-radius: 24px;
+                border: 1px solid rgba(81, 100, 101, 0.18);
+            }}
+        """)
+        root.addWidget(popup_card)
+
+        layout = QVBoxLayout(popup_card)
+        layout.setContentsMargins(34, 28, 34, 26)
+        layout.setSpacing(16)
+
+        # ── Top row: back arrow + title ──
+        top_row = QHBoxLayout()
+        top_row.setContentsMargins(0, 0, 0, 0)
+        top_row.setSpacing(12)
+
+        btn_back = QPushButton()
+        btn_back.setFixedSize(42, 42)
+        btn_back.setIcon(QIcon("assets/arrow_back.png"))
+        btn_back.setIconSize(QSize(24, 24))
+        btn_back.setCursor(Qt.PointingHandCursor)
+        btn_back.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background: transparent;
+            }
+            QPushButton:pressed {
+                background: transparent;
+            }
+        """)
+        arrow_path = _asset("arrow_back.png")
+        if os.path.exists(arrow_path):
+            btn_back.setIcon(QIcon(arrow_path))
+            btn_back.setIconSize(QSize(22, 22))
+        else:
+            btn_back.setText("←")
+            btn_back.setStyleSheet(btn_back.styleSheet() + "QPushButton { font-size: 18px; color: #516465; font-weight: bold; }")
+        btn_back.clicked.connect(dialog.reject)
 
         judul_map = {
-            "Name": "Name", "Bio": "Bio",
-            "Email": "Add an email", "Contact": "Add phone",
+            "Name": "Name",
+            "Bio": "Bio",
+            "Email": "Add an email",
+            "Contact": "Add phone",
         }
         lbl_judul = QLabel(judul_map.get(field, field))
         lbl_judul.setStyleSheet(f"""
-            font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};
+            font-size: 34px;
+            font-weight: bold;
+            color: {COLOR_TEXT_PRIMARY};
+            background: transparent;
         """)
-        layout.addWidget(lbl_judul)
 
+        top_row.addWidget(btn_back)
+        top_row.addWidget(lbl_judul)
+        top_row.addStretch()
+        layout.addLayout(top_row)
+
+        # ── Description text ──
         if field == "Email":
             if self.role == ROLE_ORGANIZER:
                 teks_ket = ("Enter a professional email address for audiences to send "
                             "formal inquiries and event booking requests. Make sure this "
-                            "email is active so you don't miss formal inquiries and "
-                            "booking requests.")
+                            "email is active so you don't miss formal inquiries and booking requests.")
             else:
                 teks_ket = ("Enter your email address to receive important notifications, "
-                            "e-tickets, and updates from event organizers. Please enter a "
-                            "valid email address to ensure your e-tickets and event "
-                            "notifications are delivered successfully.")
+                            "e-tickets, and updates from event organizers. Please enter a valid "
+                            "email address to ensure your e-tickets and event notifications are delivered successfully.")
         elif field == "Contact":
             if self.role == ROLE_ORGANIZER:
-                teks_ket = ("Add a phone number so audiences can easily reach out to "
-                            "book your events or ask for collaborations. Please ensure "
-                            "your phone number is correct to avoid missing potential "
-                            "booking inquiries from your audience.")
+                teks_ket = ("Add a phone number so audiences can easily reach out to book your events "
+                            "or ask for collaborations. Please ensure your phone number is correct.")
             else:
-                teks_ket = ("Add your phone number so event organizers can contact you "
-                            "regarding event updates or registration details. Double-check "
-                            "your number to ensure organizers can reach you for important "
-                            "event updates.")
+                teks_ket = ("Add your phone number so event organizers can contact you regarding event "
+                            "updates or registration details. Double-check your number to ensure organizers can reach you.")
         elif field == "Name":
             teks_ket = "Your name can only be changed once every 30 days"
         else:
             teks_ket = "You can edit your bio anytime."
 
         lbl_ket = QLabel(teks_ket)
-        lbl_ket.setStyleSheet(f"font-size: 13px; color: {COLOR_TEXT_MUTED};")
         lbl_ket.setWordWrap(True)
+        lbl_ket.setStyleSheet(f"""
+            font-size: 16px;
+            color: {COLOR_TEXT_MUTED};
+            background: transparent;
+        """)
         layout.addWidget(lbl_ket)
-        layout.addSpacing(16)
+        layout.addSpacing(8)
 
         batas = {"Name": 30, "Bio": 160}.get(field, None)
         input_widget = None
+        lbl_counter = None
+        lbl_warning = None
+        input_frame = None
 
+        # ── Input area ──
         if field == "Bio":
             input_widget = QTextEdit()
             input_widget.setPlaceholderText("My account is all about....")
@@ -494,7 +551,7 @@ class AccountPanel(QWidget):
                     border-radius: 16px;
                     border: 2px solid transparent;
                     padding: 16px;
-                    font-size: 14px;
+                    font-size: 18px;
                     color: #333333;
                 }}
             """)
@@ -502,21 +559,20 @@ class AccountPanel(QWidget):
             layout.addWidget(input_widget)
 
             lbl_counter = QLabel(f"0/{batas}")
-            lbl_counter.setStyleSheet(f"font-size: 12px; color: {COLOR_TEXT_MUTED};")
+            lbl_counter.setStyleSheet(f"font-size: 16px; color: {COLOR_TEXT_MUTED}; background: transparent;")
             lbl_counter.setAlignment(Qt.AlignRight)
             layout.addWidget(lbl_counter)
-
         else:
             input_frame = QFrame()
             input_frame.setObjectName("input_frame")
             input_frame.setStyleSheet(f"""
                 QFrame#input_frame {{
                     background-color: {COLOR_GRAY_LIGHT};
-                    border-radius: 12px;
+                    border-radius: 14px;
                     border: 2px solid transparent;
                 }}
             """)
-            input_frame.setFixedHeight(56)
+            input_frame.setFixedHeight(64)
 
             frame_layout = QHBoxLayout(input_frame)
             frame_layout.setContentsMargins(16, 0, 12, 0)
@@ -525,8 +581,11 @@ class AccountPanel(QWidget):
             if field == "Contact":
                 lbl_prefix = QLabel("+62  |")
                 lbl_prefix.setStyleSheet(f"""
-                    color: {COLOR_TEXT_PRIMARY}; font-size: 14px;
-                    font-weight: bold; padding-right: 4px;
+                    color: {COLOR_TEXT_PRIMARY};
+                    font-size: 18px;
+                    font-weight: bold;
+                    padding-right: 4px;
+                    background: transparent;
                 """)
                 frame_layout.addWidget(lbl_prefix)
 
@@ -540,8 +599,10 @@ class AccountPanel(QWidget):
             input_widget.setPlaceholderText(placeholder)
             input_widget.setStyleSheet("""
                 QLineEdit {
-                    background: transparent; border: none;
-                    font-size: 14px; color: #333333;
+                    background: transparent;
+                    border: none;
+                    font-size: 18px;
+                    color: #333333;
                 }
             """)
             key_map = {"Name": "nama", "Email": "email", "Contact": "kontak"}
@@ -551,6 +612,8 @@ class AccountPanel(QWidget):
             cancel_path = _asset("cancel.png")
             if os.path.exists(cancel_path):
                 btn_clear.setIcon(QIcon(cancel_path))
+            else:
+                btn_clear.setText("×")
             btn_clear.setIconSize(QSize(20, 20))
             btn_clear.setCursor(Qt.PointingHandCursor)
             btn_clear.setFixedSize(24, 24)
@@ -563,7 +626,7 @@ class AccountPanel(QWidget):
 
             if batas:
                 lbl_counter = QLabel(f"0/{batas}")
-                lbl_counter.setStyleSheet(f"font-size: 12px; color: {COLOR_TEXT_MUTED};")
+                lbl_counter.setStyleSheet(f"font-size: 16px; color: {COLOR_TEXT_MUTED}; background: transparent;")
                 lbl_counter.setAlignment(Qt.AlignRight)
                 layout.addWidget(lbl_counter)
 
@@ -577,7 +640,7 @@ class AccountPanel(QWidget):
                 if os.path.exists(warning_path):
                     w_icon.setPixmap(QIcon(warning_path).pixmap(QSize(14, 14)))
                 w_text = QLabel("Character limit reached")
-                w_text.setStyleSheet("font-size: 12px; color: #E05C5C;")
+                w_text.setStyleSheet("font-size: 16px; color: #E05C5C; background: transparent;")
                 w_layout.addWidget(w_icon)
                 w_layout.addWidget(w_text)
                 w_layout.addStretch()
@@ -585,29 +648,14 @@ class AccountPanel(QWidget):
                 layout.addWidget(lbl_warning)
 
         layout.addStretch()
-        root.addWidget(konten, stretch=1)
 
-        bottom_bar = QWidget()
-        bottom_bar.setFixedHeight(64)
-        bottom_bar.setStyleSheet(
-            f"background: transparent; border-top: 1px solid {COLOR_DIVIDER};"
-        )
-        bottom_layout = QHBoxLayout(bottom_bar)
-        bottom_layout.setContentsMargins(50, 0, 50, 0)
-
-        btn_cancel = QPushButton("Cancel")
-        btn_cancel.setCursor(Qt.PointingHandCursor)
-        btn_cancel.setStyleSheet(f"""
-            QPushButton {{
-                background: transparent; color: {COLOR_TEXT_PRIMARY};
-                font-size: 15px; font-weight: bold; border: none;
-            }}
-            QPushButton:hover {{ color: {COLOR_TEAL_DARK}; }}
-        """)
-        btn_cancel.clicked.connect(self.tutup_panel_edit)
+        # ── Bottom action row ──
+        bottom_row = QHBoxLayout()
+        bottom_row.setContentsMargins(0, 6, 0, 0)
+        bottom_row.setSpacing(10)
 
         lbl_notif_tengah = QLabel("Character limit exceeded")
-        lbl_notif_tengah.setStyleSheet("font-size: 12px; color: #E05C5C;")
+        lbl_notif_tengah.setStyleSheet("font-size: 16px; color: #E05C5C; background: transparent;")
         lbl_notif_tengah.setAlignment(Qt.AlignCenter)
         lbl_notif_tengah.setVisible(False)
 
@@ -618,25 +666,48 @@ class AccountPanel(QWidget):
         btn_save = QPushButton("Save")
         btn_save.setCursor(Qt.PointingHandCursor)
         btn_save.setEnabled(False)
-        btn_save.setStyleSheet("""
+        btn_save.setFixedHeight(44)
+        btn_save.setMinimumWidth(112)
+
+        SAVE_DISABLED = """
             QPushButton {
-                background: transparent; color: rgba(220, 50, 50, 0.35);
-                font-size: 15px; font-weight: bold; border: none;
+                background-color: rgba(81,100,101,0.22);
+                color: rgba(81,100,101,0.55);
+                border: none;
+                border-radius: 22px;
+                padding: 10px 28px;
+                font-size: 17px;
+                font-weight: bold;
             }
-        """)
+        """
+        SAVE_ACTIVE = """
+            QPushButton {
+                background: #516465;
+                color: white;
+                font-size: 18px;
+                font-weight: bold;
+                border: none;
+                border-radius: 22px;
+                padding: 10px 28px;
+            }
+            QPushButton:hover {
+                background: #405354;
+            }
+        """
+        btn_save.setStyleSheet(SAVE_DISABLED)
         btn_save.clicked.connect(
             lambda: self.simpan_edit(
                 field,
-                input_widget.toPlainText() if field == "Bio" else input_widget.text()
+                input_widget.toPlainText() if field == "Bio" else input_widget.text(),
+                dialog
             )
         )
 
-        bottom_layout.addWidget(btn_cancel)
-        bottom_layout.addStretch()
-        bottom_layout.addWidget(lbl_notif_tengah)
-        bottom_layout.addStretch()
-        bottom_layout.addWidget(btn_save)
-        root.addWidget(bottom_bar)
+        bottom_row.addStretch()
+        bottom_row.addWidget(lbl_notif_tengah)
+        bottom_row.addStretch()
+        bottom_row.addWidget(btn_save)
+        layout.addLayout(bottom_row)
 
         def on_text_changed():
             text = input_widget.toPlainText() if field == "Bio" else input_widget.text()
@@ -647,76 +718,68 @@ class AccountPanel(QWidget):
                     input_widget.blockSignals(True)
                     input_widget.setPlainText(text[:batas])
                     cursor = input_widget.textCursor()
-                    cursor.movePosition(cursor.End)
+                    cursor.movePosition(QTextCursor.End)
                     input_widget.setTextCursor(cursor)
                     input_widget.blockSignals(False)
                     tampil_notif_sementara()
                     jumlah = batas
 
-                if jumlah == batas:
-                    lbl_counter.setText(f"<span style='color:#E05C5C;'>{jumlah}</span>/{batas}")
-                    lbl_counter.setTextFormat(Qt.RichText)
-                else:
-                    lbl_counter.setText(f"{jumlah}/{batas}")
-                    lbl_counter.setTextFormat(Qt.PlainText)
-                    lbl_counter.setStyleSheet(f"font-size: 12px; color: {COLOR_TEXT_MUTED};")
+                if lbl_counter:
+                    if jumlah == batas:
+                        lbl_counter.setText(f"<span style='color:#E05C5C;'>{jumlah}</span>/{batas}")
+                        lbl_counter.setTextFormat(Qt.RichText)
+                    else:
+                        lbl_counter.setText(f"{jumlah}/{batas}")
+                        lbl_counter.setTextFormat(Qt.PlainText)
+                        lbl_counter.setStyleSheet(f"font-size: 16px; color: {COLOR_TEXT_MUTED}; background: transparent;")
             else:
                 if batas and jumlah > batas:
-                    lbl_counter.setText(f"<span style='color:#E05C5C;'>{jumlah}</span>/{batas}")
-                    lbl_counter.setTextFormat(Qt.RichText)
-                    input_frame.setStyleSheet(f"""
-                        QFrame#input_frame {{
-                            background-color: {COLOR_GRAY_LIGHT};
-                            border-radius: 12px; border: 2px solid #E05C5C;
-                        }}
-                    """)
-                    lbl_warning.setVisible(True)
+                    if lbl_counter:
+                        lbl_counter.setText(f"<span style='color:#E05C5C;'>{jumlah}</span>/{batas}")
+                        lbl_counter.setTextFormat(Qt.RichText)
+                    if input_frame:
+                        input_frame.setStyleSheet(f"""
+                            QFrame#input_frame {{
+                                background-color: {COLOR_GRAY_LIGHT};
+                                border-radius: 14px;
+                                border: 2px solid #E05C5C;
+                            }}
+                        """)
+                    if lbl_warning:
+                        lbl_warning.setVisible(True)
                     btn_save.setEnabled(False)
-                    btn_save.setStyleSheet("""
-                        QPushButton {
-                            background: transparent; color: rgba(220, 50, 50, 0.35);
-                            font-size: 15px; font-weight: bold; border: none;
-                        }
-                    """)
+                    btn_save.setStyleSheet(SAVE_DISABLED)
                     return
                 elif batas:
-                    lbl_counter.setText(f"{jumlah}/{batas}")
-                    lbl_counter.setTextFormat(Qt.PlainText)
-                    lbl_counter.setStyleSheet(f"font-size: 12px; color: {COLOR_TEXT_MUTED};")
-                    input_frame.setStyleSheet(f"""
-                        QFrame#input_frame {{
-                            background-color: {COLOR_GRAY_LIGHT};
-                            border-radius: 12px; border: 2px solid transparent;
-                        }}
-                    """)
-                    lbl_warning.setVisible(False)
+                    if lbl_counter:
+                        lbl_counter.setText(f"{jumlah}/{batas}")
+                        lbl_counter.setTextFormat(Qt.PlainText)
+                        lbl_counter.setStyleSheet(f"font-size: 16px; color: {COLOR_TEXT_MUTED}; background: transparent;")
+                    if input_frame:
+                        input_frame.setStyleSheet(f"""
+                            QFrame#input_frame {{
+                                background-color: {COLOR_GRAY_LIGHT};
+                                border-radius: 14px;
+                                border: 2px solid transparent;
+                            }}
+                        """)
+                    if lbl_warning:
+                        lbl_warning.setVisible(False)
 
             if jumlah > 0:
                 btn_save.setEnabled(True)
-                btn_save.setStyleSheet("""
-                    QPushButton {
-                        background: transparent; color: #CC0000;
-                        font-size: 15px; font-weight: bold; border: none;
-                    }
-                    QPushButton:hover { color: #990000; }
-                """)
+                btn_save.setStyleSheet(SAVE_ACTIVE)
             else:
                 btn_save.setEnabled(False)
-                btn_save.setStyleSheet("""
-                    QPushButton {
-                        background: transparent; color: rgba(220, 50, 50, 0.35);
-                        font-size: 15px; font-weight: bold; border: none;
-                    }
-                """)
+                btn_save.setStyleSheet(SAVE_DISABLED)
 
         if field == "Bio":
             input_widget.textChanged.connect(on_text_changed)
         else:
             input_widget.textChanged.connect(lambda _: on_text_changed())
 
-        self.stacked_widget.addWidget(panel_edit)
-        self.stacked_widget.setCurrentWidget(panel_edit)
-        self.panel_edit_aktif = panel_edit
+        on_text_changed()
+        dialog.exec_()
 
     # ----------------------------------------------------------
     def tutup_panel_edit(self):
@@ -726,7 +789,7 @@ class AccountPanel(QWidget):
             self.panel_edit_aktif.deleteLater()
             self.panel_edit_aktif = None
 
-    def simpan_edit(self, field, nilai_baru):
+    def simpan_edit(self, field, nilai_baru, dialog=None):
         field_ke_key = {
             "Name": "nama", "Bio": "bio", "Email": "email", "Contact": "kontak",
         }
@@ -751,8 +814,10 @@ class AccountPanel(QWidget):
         # Jika nama diubah, beritahu main_window untuk update greeting
         if field == "Name":
             self._notify_nama_changed()
-
-        self.tutup_panel_edit()
+        if dialog is not None:
+            dialog.accept()   
+        else:
+            self.tutup_panel_edit()
         self._render_account()
 
     def _notify_nama_changed(self):
@@ -838,7 +903,7 @@ class CropDialog(QDialog):
         kiri.setSpacing(8)
 
         lbl_petunjuk = QLabel("Geser kotak untuk memilih area foto  •  Scroll untuk zoom")
-        lbl_petunjuk.setStyleSheet("font-size: 12px; color: #9AABAB;")
+        lbl_petunjuk.setStyleSheet("font-size: 16px; color: #9AABAB;")
         lbl_petunjuk.setAlignment(Qt.AlignCenter)
         kiri.addWidget(lbl_petunjuk)
 
@@ -852,7 +917,7 @@ class CropDialog(QDialog):
 
         zoom_row = QHBoxLayout()
         lbl_zoom = QLabel("Zoom")
-        lbl_zoom.setStyleSheet("font-size: 12px; color: #9AABAB; min-width:36px;")
+        lbl_zoom.setStyleSheet("font-size: 16px; color: #9AABAB; min-width:36px;")
         self._slider_zoom = QSlider(Qt.Horizontal)
         self._slider_zoom.setRange(0, 400)
         self._slider_zoom.setValue(0)
@@ -881,7 +946,7 @@ class CropDialog(QDialog):
         kanan.addSpacing(12)
 
         lbl_rasio = QLabel("Crop ratio")
-        lbl_rasio.setStyleSheet("font-size: 12px; color: #9AABAB;")
+        lbl_rasio.setStyleSheet("font-size: 16px; color: #9AABAB;")
         lbl_rasio.setAlignment(Qt.AlignCenter)
         kanan.addWidget(lbl_rasio)
 
@@ -927,13 +992,13 @@ class CropDialog(QDialog):
             return f"""
                 QPushButton {{
                     background-color: {COLOR_TEAL_DARK}; color: white;
-                    border-radius: 6px; font-size: 12px; font-weight: bold;
+                    border-radius: 6px; font-size: 16px; font-weight: bold;
                 }}
             """
         return """
             QPushButton {
                 background-color: #3E4F50; color: #9AABAB;
-                border-radius: 6px; font-size: 12px;
+                border-radius: 6px; font-size: 16px;
             }
             QPushButton:hover { color: white; }
         """

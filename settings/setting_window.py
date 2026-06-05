@@ -137,35 +137,37 @@ class SettingsWindow(QWidget):
 
     def buat_topbar(self):
         topbar = QWidget()
-        topbar.setFixedHeight(56)
+        topbar.setFixedHeight(72)
         topbar.setStyleSheet("background-color: white; border-bottom: 1px solid %s;" % COLOR_DIVIDER)
 
         layout = QHBoxLayout(topbar)
-        layout.setContentsMargins(20, 0, 20, 0)
+        layout.setContentsMargins(24, 0, 24, 0)
 
         icon_menu = QLabel("≡")
-        icon_menu.setStyleSheet(f"font-size: 22px; color: {COLOR_TEXT_PRIMARY}; font-weight: bold;")
+        icon_menu.setFixedSize(38, 38)
+        icon_menu.setAlignment(Qt.AlignCenter)
+        icon_menu.setStyleSheet(f"font-size: 30px; color: {COLOR_TEXT_PRIMARY}; font-weight: bold;")
 
         self.lbl_settings_title = QLabel(lang.t("settings.title"))
-        self.lbl_settings_title.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
+        self.lbl_settings_title.setStyleSheet(f"font-size: 26px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.btn_home = QPushButton(lang.t("settings.home_btn"))
         self.btn_home.setIcon(QIcon("assets/home.png"))
-        self.btn_home.setIconSize(QSize(16, 16))
+        self.btn_home.setIconSize(QSize(20, 20))
         self.btn_home.setCursor(Qt.PointingHandCursor)
         self.btn_home.setStyleSheet(f"""
             QPushButton {{
                 background: transparent; color: {COLOR_TEXT_PRIMARY};
-                font-size: 13px; border: none; padding: 6px 12px;
+                font-size: 15px; border: none; padding: 8px 14px;
             }}
             QPushButton:hover {{ color: {COLOR_TEAL_DARK}; font-weight: bold; }}
         """)
         self.btn_home.clicked.connect(self.close)
 
         self.avatar_topbar = QLabel()
-        self.avatar_topbar.setFixedSize(36, 36)
+        self.avatar_topbar.setFixedSize(42, 42)
         self.avatar_topbar.setAlignment(Qt.AlignCenter)
         self.refresh_topbar_avatar()
 
@@ -205,8 +207,8 @@ class SettingsWindow(QWidget):
         foto_pixmap = self.user_data.get("foto_profil")
         if foto_pixmap and not foto_pixmap.isNull():
             self.avatar_topbar.setText("")
-            self.avatar_topbar.setPixmap(self._pixmap_ke_lingkaran(foto_pixmap, 36))
-            self.avatar_topbar.setStyleSheet("border-radius: 18px; background: transparent;")
+            self.avatar_topbar.setPixmap(self._pixmap_ke_lingkaran(foto_pixmap, 42))
+            self.avatar_topbar.setStyleSheet("border-radius: 21px; background: transparent;")
             return
 
         foto_path = self.user_data.get("foto_profil_path", "")
@@ -214,8 +216,8 @@ class SettingsWindow(QWidget):
             pixmap = QPixmap(foto_path)
             if not pixmap.isNull():
                 self.avatar_topbar.setText("")
-                self.avatar_topbar.setPixmap(self._pixmap_ke_lingkaran(pixmap, 36))
-                self.avatar_topbar.setStyleSheet("border-radius: 18px; background: transparent;")
+                self.avatar_topbar.setPixmap(self._pixmap_ke_lingkaran(pixmap, 42))
+                self.avatar_topbar.setStyleSheet("border-radius: 21px; background: transparent;")
                 return
 
         # Fallback kalau user belum upload foto profil.
@@ -224,7 +226,7 @@ class SettingsWindow(QWidget):
         self.avatar_topbar.setText(inisial)
         self.avatar_topbar.setStyleSheet(f"""
             background-color: {COLOR_TEAL_DARK}; color: white;
-            font-weight: bold; font-size: 13px; border-radius: 18px;
+            font-weight: bold; font-size: 15px; border-radius: 21px;
         """)
 
     def _ambil_inisial_user(self):
@@ -269,12 +271,12 @@ class SettingsWindow(QWidget):
 
     def buat_sidebar(self):
         sidebar = QWidget()
-        sidebar.setFixedWidth(220)
+        sidebar.setFixedWidth(250)
         sidebar.setStyleSheet(f"background-color: white; border-right: 1px solid {COLOR_DIVIDER};")
 
         layout = QVBoxLayout(sidebar)
-        layout.setContentsMargins(0, 20, 0, 20)
-        layout.setSpacing(4)
+        layout.setContentsMargins(0, 24, 0, 24)
+        layout.setSpacing(8)
 
         self._sidebar_menu_defs = [
             ("settings.account",       0, "profile"),
@@ -287,10 +289,10 @@ class SettingsWindow(QWidget):
         for key, index, icon_file in self._sidebar_menu_defs:
             btn = QPushButton(f"  {lang.t(key)}")
             btn.setIcon(QIcon(f"assets/{icon_file}.png"))
-            btn.setIconSize(QSize(18, 18))
+            btn.setIconSize(QSize(22, 22))
             btn.setCursor(Qt.PointingHandCursor)
             btn.setCheckable(True)
-            btn.setFixedHeight(48)
+            btn.setFixedHeight(58)
             btn.setStyleSheet(self._style_sidebar_btn(False))
             btn.clicked.connect(lambda checked, i=index: self.switch_panel(i))
 
@@ -314,14 +316,14 @@ class SettingsWindow(QWidget):
                 QPushButton {{
                     background-color: {COLOR_GRAY_LIGHT};
                     color: {COLOR_TEAL_DARK}; font-weight: bold;
-                    font-size: 13px; text-align: left; border: none;
-                    border-left: 3px solid {COLOR_TEAL_DARK}; padding-left: 20px;
+                    font-size: 15px; text-align: left; border: none;
+                    border-left: 4px solid {COLOR_TEAL_DARK}; padding-left: 24px;
                 }}
             """
         return f"""
             QPushButton {{
                 background-color: transparent; color: {COLOR_TEXT_PRIMARY};
-                font-size: 13px; text-align: left; border: none; padding-left: 23px;
+                font-size: 15px; text-align: left; border: none; padding-left: 24px;
             }}
             QPushButton:hover {{
                 background-color: {COLOR_GRAY_LIGHT}; color: {COLOR_TEAL_DARK};
