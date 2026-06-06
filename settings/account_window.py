@@ -19,6 +19,11 @@ COLOR_TEXT_MUTED   = "#9AABAB"
 COLOR_DIVIDER      = "#D2E6E5"
 COLOR_AVATAR_DEFAULT = "#EEAAAA"
 
+C_TITLE = "#516465"
+C_SUBTITLE = "#828282"
+C_OPTION = "#747C86"
+C_DIVIDER = "#888780"
+
 ROLE_ORGANIZER = "organizer"
 ROLE_MAHASISWA = "mahasiswa"
 ROLE_UMUM      = "umum"
@@ -108,11 +113,11 @@ class AccountPanel(QWidget):
 
         # ── JUDUL ── (hanya ini yang dipertahankan sesuai permintaan)
         lbl_judul = QLabel("Account Settings")
-        lbl_judul.setStyleSheet(f"""
-            font-size: 55px;
-            font-weight: bold;
-            color: {COLOR_TEAL_DARK};
-        """)
+        font_title = QFont()
+        font_title.setPointSize(30)
+        font_title.setBold(True)
+        lbl_judul.setFont(font_title)
+        lbl_judul.setStyleSheet(f"color: {C_TITLE}; background: transparent;")
         layout.addWidget(lbl_judul)
         layout.addSpacing(30)
 
@@ -825,7 +830,7 @@ class AccountPanel(QWidget):
 
             pola_email = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
             if not re.match(pola_email, nilai):
-                return False, "Please enter a valid email address, e.g. mahasiswa@gmail.com."
+                return False, "Please enter a valid email address!"
 
             return True, ""
 

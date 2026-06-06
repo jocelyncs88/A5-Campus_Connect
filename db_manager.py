@@ -1153,6 +1153,72 @@ def is_event_booked(email_user, event_id):
     conn.close()
     return result is not None
 
+def like_event(email_user, event_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    user = cursor.execute(
+        "SELECT id FROM users WHERE email = ?",
+        (email_user,)
+    ).fetchone()
+
+    if not user:
+        conn.close()
+        print(f"[like_event] user not found for email={email_user}; cannot like event_id={event_id}")
+        return
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO likes (user_id, event_id)
+        VALUES (?, ?)
+    """, (user[0], str(event_id)))
+
+    conn.commit()
+    conn.close()
+
+
+def unlike_event(email_user, event_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    user = cursor.execute(
+        "SELECT id FROM users WHERE email = ?",
+        (email_user,)
+    ).fetchone()
+
+    if not user:
+        conn.close()
+        return
+
+    cursor.execute("""
+        DELETE FROM likes
+        WHERE user_id = ? AND event_id = ?
+    """, (user[0], str(event_id)))
+
+    conn.commit()
+    conn.close()
+
+
+def is_event_liked(email_user, event_id):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    user = cursor.execute(
+        "SELECT id FROM users WHERE email = ?",
+        (email_user,)
+    ).fetchone()
+
+    if not user:
+        conn.close()
+        return False
+
+    result = cursor.execute("""
+        SELECT 1 FROM likes
+        WHERE user_id = ? AND event_id = ?
+    """, (user[0], str(event_id))).fetchone()
+
+    conn.close()
+    return result is not None
+
 
 # =========================
 # PROFILE USER

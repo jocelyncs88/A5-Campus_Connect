@@ -410,10 +410,11 @@ class DetailEventPage(QWidget):
         self.data_event = data
 
         # Reset tampilan like sesuai event yang dibuka
-        if not hasattr(self, "liked_events"):
-            self.liked_events = {}
         event_id = str(data.get("event_id") or data.get("db_id") or data.get("id") or "")
-        self.liked = self.liked_events.get(event_id, False)
+        if self.current_user_email and hasattr(db_manager, "is_event_liked"):
+            self.liked = db_manager.is_event_liked(self.current_user_email, event_id)
+        else:
+            self.liked = False
         icon_path = "liked.png" if self.liked else "unliked.png"
         try:
             self.btn_love.setIcon(QIcon(os.path.join("assets", icon_path)))
@@ -576,28 +577,46 @@ class DetailEventPage(QWidget):
         # Hanya mahasiswa yang bisa like
         if not self.current_user_email:
             from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.warning(None, "Login Required", "You must login as a student first to like this event.")
+            QMessageBox.warning(
+                None,
+                "Login Required",
+                "You must login as a student first to like this event."
+            )
             return
 
         if self.current_user_role.lower() != "mahasiswa":
             from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.warning(None, "Access Denied", "Only student accounts can like events.")
+            QMessageBox.warning(
+                None,
+                "Access Denied",
+                "Only student accounts can like events."
+            )
             return
 
         event_id = self.get_event_id()
-        if not hasattr(self, "liked_events"):
-            self.liked_events = {}
+        if not event_id:
+            return
 
-        # Toggle state hanya untuk event ini
-        current = self.liked_events.get(event_id, False)
-        self.liked_events[event_id] = not current
-        self.liked = self.liked_events[event_id]
+        # Ambil status terbaru dari database
+        current_liked = False
+        if hasattr(db_manager, "is_event_liked"):
+            current_liked = db_manager.is_event_liked(self.current_user_email, event_id)
 
+        # Toggle ke database
+        if current_liked:
+            db_manager.unlike_event(self.current_user_email, event_id)
+            self.liked = False
+        else:
+            db_manager.like_event(self.current_user_email, event_id)
+            self.liked = True
+
+        # Update icon love
         icon_path = "liked.png" if self.liked else "unliked.png"
         try:
             self.btn_love.setIcon(QIcon(os.path.join("assets", icon_path)))
         except Exception:
             pass
+
         self.btn_love.style().unpolish(self.btn_love)
         self.btn_love.style().polish(self.btn_love)
         self.btn_love.update()

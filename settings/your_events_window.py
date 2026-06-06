@@ -29,17 +29,36 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import QDialog
+from detail_event_page import DetailEventPage
 
 
 # ==============================================================
 # KONSTANTA WARNA
 # ==============================================================
+C_TITLE = "#516465"
+C_SUBTITLE = "#828282"
+C_OPTION = "#747C86"
+C_DIVIDER = "#888780"
+
 COLOR_GRAY_LIGHT   = "#D2E6E5"
 COLOR_TEAL_DARK    = "#516465"
 COLOR_TEXT_PRIMARY = "#5D6B6B"
 COLOR_TEXT_MUTED   = "#9AABAB"
 COLOR_DIVIDER      = "#D2E6E5"
 COLOR_PINK_BOOKED  = "#EAA4A6"   # Warna tombol Booked setelah di-klik
+
+
+# ==============================================================
+# KONSTANTA ROW EVENTS
+# ==============================================================
+GRID_MAX_COLS      = 7
+GRID_H_SPACING     = 50
+GRID_V_SPACING     = 46
+CARD_WIDTH         = 200
+BOOKED_POSTER_H    = 218
+LIKED_POSTER_H     = 240
+EO_POSTER_H        = 240
 
 
 # ==============================================================
@@ -271,6 +290,98 @@ class YourEventsPanel(QWidget):
         self.minta_buka_add_event.emit()
 
 
+    def _set_label_style(self, label, size, color, bold = False):
+        font = QFont(self.font_bold if bold else self.font_regular)
+        font.setPointSize(size)
+        font.setBold(bold)
+        label.setFont(font)
+        label.setStyleSheet(f"color: {color}; background: transparent;")
+
+    def _event_id_from(self, event):
+        return str(
+            event.get("event_id")
+            or event.get("db_id")
+            or event.get("id")
+            or ""
+        ).strip()
+
+    def _is_free_ticket(self, event):
+        tipe = str(event.get("tipe_tiket", "Free") or "Free").lower()
+        harga = str(event.get("harga_tiket", "0") or "0").strip()
+        return tipe in ("free", "gratis") or harga in ("", "0", "0.0", "None")
+
+    def _is_event_booked(self, event):
+        email = self.user_data.get("email", "")
+        event_id = self._event_id_from(event)
+        if not email or not event_id:
+            return bool(event.get("is_booked", False))
+        try:
+            import db_manager
+            if hasattr(db_manager, "is_event_booked"):
+                return db_manager.is_event_booked(email, event_id)
+        except Exception as exc:
+            print(f"[YourEventsPanel] Gagal cek booking event: {exc}")
+        return bool(event.get("is_booked", False))
+
+    def _book_event_from_settings(self, event):
+        email = self.user_data.get("email", "")
+        event_id = self._event_id_from(event)
+        if not email:
+            QMessageBox.warning(self, "Login Required",
+                "You must login as a student first to book this event.")
+            return False
+        if str(self.role).lower() != ROLE_MAHASISWA:
+            QMessageBox.warning(self, "Access Denied",
+                "Only student accounts can book events.")
+            return False
+        if not event_id:                          # <-- validasi BARU
+            QMessageBox.warning(self, "Booking Failed", "Event ID is missing.")
+            return False
+        try:
+            import db_manager
+            if hasattr(db_manager, "book_event"):
+                db_manager.book_event(email, event_id)
+                event["is_booked"] = True
+                return True
+        except Exception as exc:
+            QMessageBox.warning(self, "Booking Failed", f"Failed to book event:\n{exc}")
+            return False
+        return False
+
+    def _unbook_event_from_settings(self, event):   # <-- BARU
+        email = self.user_data.get("email", "")
+        event_id = self._event_id_from(event)
+        if not email or not event_id:
+            return False
+        try:
+            import db_manager
+            if hasattr(db_manager, "unbook_event"):
+                db_manager.unbook_event(email, event_id)
+                event["is_booked"] = False
+                return True
+        except Exception as exc:
+            print(f"[YourEventsPanel] Gagal unbook event: {exc}")
+        return False
+
+    def _ticket_button_style(self, booked=False):   # <-- BARU
+        if booked:
+            return f"""
+                QPushButton {{
+                    background-color: {COLOR_PINK_BOOKED};
+                    color: white; border-radius: 8px; border: none;
+                    font-size: 9px; font-weight: bold;
+                }}
+            """
+        return """
+            QPushButton {
+                background-color: #5D6B6B;
+                color: white; border-radius: 8px; border: none;
+                font-size: 9px; font-weight: bold;
+            }
+            QPushButton:hover { background-color: #4a5858; }
+        """
+
+
     # ----------------------------------------------------------
     # FUNGSI _load_fonts()
     # Memuat font GoogleSans dari folder assets
@@ -300,7 +411,6 @@ class YourEventsPanel(QWidget):
     # Dipanggil saat pertama dibuat dan saat refresh diperlukan
     # ----------------------------------------------------------
     def _render(self):
-
         # Bersihkan layout lama jika ada
         if self.layout():
             while self.layout().count():
@@ -309,21 +419,63 @@ class YourEventsPanel(QWidget):
                     item.widget().deleteLater()
             QWidget().setLayout(self.layout())
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(50, 40, 50, 40)
-        layout.setSpacing(20)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        # Scroll utama halaman Your Events
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: rgba(255,255,255,0.35);
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #516465;
+                min-height: 28px;
+                border-radius: 4px;
+            }
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+            }
+        """)
+
+        content = QWidget()
+        content.setStyleSheet("background: transparent;")
+
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(24, 40, 24, 40)
+        layout.setSpacing(18)
 
         # Judul panel
         lbl_judul = QLabel("Your Events Settings")
-        lbl_judul.setFont(QFont(self.font_bold, 24))
-        lbl_judul.setStyleSheet("color: #516465; font-weight: bold;")
+        self._set_label_style(lbl_judul, 30, C_TITLE, bold=True)
         layout.addWidget(lbl_judul)
 
-        # Render konten sesuai role
         if self.role == ROLE_ORGANIZER:
             self._render_eo(layout)
         else:
             self._render_student(layout)
+
+        layout.addStretch()
+
+        scroll.setWidget(content)
+        outer_layout.addWidget(scroll)
 
 
     # ==========================================================
@@ -338,61 +490,40 @@ class YourEventsPanel(QWidget):
     #   - Setiap kartu punya icon edit yang muncul saat hover
     # ----------------------------------------------------------
     def _render_eo(self, layout):
-
         lbl_sub = QLabel("Published Events")
-        lbl_sub.setFont(QFont(self.font_bold, 16))
-        lbl_sub.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+        self._set_label_style(lbl_sub, 17, C_TITLE, bold=True)
         layout.addWidget(lbl_sub)
 
         events = self._get_published_events()
 
-        # Jika belum ada event yang approved (skenario 1 & 2):
-        # Tampilkan pesan dengan dua bagian:
-        #   - Kalimat pertama: teks biasa
-        #   - "Create your first event now!": underline + pointer + klik → Add Event
         if not events:
-            # Baris pertama: teks biasa abu-abu
             lbl_empty = QLabel("You haven't created any events yet!")
-            lbl_empty.setFont(QFont(self.font_regular, 13))
-            lbl_empty.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
+            self._set_label_style(lbl_empty, 13, C_SUBTITLE)
 
-            # Baris kedua: "Create your first event now!" dengan underline
-            # Menggunakan QLabel dengan RichText agar bisa underline tanpa QPushButton
-            # tapi tetap bisa diklik via mousePressEvent
             lbl_buat = QLabel('<u>Create your first event now!</u>')
-            lbl_buat.setFont(QFont(self.font_regular, 13))
-            lbl_buat.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+            self._set_label_style(lbl_buat, 13, C_TITLE, bold=True)
             lbl_buat.setTextFormat(Qt.RichText)
             lbl_buat.setCursor(Qt.PointingHandCursor)
-
-            # Klik pada label → pancarkan sinyal ke main_window untuk buka Add Event
             lbl_buat.mousePressEvent = lambda ev: self._minta_buka_add_event()
 
             layout.addWidget(lbl_empty)
             layout.addWidget(lbl_buat)
-            layout.addStretch()
             return
 
-        # Area scroll untuk grid kartu
-        # Scroll hanya dibuat jika ada events
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.NoFrame)
-        scroll.setStyleSheet("background: transparent; border: none;")
+        grid_container = QWidget()
+        grid_container.setStyleSheet("background: transparent;")
 
-        container = QWidget()
-        container.setStyleSheet("background: transparent;")
-        grid = QGridLayout(container)
-        grid.setSpacing(20)
-        grid.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-
-        # Susun kartu dalam grid 3 kolom
+        grid = QGridLayout(grid_container)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(GRID_H_SPACING)
+        grid.setVerticalSpacing(GRID_V_SPACING)
         for i, event in enumerate(events):
             kartu = self._buat_kartu_eo(event)
-            grid.addWidget(kartu, i // 3, i % 3)
+            row = i // GRID_MAX_COLS
+            col = i % GRID_MAX_COLS
+            grid.addWidget(kartu, row, col)
 
-        scroll.setWidget(container)
-        layout.addWidget(scroll, stretch=1)
+        layout.addWidget(grid_container)
 
 
     # ----------------------------------------------------------
@@ -410,7 +541,7 @@ class YourEventsPanel(QWidget):
     # ----------------------------------------------------------
     def _buat_kartu_eo(self, event):
         kartu = QWidget()
-        kartu.setFixedWidth(200)
+        kartu.setFixedWidth(CARD_WIDTH)
         kartu.setStyleSheet("background: transparent;")
 
         layout = QVBoxLayout(kartu)
@@ -419,12 +550,12 @@ class YourEventsPanel(QWidget):
 
         # ---- AREA POSTER (relatif untuk overlay badge + edit) ----
         poster_container = QWidget()
-        poster_container.setFixedSize(200, 260)
+        poster_container.setFixedSize(CARD_WIDTH, EO_POSTER_H)
         poster_container.setStyleSheet("background: transparent;")
 
         # Gambar poster
         lbl_poster = QLabel(poster_container)
-        lbl_poster.setFixedSize(200, 260)
+        lbl_poster.setFixedSize(CARD_WIDTH, EO_POSTER_H)
         lbl_poster.setScaledContents(True)
         lbl_poster.setStyleSheet("border-radius: 8px;")
 
@@ -441,7 +572,7 @@ class YourEventsPanel(QWidget):
         # Badge jenis event (Internal/External) — pojok kiri atas poster
         badge = QLabel(event.get("jenis_event", ""), poster_container)
         badge.move(8, 8)
-        badge.setFixedSize(60, 18)
+        badge.setFixedSize(62, 18)
         badge.setAlignment(Qt.AlignCenter)
         badge.setFont(QFont(self.font_regular, 8))
         badge.setStyleSheet("""
@@ -458,7 +589,7 @@ class YourEventsPanel(QWidget):
         btn_edit.setIcon(QIcon(os.path.join(BASE_DIR, "assets", "edit.png")))
         btn_edit.setIconSize(QSize(18, 18))
         btn_edit.setFixedSize(30, 30)
-        btn_edit.move(162, 8)  # Pojok kanan atas poster (200-30-8=162)
+        btn_edit.move(CARD_WIDTH - 38, 8)  
         btn_edit.setStyleSheet("""
             QPushButton {
                 background-color: white;
@@ -487,18 +618,18 @@ class YourEventsPanel(QWidget):
         def on_leave(ev, btn=btn_edit):
             btn.setVisible(False)
 
-        poster_container.enterEvent = on_enter
-        poster_container.leaveEvent = on_leave
+        poster_container.enterEvent = lambda ev, btn=btn_edit: btn.setVisible(True)
+        poster_container.leaveEvent = lambda ev, btn=btn_edit: btn.setVisible(False)
         poster_container.setCursor(Qt.PointingHandCursor)
 
         # ---- TEKS DI BAWAH POSTER ----
         lbl_nama = QLabel(event.get("nama_event", ""))
-        lbl_nama.setFont(QFont(self.font_bold, 11))
+        lbl_nama.setFont(QFont(self.font_bold, 10))
         lbl_nama.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
         lbl_nama.setWordWrap(True)
 
         lbl_deskripsi = QLabel(event.get("deskripsi_singkat", ""))
-        lbl_deskripsi.setFont(QFont(self.font_regular, 10))
+        lbl_deskripsi.setFont(QFont(self.font_regular, 9))
         lbl_deskripsi.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
         lbl_deskripsi.setWordWrap(True)
 
@@ -521,35 +652,32 @@ class YourEventsPanel(QWidget):
     #   - Liked Events: grid kartu dengan aksi unlike
     # ----------------------------------------------------------
     def _render_student(self, layout):
-
         lbl_sub = QLabel("My Events")
-        lbl_sub.setFont(QFont(self.font_bold, 16))
-        lbl_sub.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; background: transparent;")
+        self._set_label_style(lbl_sub, 15, C_SUBTITLE, bold=True)
         layout.addWidget(lbl_sub)
 
         # ---- BOOKED EVENTS ----
         lbl_booked = QLabel("Booked Events")
-        lbl_booked.setFont(QFont(self.font_bold, 13))
-        lbl_booked.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; background: transparent;")
+        self._set_label_style(lbl_booked, 17, C_TITLE, bold=True)
         layout.addWidget(lbl_booked)
 
-        booked_scroll = self._buat_booked_scroll()
-        layout.addWidget(booked_scroll)
+        booked_grid = self._buat_booked_scroll()
+        layout.addWidget(booked_grid)
+
+        layout.addSpacing(34)
 
         # ---- LIKED EVENTS ----
         lbl_liked = QLabel("Liked Events")
-        lbl_liked.setFont(QFont(self.font_bold, 13))
-        lbl_liked.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY}; background: transparent;")
+        self._set_label_style(lbl_liked, 17, C_TITLE, bold=True)
         layout.addWidget(lbl_liked)
 
-        # Container liked events — disimpan sebagai atribut
-        # agar bisa di-refresh saat user unlike sebuah event
         self.liked_container = QWidget()
         self.liked_container.setStyleSheet("background: transparent;")
         self.liked_container.setContentsMargins(0, 0, 0, 0)
-        self._render_liked_grid()
 
-        layout.addWidget(self.liked_container, stretch=1)
+        layout.addWidget(self.liked_container)
+
+        self._render_liked_grid()
 
 
     # ----------------------------------------------------------
@@ -560,33 +688,8 @@ class YourEventsPanel(QWidget):
     # Return: QScrollArea siap pakai
     # ----------------------------------------------------------
     def _buat_booked_scroll(self):
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFixedHeight(320)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll.setFrameShape(QScrollArea.NoFrame)
-        scroll.setStyleSheet("""
-            QScrollArea { background: transparent; border: none; }
-            QScrollBar:horizontal {
-                border: none; background: rgba(255,255,255,50);
-                height: 6px; border-radius: 3px;
-            }
-            QScrollBar::handle:horizontal {
-                background: #5D6B6B; min-width: 20px; border-radius: 3px;
-            }
-            QScrollBar::add-line:horizontal,
-            QScrollBar::sub-line:horizontal { border: none; background: none; }
-        """)
-
         container = QWidget()
-        container.setFixedHeight(300) 
         container.setStyleSheet("background: transparent;")
-        h_layout = QHBoxLayout(container)
-        h_layout.setSpacing(16)
-        h_layout.setContentsMargins(0, 0, 0, 10)
-        h_layout.setAlignment(Qt.AlignLeft)
 
         booked_events = self._get_booked_events()
 
@@ -594,6 +697,7 @@ class YourEventsPanel(QWidget):
         from datetime import date
         today = date.today()
         aktif = []
+
         for e in booked_events:
             try:
                 tgl_str = e.get("tanggal_waktu", "")
@@ -601,22 +705,31 @@ class YourEventsPanel(QWidget):
                 if tgl >= today:
                     aktif.append(e)
             except Exception:
-                # Jika format tanggal tidak valid, tetap tampilkan
                 aktif.append(e)
 
         if not aktif:
-            lbl_empty = QLabel("You haven't booked any events yet.")
-            lbl_empty.setFont(QFont(self.font_regular, 12))
-            lbl_empty.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
-            h_layout.addWidget(lbl_empty)
-        else:
-            for event in aktif:
-                kartu = self._buat_kartu_booked(event)
-                h_layout.addWidget(kartu)
-            h_layout.addStretch()
+            vbox = QVBoxLayout(container)
+            vbox.setContentsMargins(0, 0, 0, 0)
+            vbox.setSpacing(0)
 
-        scroll.setWidget(container)
-        return scroll
+            lbl_empty = QLabel("You haven't booked any events yet.")
+            self._set_label_style(lbl_empty, 13, C_SUBTITLE)
+            vbox.addWidget(lbl_empty)
+            return container
+
+        grid = QGridLayout(container)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(GRID_H_SPACING)
+        grid.setVerticalSpacing(GRID_V_SPACING)
+        grid.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+
+        for i, event in enumerate(aktif):
+            kartu = self._buat_kartu_booked(event) 
+            row = i // GRID_MAX_COLS
+            col = i % GRID_MAX_COLS
+            grid.addWidget(kartu, row, col)
+
+        return container
 
 
     # ----------------------------------------------------------
@@ -631,17 +744,16 @@ class YourEventsPanel(QWidget):
     # ----------------------------------------------------------
     def _buat_kartu_booked(self, event):
         kartu = QWidget()
-        kartu.setFixedWidth(160)
-        kartu.setFixedHeight(280)
+        kartu.setFixedWidth(CARD_WIDTH)     # 170, tidak ada setFixedHeight
         kartu.setStyleSheet("background: transparent;")
+        kartu.setCursor(Qt.PointingHandCursor)
 
         layout = QVBoxLayout(kartu)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(7)                # dari 6
 
-        # Poster kecil
         lbl_poster = QLabel()
-        lbl_poster.setFixedSize(160, 200)
+        lbl_poster.setFixedSize(CARD_WIDTH, BOOKED_POSTER_H)  # 170 x 205
         lbl_poster.setScaledContents(True)
         lbl_poster.setStyleSheet("border-radius: 8px;")
 
@@ -649,27 +761,22 @@ class YourEventsPanel(QWidget):
         if path and os.path.exists(path):
             lbl_poster.setPixmap(QPixmap(path))
         else:
-            lbl_poster.setStyleSheet(
-                "background-color: #D2E6E5; border-radius: 8px;"
-            )
+            _apply_poster_image(lbl_poster, path, placeholder_color="#D2E6E5")
 
-        # Nama event
         lbl_nama = QLabel(event.get("nama_event", ""))
-        lbl_nama.setFont(QFont(self.font_bold, 10))
-        lbl_nama.setStyleSheet("color: black;")
+        self._set_label_style(lbl_nama, 10, "#243333", bold=True)
         lbl_nama.setWordWrap(True)
 
-        # Deskripsi singkat
         lbl_desk = QLabel(event.get("deskripsi_singkat", ""))
-        lbl_desk.setFont(QFont(self.font_regular, 9))
-        lbl_desk.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
+        self._set_label_style(lbl_desk, 9, C_SUBTITLE)   # font size 9 (dari 10)
         lbl_desk.setWordWrap(True)
 
         layout.addWidget(lbl_poster)
         layout.addWidget(lbl_nama)
         layout.addWidget(lbl_desk)
 
-        return kartu
+        kartu.mousePressEvent = lambda ev, e=event: self._buka_deskripsi(e)
+        return kartu 
 
 
     # ----------------------------------------------------------
@@ -678,23 +785,25 @@ class YourEventsPanel(QWidget):
     # Dipanggil saat pertama render dan saat user unlike sebuah event
     # ----------------------------------------------------------
     def _render_liked_grid(self):
-
         # Bersihkan layout lama di liked_container
         if self.liked_container.layout():
-            while self.liked_container.layout().count():
-                item = self.liked_container.layout().takeAt(0)
+            old_layout = self.liked_container.layout()
+
+            while old_layout.count():
+                item = old_layout.takeAt(0)
                 if item.widget():
                     item.widget().deleteLater()
-            QWidget().setLayout(self.liked_container.layout())
+
+            QWidget().setLayout(old_layout)
 
         grid = QGridLayout(self.liked_container)
-        grid.setSpacing(20)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(GRID_H_SPACING)
+        grid.setVerticalSpacing(GRID_V_SPACING)
         grid.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         liked_events = self._get_liked_events()
 
-        # Filter hanya event yang masih di-liked
-        # (liked_status kosong = default liked semua)
         tampil = [
             e for e in liked_events
             if self.liked_status.get(e["event_id"], True)
@@ -702,16 +811,15 @@ class YourEventsPanel(QWidget):
 
         if not tampil:
             lbl_empty = QLabel("You haven't liked any events yet.")
-            lbl_empty.setFont(QFont(self.font_regular, 12))
-            lbl_empty.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; background: transparent;")
-            # setContentsMargins pada grid agar sejajar dengan label "Liked Events"
-            # dan tidak menjorok ke dalam
-            grid.setContentsMargins(0, 0, 0, 0)
+            self._set_label_style(lbl_empty, 13, C_SUBTITLE)
             grid.addWidget(lbl_empty, 0, 0)
-        else:
-            for i, event in enumerate(tampil):
-                kartu = self._buat_kartu_liked(event)
-                grid.addWidget(kartu, i // 2, i % 2)
+            return
+
+        for i, event in enumerate(tampil):
+            kartu = self._buat_kartu_liked(event) 
+            row = i // GRID_MAX_COLS
+            col = i % GRID_MAX_COLS
+            grid.addWidget(kartu, row, col) 
 
 
     # ----------------------------------------------------------
@@ -729,8 +837,9 @@ class YourEventsPanel(QWidget):
     # ----------------------------------------------------------
     def _buat_kartu_liked(self, event):
         kartu = QWidget()
-        kartu.setFixedWidth(220)
+        kartu.setFixedWidth(CARD_WIDTH)
         kartu.setStyleSheet("background: transparent;")
+        kartu.setCursor(Qt.PointingHandCursor)
 
         layout = QVBoxLayout(kartu)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -738,146 +847,100 @@ class YourEventsPanel(QWidget):
 
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        # ---- AREA POSTER ----
         poster_container = QWidget()
-        poster_container.setFixedSize(220, 286)  # W:220 H:286 (proporsional dari 439x572)
+        poster_container.setFixedSize(CARD_WIDTH, LIKED_POSTER_H)
         poster_container.setStyleSheet("background: transparent;")
         poster_container.setCursor(Qt.PointingHandCursor)
 
-        # Gambar poster — klik untuk buka deskripsi
         lbl_poster = QLabel(poster_container)
-        lbl_poster.setFixedSize(220, 286)
+        lbl_poster.setFixedSize(CARD_WIDTH, LIKED_POSTER_H)
         lbl_poster.setScaledContents(True)
         lbl_poster.setStyleSheet("border-radius: 10px;")
 
         _apply_poster_image(lbl_poster, event.get("gambar_poster", ""), placeholder_color="#D2E6E5")
 
-        # Icon hati di pojok kanan bawah poster
-        # Mulai dengan liked (ikon hati penuh)
         btn_hati = QPushButton(poster_container)
-        btn_hati.setFixedSize(32, 32)
-        btn_hati.move(180, 246)  # Pojok kanan bawah
+        btn_hati.setFixedSize(28, 28)
+        btn_hati.move(CARD_WIDTH - 34, LIKED_POSTER_H - 34)
         btn_hati.setStyleSheet("background: transparent; border: none;")
         btn_hati.setCursor(Qt.PointingHandCursor)
 
-        # Set icon hati awal (liked)
         liked_icon_path = os.path.join(BASE_DIR, "assets", "liked.png")
         unliked_icon_path = os.path.join(BASE_DIR, "assets", "unliked.png")
         btn_hati.setIcon(QIcon(liked_icon_path))
-        btn_hati.setIconSize(QSize(28, 28))
+        btn_hati.setIconSize(QSize(24, 24))
 
-        # Status liked awal = True (karena ini Liked Events)
         self.liked_status[event["event_id"]] = True
 
-        # Saat hati diklik → toggle liked/unliked
-        # Jika unlike → hapus dari tampilan
-        def on_hati_diklik(checked, ev=event, btn=btn_hati):
-            event_id = ev["event_id"]
+        def on_hati_diklik(checked, ev=event):
+            event_id = str(ev.get("event_id", ""))
+            email = self.user_data.get("email", "")
+
+            try:
+                import db_manager
+                if email and event_id and hasattr(db_manager, "unlike_event"):
+                    db_manager.unlike_event(email, event_id)
+            except Exception as e:
+                print(f"[YourEventsPanel] Gagal unlike event: {e}")
+
             self.liked_status[event_id] = False
-            # Refresh grid liked events tanpa event yang di-unlike
-            # CATATAN: Nanti tambahkan db_manager.unlike_event(user_id, event_id)
             self._render_liked_grid()
 
         btn_hati.clicked.connect(on_hati_diklik)
 
-        # Klik poster → buka halaman deskripsi
-        poster_container.mousePressEvent = lambda ev, e=event: self._buka_deskripsi(e)
-
-        # ---- BAR BAWAH: Harga | Tanggal | Get Ticket ----
-        # Background semi-transparan (CBD5E0, 40%)
         bar = QWidget(poster_container)
-        bar.setFixedSize(220, 70)
-        bar.move(0, 216)  # Di bagian bawah poster
+        bar.setFixedSize(CARD_WIDTH, 56)
+        bar.move(0, LIKED_POSTER_H - 56)
         bar.setStyleSheet(
-            "background-color: rgba(203, 213, 224, 0.4); border-radius: 0px;"
+            "background-color: rgba(203, 213, 224, 0.42); border-radius: 0px;"
         )
 
         bar_layout = QHBoxLayout(bar)
-        bar_layout.setContentsMargins(10, 8, 10, 8)
+        bar_layout.setContentsMargins(8, 6, 8, 6)
         bar_layout.setSpacing(4)
 
-        # Kolom kiri: harga dan tanggal|waktu
         kiri_layout = QVBoxLayout()
-        kiri_layout.setSpacing(2)
+        kiri_layout.setSpacing(1)
 
-        # Harga tiket
-        tipe = event.get("tipe_tiket", "Gratis")
+        tipe = event.get("tipe_tiket", "Free")
         harga = event.get("harga_tiket", "0")
-        if tipe == "Gratis":
-            teks_harga = "Free"
-        else:
-            teks_harga = f"IDR {harga}"
+        teks_harga = "Free" if self._is_free_ticket(event) else f"IDR {harga}"
 
         lbl_harga = QLabel(teks_harga)
-        lbl_harga.setFont(QFont(self.font_bold, 16))
+        lbl_harga.setFont(QFont(self.font_bold, 12))
         lbl_harga.setStyleSheet("color: black; background: transparent;")
 
-        # Tanggal dan waktu
-        tgl = event.get("tanggal_display", "")
+        tgl = event.get("tanggal_display", "") or event.get("tanggal_waktu", "")
         wkt = event.get("waktu_display", "")
-        lbl_tgl = QLabel(f"{tgl}  |  {wkt}")
-        lbl_tgl.setFont(QFont(self.font_regular, 8))
+        lbl_tgl = QLabel(f"{tgl}  |  {wkt}".strip(" |"))
+        lbl_tgl.setFont(QFont(self.font_regular, 7))
         lbl_tgl.setStyleSheet("color: #454545; background: transparent;")
 
         kiri_layout.addWidget(lbl_harga)
         kiri_layout.addWidget(lbl_tgl)
 
-        # Tombol Get Ticket / Booked
-        # Mulai dengan "Get Ticket" (teal gelap)
-        # Setelah diklik → berubah jadi "Booked" (pink EAA4A6)
-        event_id = event["event_id"]
-        sudah_booked = event.get("is_booked", False)
+        sudah_booked = self._is_event_booked(event)
+        event["is_booked"] = sudah_booked
 
         btn_tiket = QPushButton("Booked" if sudah_booked else "Get ticket")
-        btn_tiket.setFixedSize(90, 44)
+        btn_tiket.setFixedSize(84, 34)
         btn_tiket.setCursor(Qt.PointingHandCursor)
-        btn_tiket.setFont(QFont(self.font_bold, 9))
-
-        if sudah_booked:
-            btn_tiket.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {COLOR_PINK_BOOKED};
-                    color: white;
-                    border-radius: 8px;
-                    border: none;
-                }}
-            """)
-        else:
-            btn_tiket.setStyleSheet("""
-                QPushButton {
-                    background-color: #5D6B6B;
-                    color: white;
-                    border-radius: 8px;
-                    border: none;
-                    font-size: 11px;
-                    font-weight: bold;
-                }
-                QPushButton:hover { background-color: #4a5858; }
-            """)
+        btn_tiket.setFont(QFont(self.font_bold, 11))
+        btn_tiket.setStyleSheet(self._ticket_button_style(sudah_booked))
 
         def on_tiket_diklik(checked, ev=event, btn=btn_tiket):
-            tipe_tiket = ev.get("tipe_tiket", "Gratis")
-            if tipe_tiket == "Gratis":
-                # Langsung booking tanpa popup pembayaran
-                btn.setText("Booked")
-                btn.setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {COLOR_PINK_BOOKED};
-                        color: white;
-                        border-radius: 8px;
-                        border: none;
-                        font-size: 11px;
-                        font-weight: bold;
-                    }}
-                """)
-                # CATATAN: Nanti tambahkan db_manager.book_event(user_id, event_id)
-            else:
-                # Berbayar → popup pembayaran (menyusul)
+            if not self._is_free_ticket(ev):
                 QMessageBox.information(
                     self,
-                    "Pembayaran",
-                    "Fitur pembayaran akan segera hadir!"
+                    "Payment",
+                    "Payment feature will be available soon!"
                 )
+                return
+
+            if self._book_event_from_settings(ev):
+                btn.setText("Booked")
+                btn.setStyleSheet(self._ticket_button_style(True))
+                QTimer.singleShot(0, self._render)
 
         btn_tiket.clicked.connect(on_tiket_diklik)
 
@@ -885,21 +948,21 @@ class YourEventsPanel(QWidget):
         bar_layout.addStretch()
         bar_layout.addWidget(btn_tiket)
 
-        # Nama dan deskripsi di bawah kartu
         lbl_nama = QLabel(event.get("nama_event", ""))
-        lbl_nama.setFont(QFont(self.font_bold, 11))
-        lbl_nama.setStyleSheet(f"color: {COLOR_TEXT_PRIMARY};")
+        self._set_label_style(lbl_nama, 10, "#243333", bold=True)
         lbl_nama.setWordWrap(True)
 
         lbl_desk = QLabel(event.get("deskripsi_singkat", ""))
-        lbl_desk.setFont(QFont(self.font_regular, 10))
-        lbl_desk.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
+        self._set_label_style(lbl_desk, 9, C_SUBTITLE)
         lbl_desk.setWordWrap(True)
 
         layout.addWidget(poster_container)
-        layout.addSpacing(10)
+        layout.addSpacing(9)
         layout.addWidget(lbl_nama)
         layout.addWidget(lbl_desk)
+
+        kartu.mousePressEvent = lambda ev, e=event: self._buka_deskripsi(e)
+        poster_container.mousePressEvent = lambda ev, e=event: self._buka_deskripsi(e)
 
         return kartu
 
@@ -917,17 +980,29 @@ class YourEventsPanel(QWidget):
     #   event = dictionary data event yang diklik
     # ----------------------------------------------------------
     def _buka_deskripsi(self, event):
+        dialog = QDialog(self)
+        dialog.setModal(True)
+        dialog.setWindowTitle("Event Detail")
+        dialog.setFixedSize(980, 720)
+        dialog.setStyleSheet("""
+            QDialog {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #D2E6E5,
+                    stop:0.72 #D2E6E5,
+                    stop:1 #F7CBCA
+                );
+                border-radius: 18px;
+            }
+        """)
 
-        panel = QWidget()
-        panel.setStyleSheet("background: transparent;")
-
-        root = QVBoxLayout(panel)
-        root.setContentsMargins(0, 0, 0, 0)
+        root = QVBoxLayout(dialog)
+        root.setContentsMargins(20, 18, 20, 20)
         root.setSpacing(0)
 
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        # ---- TOPBAR DESKRIPSI: tombol back + Home + avatar ----
+        # ---- TOPBAR DESKRIPSI: tombol back ----
         topbar = QWidget()
         topbar.setFixedHeight(56)
         topbar.setStyleSheet("background: transparent;")
@@ -935,7 +1010,6 @@ class YourEventsPanel(QWidget):
         topbar_layout = QHBoxLayout(topbar)
         topbar_layout.setContentsMargins(20, 0, 20, 0)
 
-        # Tombol back — kembali ke panel Your Events
         btn_back = QPushButton()
         btn_back.setIcon(QIcon(os.path.join(BASE_DIR, "assets", "back.png")))
         btn_back.setIconSize(QSize(24, 24))
@@ -947,7 +1021,7 @@ class YourEventsPanel(QWidget):
                 border: none;
             }
         """)
-        btn_back.clicked.connect(self._tutup_deskripsi)
+        btn_back.clicked.connect(dialog.reject)
 
         topbar_layout.addWidget(btn_back)
         topbar_layout.addStretch()
@@ -985,24 +1059,42 @@ class YourEventsPanel(QWidget):
         btn_hati_desk = QPushButton()
         liked_icon = os.path.join(BASE_DIR, "assets", "liked.png")
         unliked_icon = os.path.join(BASE_DIR, "assets", "unliked.png")
-        btn_hati_desk.setIcon(QIcon(liked_icon))
         btn_hati_desk.setIconSize(QSize(28, 28))
         btn_hati_desk.setFixedSize(32, 32)
         btn_hati_desk.setStyleSheet("background: transparent; border: none;")
         btn_hati_desk.setCursor(Qt.PointingHandCursor)
 
-        # Status liked di halaman deskripsi sinkron dengan liked_status
-        is_liked = [self.liked_status.get(event["event_id"], True)]
+        # Status liked dicek dari DB dulu
+        event_id_popup = self._event_id_from(event)
+        email_popup = self.user_data.get("email", "")
+        liked_awal = self.liked_status.get(event_id_popup, True)
+
+        try:
+            import db_manager
+            if email_popup and event_id_popup and hasattr(db_manager, "is_event_liked"):
+                liked_awal = db_manager.is_event_liked(email_popup, event_id_popup)
+        except Exception as exc:
+            print(f"[YourEventsPanel] Gagal cek like event: {exc}")
+
+        is_liked = [liked_awal]
+        btn_hati_desk.setIcon(QIcon(liked_icon if liked_awal else unliked_icon))
 
         def toggle_hati_desk(checked, btn=btn_hati_desk):
             is_liked[0] = not is_liked[0]
-            self.liked_status[event["event_id"]] = is_liked[0]
-            if is_liked[0]:
-                btn.setIcon(QIcon(liked_icon))
-            else:
-                btn.setIcon(QIcon(unliked_icon))
-            # Refresh liked grid di panel utama
-            self._render_liked_grid()
+            self.liked_status[event_id_popup] = is_liked[0]
+
+            try:
+                import db_manager
+                if email_popup and event_id_popup:
+                    if is_liked[0] and hasattr(db_manager, "like_event"):
+                        db_manager.like_event(email_popup, event_id_popup)
+                    elif not is_liked[0] and hasattr(db_manager, "unlike_event"):
+                        db_manager.unlike_event(email_popup, event_id_popup)
+            except Exception as exc:
+                print(f"[YourEventsPanel] Gagal update like event: {exc}")
+
+            btn.setIcon(QIcon(liked_icon if is_liked[0] else unliked_icon))
+            QTimer.singleShot(0, self._render_liked_grid)
 
         btn_hati_desk.clicked.connect(toggle_hati_desk)
 
@@ -1019,7 +1111,7 @@ class YourEventsPanel(QWidget):
         kiri2 = QVBoxLayout()
         tipe = event.get("tipe_tiket", "Gratis")
         harga = event.get("harga_tiket", "0")
-        teks_harga = "Free" if tipe == "Gratis" else f"IDR {harga}"
+        teks_harga = "Free" if self._is_free_ticket(event) else f"IDR {harga}"
 
         lbl_harga2 = QLabel(teks_harga)
         lbl_harga2.setFont(QFont(self.font_bold, 16))
@@ -1034,43 +1126,26 @@ class YourEventsPanel(QWidget):
         kiri2.addWidget(lbl_harga2)
         kiri2.addWidget(lbl_tgl2)
 
-        sudah_booked = event.get("is_booked", False)
+        sudah_booked = self._is_event_booked(event)
+        event["is_booked"] = sudah_booked
+
         btn_tiket2 = QPushButton("Booked" if sudah_booked else "Get ticket")
-        btn_tiket2.setFixedSize(90, 44)
+        btn_tiket2.setFixedSize(100, 44)
         btn_tiket2.setCursor(Qt.PointingHandCursor)
         btn_tiket2.setFont(QFont(self.font_bold, 9))
-
-        if sudah_booked:
-            btn_tiket2.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {COLOR_PINK_BOOKED};
-                    color: white; border-radius: 8px; border: none;
-                }}
-            """)
-        else:
-            btn_tiket2.setStyleSheet("""
-                QPushButton {
-                    background-color: #5D6B6B;
-                    color: white; border-radius: 8px; border: none;
-                    font-size: 11px; font-weight: bold;
-                }
-                QPushButton:hover { background-color: #4a5858; }
-            """)
+        btn_tiket2.setStyleSheet(self._ticket_button_style(sudah_booked))
 
         def on_tiket2_diklik(checked, ev=event, btn=btn_tiket2):
-            if ev.get("tipe_tiket", "Gratis") == "Gratis":
-                btn.setText("Booked")
-                btn.setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {COLOR_PINK_BOOKED};
-                        color: white; border-radius: 8px; border: none;
-                        font-size: 11px; font-weight: bold;
-                    }}
-                """)
-            else:
+            if not self._is_free_ticket(ev):
                 QMessageBox.information(
-                    self, "Pembayaran", "Fitur pembayaran akan segera hadir!"
+                    self, "Payment", "Payment feature will be available soon!"
                 )
+                return
+
+            if self._book_event_from_settings(ev):
+                btn.setText("Booked")
+                btn.setStyleSheet(self._ticket_button_style(True))
+                QTimer.singleShot(0, self._render)
 
         btn_tiket2.clicked.connect(on_tiket2_diklik)
 
@@ -1104,7 +1179,6 @@ class YourEventsPanel(QWidget):
         eo_layout.setContentsMargins(0, 0, 0, 0)
         eo_layout.setSpacing(10)
 
-        # Avatar inisial EO
         inisial_eo = event.get("inisial_eo", "EO")
         lbl_avatar = QLabel(inisial_eo)
         lbl_avatar.setFixedSize(36, 36)
@@ -1171,13 +1245,13 @@ class YourEventsPanel(QWidget):
         contact_layout.addStretch()
         kanan_layout.addWidget(contact_widget)
 
-        # 6. Overview
+        # 4. Overview
         lbl_overview_title = QLabel("Overview")
         lbl_overview_title.setFont(QFont(self.font_bold, 18))
         lbl_overview_title.setStyleSheet("color: black;")
         kanan_layout.addWidget(lbl_overview_title)
 
-        # 7. Konten overview
+        # 5. Konten overview
         lbl_overview = QLabel(event.get("overview", ""))
         lbl_overview.setFont(QFont(self.font_regular, 9))
         lbl_overview.setStyleSheet("color: #333333;")
@@ -1193,10 +1267,42 @@ class YourEventsPanel(QWidget):
         scroll.setWidget(konten)
         root.addWidget(scroll, stretch=1)
 
-        # Masukkan panel deskripsi ke stacked_widget dan tampilkan
-        self.stacked_widget.addWidget(panel)
-        self.stacked_widget.setCurrentWidget(panel)
-        self.panel_deskripsi_aktif = panel
+        dialog.exec_()
+        self._render()   # refresh panel setelah dialog ditutup
+
+    # ---------------------------------------------------------------------
+    # FUNGSI _show_detail_popup()
+    # Dipanggil saat user Mahasiswa klik card event di Your Event Settings
+    # Kembali ke panel Your Events dan hapus panel deskripsi
+    # ---------------------------------------------------------------------
+    def _show_detail_popup(self, event):
+        dialog = QDialog(self)
+        dialog.setModal(True)
+        dialog.setWindowTitle("Event Detail")
+        dialog.resize(980, 720)
+        dialog.setStyleSheet("""
+            QDialog {
+                background: #F8FBFB;
+                border-radius: 18px;
+            }
+        """)
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+
+        # kalau kamu punya widget detail event yang sekarang dipakai di page lain
+        detail_widget = DetailEventPage()
+        detail_widget.set_data(event)
+
+        # kalau perlu kirim context login/user
+        if hasattr(detail_widget, "current_user_email"):
+            detail_widget.current_user_email = self.user_data.get("email", "")
+        if hasattr(detail_widget, "current_user_role"):
+            detail_widget.current_user_role = self.user_role
+
+        layout.addWidget(detail_widget)
+        dialog.exec_()
 
 
     # ----------------------------------------------------------

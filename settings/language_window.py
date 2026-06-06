@@ -222,15 +222,15 @@ class LanguagePanel(QWidget):
         card = QWidget()
         card.setStyleSheet("""
             QWidget {
-                background: white;
-                border-radius: 12px;
+                background: transparent;
+                border: none;
             }
         """)
         card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         from PyQt5.QtWidgets import QVBoxLayout
         vbox = QVBoxLayout(card)
-        vbox.setContentsMargins(24, 20, 24, 20)
+        vbox.setContentsMargins(0, 8, 0, 8)
         vbox.setSpacing(8)
 
         # "Default Language" — size 30, #516465, bold
