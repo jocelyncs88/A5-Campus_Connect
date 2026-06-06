@@ -33,6 +33,8 @@
 import sys
 import os
 
+import db_manager
+
 # Tambahkan root ke sys.path agar bisa import toggle_widget
 # yang berada di root project, bukan di dalam folder settings/
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -69,12 +71,9 @@ class NotificationsPanel(QWidget):
     def __init__(self, user_data=None, stacked_widget=None, parent=None):
         super().__init__(parent)
 
-        self.user_data = user_data or {
-            "nama"   : "",
-            "role"   : ROLE_UMUM,
-            "inisial": ""
-        }
+        self.user_data = user_data or {}
         self.role = self.user_data.get("role", ROLE_UMUM)
+        self.email_user = self.user_data.get("email", "")
         self.stacked_widget = stacked_widget
 
         # Menyimpan status setiap toggle notification
@@ -459,6 +458,12 @@ class NotificationsPanel(QWidget):
         """
 
         # Simpan status awal ke dictionary
+        if self.email_user:
+            try:
+                default_on = db_manager.get_notif_pref(self.email_user, nama_setting)
+            except Exception as exc:
+                print(f"[NotificationsPanel] Gagal ambil preferensi {nama_setting}: {exc}")
+
         self.notif_states[nama_setting] = default_on
 
         # ---- CONTAINER BARIS ITEM ----
@@ -516,6 +521,12 @@ class NotificationsPanel(QWidget):
         # Saat toggle diklik → update status + warna label Push
         def on_toggled(is_on, key=nama_setting, lbl=lbl_push):
             self.notif_states[key] = is_on
+
+            if self.email_user:
+                try:
+                    db_manager.set_notif_pref(self.email_user, key, is_on)
+                except Exception as exc:
+                    print(f"[NotificationsPanel] Gagal simpan preferensi {key}: {exc}")
             lbl.setStyleSheet(
                 f"color: {COLOR_TEAL_DARK};" if is_on
                 else f"color: {COLOR_TEXT_MUTED};"

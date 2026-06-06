@@ -160,6 +160,10 @@ class MainWindow(QMainWindow):
         # Mulai timer: 15 menit = 15 * 60 detik * 1000 milidetik = 900000 ms
         self.timer_update.start(900000)
 
+        self.timer_student_notif = QTimer(self)
+        self.timer_student_notif.timeout.connect(self._cek_notifikasi_mahasiswa)
+        self.timer_student_notif.start(3600000) 
+
         # NOTE: initial synchronization is performed by `main._sync_scraped_events_to_db()`
         # during application startup. To avoid running the scraper twice in quick
         # succession, do not trigger `jalankan_auto_update()` here immediately.
@@ -1094,10 +1098,18 @@ class MainWindow(QMainWindow):
                     f'Perubahan untuk "{nama_event}" telah disetujui admin dan event di database '
                     f"sudah diperbarui."
                 )
+
+                # NEW: kirim notifikasi critical update ke mahasiswa
+                # yang sudah booking event ini.
+                event_id_update = request_data.get("event_id", "")
+                if event_id_update and hasattr(db_manager, "kirim_notif_critical_update"):
+                    db_manager.kirim_notif_critical_update(event_id_update, nama_event)
             else:
                 pesan = (
                     f'Perubahan untuk "{nama_event}" ditolak admin. Event asli tetap tidak berubah.'
                 )
+            db_manager.tambah_notifikasi_eo(email_eo, judul, pesan)
+            
         else:
             event_id = str(event_ref).replace("EVT:", "") if is_event_ref else str(event_ref)
             item_label = event_id
@@ -1118,6 +1130,16 @@ class MainWindow(QMainWindow):
                     f'"{nama_event}" has been approved by the admin and is now live '
                     f"on Campus Connect! Your event is ready to accept registration"
                 )
+                # kirim interest match ke mahasiswa yang punya interest sesuai kategori event
+                kategori = data_event.get("kategori", "")
+                if kategori and hasattr(db_manager, "kirim_notif_interest_match"):
+                    db_manager.kirim_notif_interest_match(event_id, nama_event, kategori)
+
+                # kirim Campus Spotlight untuk event internal
+                jenis_event = data_event.get("jenis_event", "")
+                if str(jenis_event).strip().lower() == "internal":
+                    if hasattr(db_manager, "kirim_notif_campus_spotlight"):
+                        db_manager.kirim_notif_campus_spotlight(event_id, nama_event)
             else:
                 judul = "Event Rejected ❌"
                 pesan = (
@@ -1154,11 +1176,24 @@ class MainWindow(QMainWindow):
 
     def _refresh_bell_badge(self):
         """Hitung ulang notif belum-baca dari DB dan update badge."""
-        if self.current_user_role == "eo" and self.current_user_email:
+        if self.current_user_role in ["eo", "mahasiswa"] and self.current_user_email:
             count = db_manager.hitung_notifikasi_belum_dibaca(self.current_user_email)
             self._set_badge(count)
         else:
             self._set_badge(0)
+
+    def _cek_notifikasi_mahasiswa(self):
+        """Cek reminder H-1 untuk mahasiswa dan refresh badge lonceng."""
+        if self.current_user_role != "mahasiswa" or not self.current_user_email:
+            return
+
+        try:
+            if hasattr(db_manager, "cek_dan_kirim_reminder_h1"):
+                db_manager.cek_dan_kirim_reminder_h1(self.current_user_email)
+        except Exception as exc:
+            print(f"[Student Reminder] {exc}")
+
+        self._refresh_bell_badge()
 
     def show_notif_page(self):
         """Buka halaman daftar notifikasi EO."""
@@ -1168,9 +1203,15 @@ class MainWindow(QMainWindow):
         self.layout_utama.setSpacing(0)
 
         if self.notif_page is None:
-            self.notif_page = NotificationPage(email_user=self.current_user_email)
+            self.notif_page = NotificationPage(
+                email_user=self.current_user_email,
+                user_role=self.current_user_role,
+            )
             self.notif_page.kembali_diklik.connect(self.show_home_page)
             self.notif_page.badge_berubah.connect(self._set_badge)
+            self.notif_page.buka_your_events.connect(self.buka_my_events)
+            self.notif_page.buka_detail_event.connect(self._on_buka_detail_event_dari_notif)
+            
             self.layout_utama.insertWidget(4, self.notif_page)
             self.layout_utama.setStretchFactor(self.notif_page, 1)
         else:
@@ -1263,6 +1304,7 @@ class MainWindow(QMainWindow):
                 
                 # 3. Panggil fungsi untuk mengubah tampilan navbar
                 self.update_navbar_berdasarkan_role()
+                self._cek_notifikasi_mahasiswa()
 
                 # 4. Cek apakah ada pending redirect setelah login
                 #    (contoh: user dibawa ke sini dari dialog "Login Required" di Account Settings)
@@ -1287,13 +1329,12 @@ class MainWindow(QMainWindow):
         self.hamburger_menu.clear()
 
         # Tampilkan lonceng hanya untuk EO
-        if hasattr(self, "bell_container"):
-            if self.current_user_role == "eo":
-                self.bell_container.show()
-                self._refresh_bell_badge()
-            else:
-                self.bell_container.hide()
-                self._set_badge(0)
+        if self.current_user_role in ["eo", "mahasiswa"]:
+            self.bell_container.show()
+            self._refresh_bell_badge()
+        else:
+            self.bell_container.hide()
+            self._set_badge(0)
 
         if self.current_user_role == "guest":
             # --- TAMPILAN GUEST ---
