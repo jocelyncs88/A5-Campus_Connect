@@ -211,7 +211,7 @@ class NotificationsPanel(QWidget):
         # ---- KATEGORI: Event Status ----
         # Notifikasi ini SELALU muncul pertama dan tidak bisa di-toggle OFF
         # karena ini adalah notifikasi penting tentang status event EO
-        self._buat_label_kategori("Event Status", layout)
+        self._buat_label_kategori(lang.t("notif.event_status"), layout)
         layout.addSpacing(12)
 
         # Item 0: Event status update (always-on, tidak ada toggle)
@@ -226,17 +226,16 @@ class NotificationsPanel(QWidget):
         layout.addSpacing(24)
 
         # ---- KATEGORI: Registration & Tickets ----
-        self._buat_label_kategori("Registration & Tickets", layout)
+        self._buat_label_kategori(lang.t("notif.registration_tickets"), layout)
         layout.addSpacing(12)
 
         # Item 1: New registrant
         self._buat_item_notif(
             layout=layout,
             nama_setting="notif_new_registrant",
-            judul="New registrant",
+            judul=lang.t("notif.new_registrant"),
             deskripsi=(
-                "Get alerts every time a user registers "
-                "or purchases a ticket."
+                lang.t("notif.new_registrant_desc_full")
             ),
             default_on=True,
             pesan_default=(
@@ -249,10 +248,9 @@ class NotificationsPanel(QWidget):
         self._buat_item_notif(
             layout=layout,
             nama_setting="notif_quota_alerts",
-            judul="Quota alerts",
+            judul=lang.t("notif.quota_alerts"),
             deskripsi=(
-                "Automatic warnings when your event capacity reaches 90% "
-                "and when sold out."
+                lang.t("notif.quota_alerts_desc")
             ),
             default_on=True,
             pesan_default=(
@@ -267,9 +265,9 @@ class NotificationsPanel(QWidget):
         self._buat_item_notif(
             layout=layout,
             nama_setting="notif_cancellations",
-            judul="Registration cancellations",
+            judul=lang.t("notif.cancellations"),
             deskripsi=(
-                "Notification if a participant cancels their booking."
+                lang.t("notif.cancellations_desc")
             ),
             default_on=True,
             pesan_default=(
@@ -286,16 +284,16 @@ class NotificationsPanel(QWidget):
     def _render_student(self, layout):
 
         # ---- KATEGORI: My Schedule ----
-        self._buat_label_kategori("My Schedule", layout)
+        self._buat_label_kategori(lang.t("notif.my_schedule"), layout)
         layout.addSpacing(12)
 
         # Item 1: Event reminder
         self._buat_item_notif(
             layout=layout,
             nama_setting="notif_event_reminder",
-            judul="Event reminder",
+            judul=lang.t("notif.event_reminder"),
             deskripsi=(
-                "Stay on track with alerts 1 day before your event start."
+                lang.t("notif.event_reminder_desc")
             ),
             default_on=True,
             pesan_default=(
@@ -324,16 +322,16 @@ class NotificationsPanel(QWidget):
         layout.addSpacing(24)
 
         # ---- KATEGORI: Discovery ----
-        self._buat_label_kategori("Discovery", layout)
+        self._buat_label_kategori(lang.t("notif.discovery"), layout)
         layout.addSpacing(12)
 
         # Item 3: Interest match
         self._buat_item_notif(
             layout=layout,
             nama_setting="notif_interest_match",
-            judul="Interest match",
+            judul=lang.t("notif.interest_match"),
             deskripsi=(
-                "Get notified about new events that match your favorite."
+                lang.t("notif.interest_match_desc")
             ),
             default_on=True,
             pesan_default=(
@@ -347,7 +345,7 @@ class NotificationsPanel(QWidget):
         self._buat_item_notif(
             layout=layout,
             nama_setting="notif_campus_spotlight",
-            judul="Campus Spotlight",
+            judul=lang.t("notif.campus_spotlight"),
             deskripsi=(
                 "Exclusive updates on internal events from your "
                 "university's organizations."
@@ -393,7 +391,7 @@ class NotificationsPanel(QWidget):
         kiri_layout.setContentsMargins(0, 0, 0, 0)
         kiri_layout.setSpacing(4)
 
-        lbl_judul = QLabel("Event approval status")
+        lbl_judul = QLabel(lang.t("notif.event_approval_status"))
         lbl_judul.setFont(QFont(self.font_semi, 16))
         lbl_judul.setStyleSheet(f"color: {COLOR_TEAL_DARK}; font-weight: bold;")
         kiri_layout.addWidget(lbl_judul)
@@ -418,7 +416,7 @@ class NotificationsPanel(QWidget):
         kanan_layout.setContentsMargins(0, 0, 0, 0)
         kanan_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        lbl_always = QLabel("Always on")
+        lbl_always = QLabel(lang.t("notif.always_on"))
         lbl_always.setFont(QFont(self.font_regular, 11))
         lbl_always.setStyleSheet(f"color: {COLOR_TEAL_DARK};")
         kanan_layout.addWidget(lbl_always)
@@ -511,7 +509,7 @@ class NotificationsPanel(QWidget):
         toggle.setCursor(Qt.PointingHandCursor)
 
         # Label "Push" — warna mengikuti status toggle
-        lbl_push = QLabel("Push")
+        lbl_push = QLabel(lang.t("notif.push"))
         lbl_push.setFont(QFont(self.font_regular, 11))
         lbl_push.setStyleSheet(
             f"color: {COLOR_TEAL_DARK};" if default_on

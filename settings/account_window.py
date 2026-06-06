@@ -1,9 +1,22 @@
 # ==============================================================
 # FILE: settings/account_window.py
+#
+# FIX MULTILINGUAL (5 titik):
+#   1. File dialog title & filter pakai lang.t()
+#   2. Placeholder "add ..." pakai lang.t()
+#   3. Description popup edit pakai lang.t()
+#   4. Error validasi di _validasi_input_edit() pakai lang.t()
+#   5. Syntax f-string inner quotes diperbaiki (single quotes)
+#
+# FIX MULTILINGUAL LANJUTAN (3 titik):
+#   6. AccountPanel listen perubahan bahasa via lang.language_changed
+#   7. _on_language_changed() method baru
+#   8. CropDialog.setWindowTitle pakai lang.t()
 # ==============================================================
 
 import os
 import re
+from language_manager import lang
 import shutil
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -58,7 +71,16 @@ class AccountPanel(QWidget):
                 if not pix.isNull():
                     self.foto_profil = pix
                     self.user_data["foto_profil"] = pix
+
         self.setStyleSheet("background: transparent;")
+        self._render_account()
+
+        # FIX #6 — listen perubahan bahasa agar UI otomatis dirender ulang
+        lang.language_changed.connect(self._on_language_changed)
+
+    # ----------------------------------------------------------
+    # FIX #7 — method baru untuk handle perubahan bahasa
+    def _on_language_changed(self, _code=""):
         self._render_account()
 
     # ----------------------------------------------------------
@@ -79,8 +101,8 @@ class AccountPanel(QWidget):
 
         QMessageBox.warning(
             self,
-            "Login Required",
-            "You need to log in first to edit Account Settings."
+            lang.t("account.login_required_title"),
+            lang.t("account.login_required_msg")
         )
 
     # ----------------------------------------------------------
@@ -107,12 +129,11 @@ class AccountPanel(QWidget):
         scroll.setWidget(container)
 
         layout = QVBoxLayout(container)
-        # Margin sama dengan notifications_window: (50, 40, 50, 40)
         layout.setContentsMargins(50, 40, 50, 40)
         layout.setSpacing(0)
 
-        # ── JUDUL ── (hanya ini yang dipertahankan sesuai permintaan)
-        lbl_judul = QLabel("Account Settings")
+        # ── JUDUL ──
+        lbl_judul = QLabel(lang.t("account.settings_title"))
         font_title = QFont()
         font_title.setPointSize(30)
         font_title.setBold(True)
@@ -126,7 +147,7 @@ class AccountPanel(QWidget):
         layout.addSpacing(8)
 
         # ── TEKS "Change photo" ──
-        lbl_change = QLabel("Change photo")
+        lbl_change = QLabel(lang.t("account.change_photo_lower"))
         lbl_change.setAlignment(Qt.AlignHCenter)
         lbl_change.setStyleSheet("color: black; font-size: 25px;")
         lbl_change.setCursor(Qt.PointingHandCursor)
@@ -139,10 +160,10 @@ class AccountPanel(QWidget):
 
         # ── BARIS INFO ──
         fields = [
-            ("Name",    self.user_data.get("nama")   or "add name"),
-            ("Bio",     self.user_data.get("bio")    or "add bio"),
-            ("Email",   self.user_data.get("email")  or "add email"),
-            ("Contact", self.user_data.get("kontak") or "add contact"),
+            (lang.t("account.name"),    self.user_data.get("nama")   or lang.t("account.add_name_ph")),
+            (lang.t("account.bio"),     self.user_data.get("bio")    or lang.t("account.add_bio_ph")),
+            (lang.t("account.email"),   self.user_data.get("email")  or lang.t("account.add_email_ph")),
+            (lang.t("account.contact"), self.user_data.get("kontak") or lang.t("account.add_contact_ph")),
         ]
         for field_label, field_value in fields:
             layout.addWidget(self._buat_baris_info(field_label, field_value))
@@ -162,30 +183,25 @@ class AccountPanel(QWidget):
         h_layout.setContentsMargins(0, 0, 0, 0)
         h_layout.addStretch()
 
-        # Container avatar + camera icon (overlay)
         avatar_container = QWidget()
         avatar_container.setFixedSize(AVATAR_SIZE, AVATAR_SIZE)
         avatar_container.setStyleSheet("background: transparent;")
         avatar_container.setCursor(Qt.PointingHandCursor)
 
-        # Avatar background lingkaran
         lbl_avatar = QLabel(avatar_container)
         lbl_avatar.setFixedSize(AVATAR_SIZE, AVATAR_SIZE)
         lbl_avatar.setAlignment(Qt.AlignCenter)
 
         if self.foto_profil:
-            # Foto ada: tampilkan foto dengan blur 75%
             pixmap_bulat = self._pixmap_ke_lingkaran_blur(self.foto_profil, AVATAR_SIZE)
             lbl_avatar.setPixmap(pixmap_bulat)
             lbl_avatar.setStyleSheet(f"border-radius: {AVATAR_SIZE//2}px;")
         else:
-            # Default: warna pink #EEAAAA
             lbl_avatar.setStyleSheet(f"""
                 background-color: {COLOR_AVATAR_DEFAULT};
                 border-radius: {AVATAR_SIZE//2}px;
             """)
 
-        # Icon camera di tengah (overlay)
         lbl_camera = QLabel(avatar_container)
         lbl_camera.setAlignment(Qt.AlignCenter)
         cam_icon_path = _asset("camera.png")
@@ -200,7 +216,6 @@ class AccountPanel(QWidget):
         lbl_camera.setFixedSize(AVATAR_SIZE, AVATAR_SIZE)
         lbl_camera.setStyleSheet("background: transparent;")
 
-        # Klik seluruh container → upload foto
         avatar_container.mousePressEvent = lambda e: self._upload_foto()
 
         h_layout.addWidget(avatar_container)
@@ -213,13 +228,13 @@ class AccountPanel(QWidget):
         if self._is_guest_user():
             self._minta_login_untuk_edit()
             return
-        
+
         try:
             path, _ = QFileDialog.getOpenFileName(
                 self,
-                "Pilih Foto Profil",
+                lang.t("account.select_profile_photo"),
                 "",
-                "Gambar (*.png *.jpg *.jpeg *.webp *.bmp)"
+                lang.t("account.image_filter")
             )
         except Exception:
             return
@@ -229,7 +244,7 @@ class AccountPanel(QWidget):
 
         pixmap = QPixmap(path)
         if pixmap.isNull():
-            QMessageBox.warning(self, "Gagal", "File gambar tidak valid.")
+            QMessageBox.warning(self, lang.t("msg.failed"), lang.t("account.invalid_image"))
             return
 
         try:
@@ -241,12 +256,9 @@ class AccountPanel(QWidget):
                     self.foto_profil = hasil_crop
                     self.user_data["foto_profil"] = hasil_crop
 
-                    # Simpan foto ke folder assets/profile_pictures/
-                    # Nama file menggunakan email user agar unik per akun
                     foto_path = self._simpan_foto_ke_file(hasil_crop)
                     if foto_path:
                         self.user_data["foto_profil_path"] = foto_path
-                        # Simpan path ke database
                         email = self.user_data.get("email", "")
                         if email:
                             try:
@@ -259,24 +271,16 @@ class AccountPanel(QWidget):
                                 print(f"[AccountPanel] Gagal simpan foto ke DB: {db_err}")
 
                     self._render_account()
-                    # Beritahu main_window agar navbar diperbarui
                     self._notify_foto_changed()
         except Exception as e:
-            QMessageBox.warning(self, "Error", f"Gagal membuka crop dialog:\n{e}")
+            QMessageBox.warning(self, lang.t("msg.error"), f"{lang.t('account.crop_open_failed')}\n{e}")
 
     def _simpan_foto_ke_file(self, pixmap) -> str:
-        """
-        Menyimpan QPixmap hasil crop ke folder assets/profile_pictures/.
-        Nama file = email user (karakter khusus diganti '_') + .png
-
-        Return: path file yang disimpan (str), atau "" jika gagal.
-        """
         try:
             folder = os.path.join(_BASE_DIR, "assets", "profile_pictures")
             os.makedirs(folder, exist_ok=True)
 
             email = self.user_data.get("email", "unknown")
-            # Bersihkan karakter yang tidak aman untuk nama file
             safe_email = "".join(c if c.isalnum() or c in "-_." else "_" for c in email)
             file_path = os.path.join(folder, f"{safe_email}.png")
 
@@ -287,11 +291,6 @@ class AccountPanel(QWidget):
             return ""
 
     def _notify_foto_changed(self):
-        """
-        Beritahu SettingsWindow dan MainWindow agar avatar langsung diperbarui.
-        - SettingsWindow: avatar kecil di topbar Settings.
-        - MainWindow: avatar di navbar Homepage setelah user kembali ke Home.
-        """
         widget = self.parent()
         sudah_refresh_settings = False
         sudah_refresh_navbar = False
@@ -342,7 +341,7 @@ class AccountPanel(QWidget):
 
     @staticmethod
     def _pixmap_ke_lingkaran_blur(pixmap, size):
-        """Pixmap lingkaran dengan opacity 25% (75% blur) agar tidak tabrakan dengan icon camera."""
+        """Pixmap lingkaran dengan opacity 25% agar tidak tabrakan dengan icon camera."""
         scaled = pixmap.scaled(
             size, size,
             Qt.KeepAspectRatioByExpanding,
@@ -358,11 +357,9 @@ class AccountPanel(QWidget):
 
         painter = QPainter(hasil)
         painter.setRenderHint(QPainter.Antialiasing)
-        # Clip lingkaran
         path = QPainterPath()
         path.addEllipse(0, 0, size, size)
         painter.setClipPath(path)
-        # Gambar foto dengan opacity 25% (75% blur/transparan)
         painter.setOpacity(0.25)
         painter.drawPixmap(0, 0, scaled)
         painter.end()
@@ -380,20 +377,23 @@ class AccountPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Label kiri: Name / Bio / Email / Contact (warna #828282, size 25)
         lbl_field = QLabel(field_label)
         lbl_field.setStyleSheet("color: #828282; font-size: 25px;")
         lbl_field.setFixedWidth(180)
 
-        # Nilai field di kanan (warna hitam, size 25)
-        is_placeholder = field_value.startswith("add ")
+        placeholder_keys = {
+            lang.t("account.add_name_ph"),
+            lang.t("account.add_bio_ph"),
+            lang.t("account.add_email_ph"),
+            lang.t("account.add_contact_ph"),
+        }
+        is_placeholder = field_value in placeholder_keys
         lbl_value = QLabel(field_value)
         lbl_value.setStyleSheet(
             f"color: {'#828282' if is_placeholder else 'black'}; font-size: 25px;"
         )
         lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        # Tombol panah (W=16 H=12, warna hitam)
         btn_arrow = QPushButton()
         icon_path = _asset("next.png")
         if os.path.exists(icon_path):
@@ -411,7 +411,6 @@ class AccountPanel(QWidget):
         layout.addSpacing(8)
         layout.addWidget(btn_arrow)
 
-        # Klik baris → buka edit
         baris.mousePressEvent = lambda e, f=field_label: self.buka_panel_edit(f)
 
         return baris
@@ -437,7 +436,7 @@ class AccountPanel(QWidget):
         dialog.setModal(True)
         dialog.setWindowFlags(Qt.Dialog | Qt.FramelessWindowHint)
         dialog.setAttribute(Qt.WA_TranslucentBackground)
-        dialog.setFixedSize(780, 430 if field == "Bio" else 370)
+        dialog.setFixedSize(780, 430 if field == lang.t("account.bio") else 370)
 
         root = QVBoxLayout(dialog)
         root.setContentsMargins(10, 10, 10, 10)
@@ -470,16 +469,10 @@ class AccountPanel(QWidget):
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet("""
             QPushButton {
-                background: transparent;
-                border: none;
-                padding: 0px;
+                background: transparent; border: none; padding: 0px;
             }
-            QPushButton:hover {
-                background: transparent;
-            }
-            QPushButton:pressed {
-                background: transparent;
-            }
+            QPushButton:hover { background: transparent; }
+            QPushButton:pressed { background: transparent; }
         """)
         arrow_path = _asset("arrow_back.png")
         if os.path.exists(arrow_path):
@@ -491,17 +484,15 @@ class AccountPanel(QWidget):
         btn_back.clicked.connect(dialog.reject)
 
         judul_map = {
-            "Name": "Name",
-            "Bio": "Bio",
-            "Email": "Add an email",
-            "Contact": "Add phone",
+            lang.t("account.name"):    lang.t("account.name"),
+            lang.t("account.bio"):     lang.t("account.bio"),
+            lang.t("account.email"):   lang.t("account.add_email"),
+            lang.t("account.contact"): lang.t("account.add_phone"),
         }
         lbl_judul = QLabel(judul_map.get(field, field))
         lbl_judul.setStyleSheet(f"""
-            font-size: 34px;
-            font-weight: bold;
-            color: {COLOR_TEXT_PRIMARY};
-            background: transparent;
+            font-size: 34px; font-weight: bold;
+            color: {COLOR_TEXT_PRIMARY}; background: transparent;
         """)
 
         top_row.addWidget(btn_back)
@@ -509,57 +500,44 @@ class AccountPanel(QWidget):
         top_row.addStretch()
         layout.addLayout(top_row)
 
-        # ── Description text ──
-        if field == "Email":
+        # ── Description popup edit pakai lang.t() ──
+        if field == lang.t("account.email"):
             if self.role == ROLE_ORGANIZER:
-                teks_ket = ("Enter a professional email address for audiences to send "
-                            "formal inquiries and event booking requests. Make sure this "
-                            "email is active so you don't miss formal inquiries and booking requests.")
+                teks_ket = lang.t("account.email_desc_organizer")
             else:
-                teks_ket = ("Enter your email address to receive important notifications, "
-                            "e-tickets, and updates from event organizers. Please enter a valid "
-                            "email address to ensure your e-tickets and event notifications are delivered successfully.")
-        elif field == "Contact":
+                teks_ket = lang.t("account.email_desc_user")
+        elif field == lang.t("account.contact"):
             if self.role == ROLE_ORGANIZER:
-                teks_ket = ("Add a phone number so audiences can easily reach out to book your events "
-                            "or ask for collaborations. Please ensure your phone number is correct.")
+                teks_ket = lang.t("account.contact_desc_organizer")
             else:
-                teks_ket = ("Add your phone number so event organizers can contact you regarding event "
-                            "updates or registration details. Double-check your number to ensure organizers can reach you.")
-        elif field == "Name":
-            teks_ket = "Your name can only be changed once every 30 days"
+                teks_ket = lang.t("account.contact_desc_user")
+        elif field == lang.t("account.name"):
+            teks_ket = lang.t("account.name_desc")
         else:
-            teks_ket = "You can edit your bio anytime."
+            teks_ket = lang.t("account.bio_desc")
 
         lbl_ket = QLabel(teks_ket)
         lbl_ket.setWordWrap(True)
-        lbl_ket.setStyleSheet(f"""
-            font-size: 16px;
-            color: {COLOR_TEXT_MUTED};
-            background: transparent;
-        """)
+        lbl_ket.setStyleSheet(f"font-size: 16px; color: {COLOR_TEXT_MUTED}; background: transparent;")
         layout.addWidget(lbl_ket)
         layout.addSpacing(8)
 
-        batas = {"Name": 30, "Bio": 160}.get(field, None)
+        batas = {lang.t("account.name"): 30, lang.t("account.bio"): 160}.get(field, None)
         input_widget = None
         lbl_counter = None
         lbl_warning = None
         input_frame = None
 
         # ── Input area ──
-        if field == "Bio":
+        if field == lang.t("account.bio"):
             input_widget = QTextEdit()
-            input_widget.setPlaceholderText("My account is all about....")
+            input_widget.setPlaceholderText(lang.t("account.bio_placeholder"))
             input_widget.setText(self.user_data.get("bio", ""))
             input_widget.setStyleSheet(f"""
                 QTextEdit {{
                     background-color: {COLOR_GRAY_LIGHT};
-                    border-radius: 16px;
-                    border: 2px solid transparent;
-                    padding: 16px;
-                    font-size: 18px;
-                    color: #333333;
+                    border-radius: 16px; border: 2px solid transparent;
+                    padding: 16px; font-size: 18px; color: #333333;
                 }}
             """)
             input_widget.setFixedHeight(180)
@@ -575,8 +553,7 @@ class AccountPanel(QWidget):
             input_frame.setStyleSheet(f"""
                 QFrame#input_frame {{
                     background-color: {COLOR_GRAY_LIGHT};
-                    border-radius: 14px;
-                    border: 2px solid transparent;
+                    border-radius: 14px; border: 2px solid transparent;
                 }}
             """)
             input_frame.setFixedHeight(64)
@@ -585,25 +562,22 @@ class AccountPanel(QWidget):
             frame_layout.setContentsMargins(16, 0, 12, 0)
             frame_layout.setSpacing(8)
 
-            if field == "Contact":
+            if field == lang.t("account.contact"):
                 lbl_prefix = QLabel("+62  |")
                 lbl_prefix.setStyleSheet(f"""
-                    color: {COLOR_TEXT_PRIMARY};
-                    font-size: 18px;
-                    font-weight: bold;
-                    padding-right: 4px;
-                    background: transparent;
+                    color: {COLOR_TEXT_PRIMARY}; font-size: 18px; font-weight: bold;
+                    padding-right: 4px; background: transparent;
                 """)
                 frame_layout.addWidget(lbl_prefix)
 
             placeholder = {
-                "Name": "Add your preferred name",
-                "Email": "Enter your email",
-                "Contact": "Enter phone number",
+                lang.t("account.name"):    lang.t("account.add_name"),
+                lang.t("account.email"):   lang.t("account.email_placeholder"),
+                lang.t("account.contact"): lang.t("account.phone_placeholder"),
             }.get(field, f"Edit {field}")
 
             input_widget = QLineEdit()
-            if field == "Contact":
+            if field == lang.t("account.contact"):
                 input_widget.setMaxLength(13)
                 input_widget.textChanged.connect(
                     lambda text: input_widget.setText("".join(ch for ch in text if ch.isdigit()))
@@ -612,14 +586,13 @@ class AccountPanel(QWidget):
                 )
             input_widget.setPlaceholderText(placeholder)
             input_widget.setStyleSheet("""
-                QLineEdit {
-                    background: transparent;
-                    border: none;
-                    font-size: 18px;
-                    color: #333333;
-                }
+                QLineEdit { background: transparent; border: none; font-size: 18px; color: #333333; }
             """)
-            key_map = {"Name": "nama", "Email": "email", "Contact": "kontak"}
+            key_map = {
+                lang.t("account.name"):    "nama",
+                lang.t("account.email"):   "email",
+                lang.t("account.contact"): "kontak",
+            }
             input_widget.setText(self.user_data.get(key_map.get(field, ""), ""))
 
             btn_clear = QPushButton()
@@ -653,7 +626,7 @@ class AccountPanel(QWidget):
                 warning_path = _asset("warning.png")
                 if os.path.exists(warning_path):
                     w_icon.setPixmap(QIcon(warning_path).pixmap(QSize(14, 14)))
-                w_text = QLabel("Character limit reached")
+                w_text = QLabel(lang.t("account.char_limit_reached"))
                 w_text.setStyleSheet("font-size: 16px; color: #E05C5C; background: transparent;")
                 w_layout.addWidget(w_icon)
                 w_layout.addWidget(w_text)
@@ -668,7 +641,7 @@ class AccountPanel(QWidget):
         bottom_row.setContentsMargins(0, 6, 0, 0)
         bottom_row.setSpacing(10)
 
-        lbl_notif_tengah = QLabel("Character limit exceeded")
+        lbl_notif_tengah = QLabel(lang.t("account.char_limit_exceeded"))
         lbl_notif_tengah.setStyleSheet("font-size: 16px; color: #E05C5C; background: transparent;")
         lbl_notif_tengah.setAlignment(Qt.AlignCenter)
         lbl_notif_tengah.setVisible(False)
@@ -681,14 +654,11 @@ class AccountPanel(QWidget):
         lbl_error.setWordWrap(True)
         lbl_error.hide()
         lbl_error.setStyleSheet("""
-            color: #D65C5C;
-            font-size: 14px;
-            font-weight: 500;
-            background: transparent;
+            color: #D65C5C; font-size: 14px; font-weight: 500; background: transparent;
         """)
         layout.addWidget(lbl_error)
-        
-        btn_save = QPushButton("Save")
+
+        btn_save = QPushButton(lang.t("btn.save"))
         btn_save.setCursor(Qt.PointingHandCursor)
         btn_save.setEnabled(False)
         btn_save.setFixedHeight(44)
@@ -696,34 +666,23 @@ class AccountPanel(QWidget):
 
         SAVE_DISABLED = """
             QPushButton {
-                background-color: rgba(81,100,101,0.22);
-                color: rgba(81,100,101,0.55);
-                border: none;
-                border-radius: 22px;
-                padding: 10px 28px;
-                font-size: 17px;
-                font-weight: bold;
+                background-color: rgba(81,100,101,0.22); color: rgba(81,100,101,0.55);
+                border: none; border-radius: 22px; padding: 10px 28px;
+                font-size: 17px; font-weight: bold;
             }
         """
         SAVE_ACTIVE = """
             QPushButton {
-                background: #516465;
-                color: white;
-                font-size: 18px;
-                font-weight: bold;
-                border: none;
-                border-radius: 22px;
-                padding: 10px 28px;
+                background: #516465; color: white; font-size: 18px; font-weight: bold;
+                border: none; border-radius: 22px; padding: 10px 28px;
             }
-            QPushButton:hover {
-                background: #405354;
-            }
+            QPushButton:hover { background: #405354; }
         """
         btn_save.setStyleSheet(SAVE_DISABLED)
         btn_save.clicked.connect(
             lambda: self.simpan_edit(
                 field,
-                input_widget.toPlainText() if field == "Bio" else input_widget.text(),
+                input_widget.toPlainText() if field == lang.t("account.bio") else input_widget.text(),
                 dialog
             )
         )
@@ -735,7 +694,7 @@ class AccountPanel(QWidget):
         layout.addLayout(bottom_row)
 
         def on_text_changed():
-            if field == "Bio":
+            if field == lang.t("account.bio"):
                 nilai = input_widget.toPlainText().strip()
             else:
                 nilai = input_widget.text().strip()
@@ -743,10 +702,10 @@ class AccountPanel(QWidget):
             boleh_save = bool(nilai)
 
             valid, pesan_error = self._validasi_input_edit(field, nilai)
-            if field in ["Email", "Contact"] and nilai:
+            if field in [lang.t("account.email"), lang.t("account.contact")] and nilai:
                 boleh_save = boleh_save and valid
 
-            if field in ["Email", "Contact"] and pesan_error and nilai:
+            if field in [lang.t("account.email"), lang.t("account.contact")] and pesan_error and nilai:
                 lbl_error.setText(pesan_error)
                 lbl_error.show()
             else:
@@ -755,7 +714,7 @@ class AccountPanel(QWidget):
             btn_save.setEnabled(boleh_save)
             btn_save.setStyleSheet(SAVE_ACTIVE if boleh_save else SAVE_DISABLED)
 
-        if field == "Bio":
+        if field == lang.t("account.bio"):
             input_widget.textChanged.connect(on_text_changed)
         else:
             input_widget.textChanged.connect(lambda _: on_text_changed())
@@ -776,17 +735,19 @@ class AccountPanel(QWidget):
 
         valid, pesan_error = self._validasi_input_edit(field, nilai_baru)
         if not valid:
-            QMessageBox.warning(self, "Invalid Input", pesan_error)
+            QMessageBox.warning(self, lang.t("account.invalid_input"), pesan_error)
             return
-        
+
         field_ke_key = {
-            "Name": "nama", "Bio": "bio", "Email": "email", "Contact": "kontak",
+            lang.t("account.name"):    "nama",
+            lang.t("account.bio"):     "bio",
+            lang.t("account.email"):   "email",
+            lang.t("account.contact"): "kontak",
         }
         key = field_ke_key.get(field)
         if key:
             self.user_data[key] = nilai_baru
 
-        # Simpan ke database
         email = self.user_data.get("email", "")
         if email:
             try:
@@ -800,20 +761,16 @@ class AccountPanel(QWidget):
             except Exception as db_err:
                 print(f"[AccountPanel] Gagal simpan ke DB: {db_err}")
 
-        # Jika nama diubah, beritahu main_window untuk update greeting
-        if field == "Name":
+        if field == lang.t("account.name"):
             self._notify_nama_changed()
         if dialog is not None:
-            dialog.accept()   
+            dialog.accept()
         else:
             self.tutup_panel_edit()
         self._render_account()
 
     def _notify_nama_changed(self):
-        """
-        Beritahu main_window agar teks greeting di navbar diperbarui
-        sesuai nama terbaru user.
-        """
+        """Beritahu main_window agar teks greeting di navbar diperbarui."""
         widget = self.parent()
         while widget is not None:
             if hasattr(widget, "refresh_greeting_navbar"):
@@ -824,28 +781,28 @@ class AccountPanel(QWidget):
     def _validasi_input_edit(self, field, nilai):
         nilai = (nilai or "").strip()
 
-        if field == "Email":
+        if field == lang.t("account.email"):
             if not nilai:
-                return False, "Email cannot be empty."
+                return False, lang.t("account.err_email_empty")
 
             pola_email = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
             if not re.match(pola_email, nilai):
-                return False, "Please enter a valid email address!"
+                return False, lang.t("account.err_email_invalid")
 
             return True, ""
 
-        if field == "Contact":
+        if field == lang.t("account.contact"):
             if not nilai:
-                return False, "Phone number cannot be empty."
+                return False, lang.t("account.err_phone_empty")
 
             if not nilai.isdigit():
-                return False, "Phone number can only contain numbers."
+                return False, lang.t("account.err_phone_digits_only")
 
             if not nilai.startswith("8"):
-                return False, "Phone number must start with 8 after +62."
+                return False, lang.t("account.err_phone_start_8")
 
             if len(nilai) < 9 or len(nilai) > 13:
-                return False, "Phone number must be 9–13 digits after +62."
+                return False, lang.t("account.err_phone_length")
 
             return True, ""
 
@@ -859,7 +816,8 @@ class CropDialog(QDialog):
 
     def __init__(self, pixmap_asli, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Crop Foto Profil")
+        # FIX #8 — window title pakai lang.t()
+        self.setWindowTitle(lang.t("account.crop_profile_title"))
         self.setFixedSize(700, 560)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setModal(True)
@@ -921,7 +879,7 @@ class CropDialog(QDialog):
         kiri = QVBoxLayout()
         kiri.setSpacing(8)
 
-        lbl_petunjuk = QLabel("Geser kotak untuk memilih area foto  •  Scroll untuk zoom")
+        lbl_petunjuk = QLabel(lang.t("account.crop_hint"))
         lbl_petunjuk.setStyleSheet("font-size: 16px; color: #9AABAB;")
         lbl_petunjuk.setAlignment(Qt.AlignCenter)
         kiri.addWidget(lbl_petunjuk)
@@ -935,7 +893,7 @@ class CropDialog(QDialog):
         kiri.addWidget(self._canvas)
 
         zoom_row = QHBoxLayout()
-        lbl_zoom = QLabel("Zoom")
+        lbl_zoom = QLabel(lang.t("account.zoom"))
         lbl_zoom.setStyleSheet("font-size: 16px; color: #9AABAB; min-width:36px;")
         self._slider_zoom = QSlider(Qt.Horizontal)
         self._slider_zoom.setRange(0, 400)
@@ -952,7 +910,7 @@ class CropDialog(QDialog):
         kanan.setSpacing(12)
         kanan.setAlignment(Qt.AlignTop)
 
-        lbl_preview_title = QLabel("Preview")
+        lbl_preview_title = QLabel(lang.t("account.preview"))
         lbl_preview_title.setStyleSheet("font-size: 13px; font-weight: bold;")
         lbl_preview_title.setAlignment(Qt.AlignCenter)
         kanan.addWidget(lbl_preview_title)
@@ -964,7 +922,7 @@ class CropDialog(QDialog):
         kanan.addWidget(self._lbl_preview, alignment=Qt.AlignHCenter)
         kanan.addSpacing(12)
 
-        lbl_rasio = QLabel("Crop ratio")
+        lbl_rasio = QLabel(lang.t("account.crop_ratio"))
         lbl_rasio.setStyleSheet("font-size: 16px; color: #9AABAB;")
         lbl_rasio.setAlignment(Qt.AlignCenter)
         kanan.addWidget(lbl_rasio)
@@ -972,7 +930,7 @@ class CropDialog(QDialog):
         rasio_row = QHBoxLayout()
         rasio_row.setSpacing(6)
         self._btn_11   = QPushButton("1 : 1")
-        self._btn_free = QPushButton("Free")
+        self._btn_free = QPushButton(lang.t("account.free_crop"))
         for btn in (self._btn_11, self._btn_free):
             btn.setFixedWidth(70)
             btn.setFixedHeight(30)
@@ -985,7 +943,7 @@ class CropDialog(QDialog):
         kanan.addLayout(rasio_row)
         kanan.addStretch()
 
-        self._btn_confirm = QPushButton("Confirm")
+        self._btn_confirm = QPushButton(lang.t("btn.confirm"))
         self._btn_confirm.setFixedHeight(40)
         self._btn_confirm.setStyleSheet(f"""
             QPushButton {{ background-color: {COLOR_TEAL_DARK}; color: white; }}
@@ -993,7 +951,7 @@ class CropDialog(QDialog):
         """)
         self._btn_confirm.clicked.connect(self._on_confirm)
 
-        btn_cancel = QPushButton("Cancel")
+        btn_cancel = QPushButton(lang.t("btn.cancel"))
         btn_cancel.setFixedHeight(40)
         btn_cancel.setStyleSheet("""
             QPushButton { background-color: #3E4F50; color: white; }
@@ -1054,7 +1012,7 @@ class CropDialog(QDialog):
         cx, cy = int(self._crop_x), int(self._crop_y)
         cw, ch = int(self._crop_w), int(self._crop_h)
         overlay_color = QColor(0, 0, 0, 140)
-        p.fillRect(0,  0,           self._canvas_w, cy,            overlay_color)
+        p.fillRect(0,  0,           self._canvas_w, cy,             overlay_color)
         p.fillRect(0,  cy + ch,     self._canvas_w, self._canvas_h, overlay_color)
         p.fillRect(0,  cy,          cx, ch,                         overlay_color)
         p.fillRect(cx + cw, cy,     self._canvas_w, ch,             overlay_color)

@@ -33,6 +33,7 @@ from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 
 # os = library untuk mengakses sistem file
 import os
+from language_manager import lang
 
 
 # ==============================================================
@@ -107,7 +108,7 @@ class PosterUploadDialog(QDialog):
         judul_layout = QHBoxLayout()
 
         # Judul "Upload Poster Event"
-        self.judul_label = QLabel("Upload Poster Event")
+        self.judul_label = QLabel(lang.t("upload.title"))
         self.judul_label.setObjectName("judul_label")
         font_judul = QFont("Inter SemiBold", 16)
         font_judul.setWeight(QFont.DemiBold)
@@ -119,7 +120,7 @@ class PosterUploadDialog(QDialog):
         self.btn_close.setObjectName("btn_close")
         self.btn_close.setFixedSize(28, 28)
         self.btn_close.clicked.connect(self.reject)
-        
+
         judul_layout.addWidget(self.judul_label)
         judul_layout.addStretch()
         judul_layout.addWidget(self.btn_close)
@@ -147,17 +148,17 @@ class PosterUploadDialog(QDialog):
         self.icon_label.setAlignment(Qt.AlignCenter)
 
         # Teks utama area upload
-        self.upload_text = QLabel("Click to upload poster")
+        self.upload_text = QLabel(lang.t("upload.click"))
         self.upload_text.setObjectName("upload_text")
         self.upload_text.setAlignment(Qt.AlignCenter)
 
         # Teks keterangan format file yang diterima
-        self.format_text = QLabel("PNG, JPG max 5MB")
+        self.format_text = QLabel(lang.t("upload.format"))
         self.format_text.setObjectName("format_text")
         self.format_text.setAlignment(Qt.AlignCenter)
 
         # Teks keterangan rasio yang direkomendasikan
-        self.rasio_text = QLabel("Portrait ratio recommended")
+        self.rasio_text = QLabel(lang.t("upload.ratio"))
         self.rasio_text.setObjectName("rasio_text")
         self.rasio_text.setAlignment(Qt.AlignCenter)
 
@@ -216,12 +217,12 @@ class PosterUploadDialog(QDialog):
         progress_layout.addWidget(self.progress_persen)
 
         # Teks "Mengupload..." sebagai status proses
-        self.uploading_status = QLabel("Uploading...")
+        self.uploading_status = QLabel(lang.t("upload.uploading"))
         self.uploading_status.setObjectName("uploading_status")
         self.uploading_status.setAlignment(Qt.AlignCenter)
 
         # Teks "Jangan tutup halaman ini" saat uploading
-        self.uploading_info = QLabel("Don't close this window")
+        self.uploading_info = QLabel(lang.t("upload.dont_close"))
         self.uploading_info.setObjectName("uploading_info")
         self.uploading_info.setAlignment(Qt.AlignCenter)
 
@@ -249,16 +250,16 @@ class PosterUploadDialog(QDialog):
         preview_layout.setSpacing(6)
         preview_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Status berhasil diupload (centang hijau)
-        self.status_label = QLabel("✓ Successfully uploaded")
+        # Status berhasil diupload (centang hijau) — dari lang.t()
+        self.status_label = QLabel(lang.t("upload.success_uploaded"))
         self.status_label.setObjectName("status_label")
         self.status_label.setAlignment(Qt.AlignLeft)
 
         # Label untuk menampilkan preview gambar
         self.preview_label = QLabel()
         self.preview_label.setObjectName("preview_label")
-        self.preview_label.setMinimumHeight(300)  # lebih tinggi
-        self.preview_label.setMaximumHeight(400)  # batas maksimal
+        self.preview_label.setMinimumHeight(300)
+        self.preview_label.setMaximumHeight(400)
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setScaledContents(True)
 
@@ -293,7 +294,7 @@ class PosterUploadDialog(QDialog):
         btn_layout.setSpacing(8)
 
         # Tombol Batal — menutup dialog tanpa memilih gambar
-        self.btn_batal = QPushButton("Cancel")
+        self.btn_batal = QPushButton(lang.t("btn.cancel"))
         self.btn_batal.setObjectName("btn_batal")
 
         # Saat diklik → tutup dialog (reject = tutup tanpa hasil)
@@ -301,8 +302,7 @@ class PosterUploadDialog(QDialog):
         self.btn_batal.setCursor(Qt.PointingHandCursor)
 
         # Tombol Upload — disabled dulu sebelum ada gambar
-        # Teksnya berubah sesuai state
-        self.btn_upload = QPushButton("Upload")
+        self.btn_upload = QPushButton(lang.t("upload.upload"))
         self.btn_upload.setObjectName("btn_upload")
 
         # Disabled dulu karena belum ada gambar yang dipilih
@@ -328,7 +328,7 @@ class PosterUploadDialog(QDialog):
         # Hanya menampilkan file PNG dan JPG sesuai mockup
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Select Event Poster",
+            lang.t("upload.select_poster"),
             "",
             "Image Files (*.png *.jpg *.jpeg)"
         )
@@ -337,11 +337,9 @@ class PosterUploadDialog(QDialog):
         if file_path:
 
             # Cek ukuran file maksimal 5MB
-            # os.path.getsize() = ambil ukuran file dalam bytes
-            # 5 * 1024 * 1024 = 5MB dalam bytes
             ukuran = os.path.getsize(file_path)
             if ukuran > 5 * 1024 * 1024:
-                self.upload_text.setText("❌ File too large! Max 5MB")
+                self.upload_text.setText(lang.t("upload.file_too_large"))
                 return
 
             # Simpan path gambar yang dipilih
@@ -365,8 +363,8 @@ class PosterUploadDialog(QDialog):
         nama_file = os.path.basename(file_path)
         self.uploading_filename.setText(nama_file)
 
-        # Ganti teks tombol jadi "Mengupload..."
-        self.btn_upload.setText("Uploading...")
+        # Ganti teks tombol jadi teks "Uploading..." dari lang.t()
+        self.btn_upload.setText(lang.t("upload.uploading"))
         self.btn_upload.setEnabled(False)
 
         # Reset progress ke 0 sebelum mulai
@@ -429,13 +427,13 @@ class PosterUploadDialog(QDialog):
         # Tampilkan state Preview
         self.preview_widget.show()
 
-        # Aktifkan tombol dan ganti teksnya
+        # Aktifkan tombol dan ganti teksnya dari lang.t()
         self.btn_upload.setEnabled(True)
-        self.btn_upload.setText("Use This Photo ✓")
+        self.btn_upload.setText(lang.t("upload.use_photo"))
 
         # Ganti tombol Batal menjadi Ganti Foto
         # Saat diklik → kembali ke state Default
-        self.btn_batal.setText("Change Photo")
+        self.btn_batal.setText(lang.t("upload.change_photo"))
         self.btn_batal.setCursor(Qt.PointingHandCursor)
         self.btn_batal.clicked.disconnect()
         self.btn_batal.clicked.connect(self.ganti_foto)
@@ -454,11 +452,11 @@ class PosterUploadDialog(QDialog):
         # Tampilkan kembali state Default
         self.upload_area.show()
 
-        # Reset tombol ke kondisi awal
-        self.btn_batal.setText("Cancel")
+        # Reset tombol ke kondisi awal dari lang.t()
+        self.btn_batal.setText(lang.t("btn.cancel"))
         self.btn_batal.clicked.disconnect()
         self.btn_batal.clicked.connect(self.reject)
-        self.btn_upload.setText("Upload")
+        self.btn_upload.setText(lang.t("upload.upload"))
         self.btn_upload.setEnabled(False)
 
         # Reset path gambar

@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import *
+from language_manager import lang
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
@@ -92,7 +93,7 @@ class FAQPage(QWidget):
         layout.setSpacing(18)
 
         # TITLE
-        title = QLabel("Frequently Asked Questions")
+        title = QLabel(lang.t("faq.title"))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("""
             font-size: 34px;
@@ -100,7 +101,7 @@ class FAQPage(QWidget):
             color: #516465;
         """)
 
-        subtitle = QLabel("Pusat Bantuan Campus Connect")
+        subtitle = QLabel(lang.t("faq.subtitle"))
         subtitle.setAlignment(Qt.AlignCenter)
         subtitle.setStyleSheet("""
             font-size: 16px;
@@ -123,24 +124,24 @@ class FAQPage(QWidget):
 
         faqs = [
             (
-                "Apa itu Campus Connect?",
-                "Campus Connect adalah aplikasi desktop yang membantu mahasiswa menemukan informasi event kampus secara cepat, mudah, dan terpusat."
+                lang.t("faq.q1"),
+                lang.t("faq.a1")
             ),
             (
-                "Bagaimana cara menambahkan event?",
-                "Pengguna dapat menambahkan event melalui menu Add Event pada bagian kanan atas aplikasi."
+                lang.t("faq.q4"),
+                lang.t("faq.a4")
             ),
             (
-                "Apakah saya harus login terlebih dahulu?",
-                "Beberapa fitur tertentu mungkin memerlukan proses login terlebih dahulu untuk keamanan akun."
+                lang.t("faq.q2"),
+                lang.t("faq.a2")
             ),
             (
-                "Apakah bisa melihat event yang akan datang?",
-                "Ya, seluruh event yang akan datang dapat dilihat langsung pada halaman utama aplikasi."
+                lang.t("faq.q3"),
+                lang.t("faq.a3")
             ),
             (
-                "Siapa pengembang aplikasi ini?",
-                "Aplikasi ini dikembangkan oleh kelompok A5 Informatika POLBAN sebagai proyek pengembangan perangkat lunak."
+                lang.t("faq.q5"),
+                lang.t("faq.a5")
             )
         ]
 
@@ -155,7 +156,7 @@ class FAQPage(QWidget):
                 line.setStyleSheet("background-color: rgba(80,100,100,0.12); border: none;")
                 card_layout.addWidget(line)
 
-        footer = QLabel("© 2026 Campus Connect Team")
+        footer = QLabel(lang.t("faq.footer"))
         footer.setAlignment(Qt.AlignCenter)
         footer.setStyleSheet("""
             font-size: 12px;

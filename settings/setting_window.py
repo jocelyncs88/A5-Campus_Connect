@@ -2,6 +2,11 @@
 # FILE: settings/setting_window.py
 # Settings container for Campus Connect.
 # Routes EO edit submissions into admin approval requests.
+#
+# FIX MULTILINGUAL (3 titik):
+#   1. Popup sukses request edit event → lang.t(...)
+#   2. Popup error database → lang.t(...)
+#   3. buat_panel_notif() → semua string hardcoded pakai lang.t(...)
 # ==============================================================
 
 import os
@@ -417,10 +422,20 @@ class SettingsWindow(QWidget):
             }
 
             db_manager.create_event_update_request(request_payload)
-            _show_message("info", "Request Terkirim",
-                          "Perubahan event sudah dikirim ke admin untuk divalidasi.")
+
+            # FIX #1 — popup sukses pakai lang.t()
+            _show_message(
+                "info",
+                lang.t("settings.request_sent_title"),
+                lang.t("settings.request_sent_body"),
+            )
         except Exception as exc:
-            _show_message("warn", "Error Database", f"Gagal mengirim request perubahan:\n{exc}")
+            # FIX #2 — popup error database pakai lang.t()
+            _show_message(
+                "warn",
+                lang.t("settings.db_error_title"),
+                f"{lang.t('settings.db_error_body')}\n{exc}",
+            )
             return
 
         self._tutup_edit_event(panel)
@@ -428,32 +443,39 @@ class SettingsWindow(QWidget):
             self.panel_your_events._render()
 
     def buat_panel_notif(self):
+        """
+        Legacy panel — sudah digantikan oleh NotificationsPanel.
+        Tetap diterjemahkan agar tidak ada string hardcoded tersisa
+        kalau suatu saat method ini masih dipanggil.
+        """
         panel = QWidget()
         panel.setStyleSheet("background: transparent;")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(50, 40, 50, 40)
         layout.setSpacing(16)
 
-        lbl_judul = QLabel("Notifications")
+        lbl_judul = QLabel(lang.t("notif.title"))
         lbl_judul.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};")
         layout.addWidget(lbl_judul)
 
+        # FIX #3 — deskripsi per-role pakai lang.t()
         if self.role == ROLE_ORGANIZER:
-            deskripsi = "Atur kapan kamu ingin mendapat notifikasi tentang pendaftar event yang kamu buat."
+            deskripsi = lang.t("notif.desc_organizer")
         elif self.role == ROLE_MAHASISWA:
-            deskripsi = "Atur kapan kamu ingin mendapat pengingat untuk event yang kamu ikuti."
+            deskripsi = lang.t("notif.desc_mahasiswa")
         else:
-            deskripsi = "Atur preferensi notifikasi umum kamu di sini."
+            deskripsi = lang.t("notif.desc_umum")
 
         lbl_info = QLabel(deskripsi)
         lbl_info.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; font-size: 13px;")
         lbl_info.setWordWrap(True)
         layout.addWidget(lbl_info)
 
+        # FIX #3 — judul & deskripsi SettingItem pakai lang.t()
         layout.addWidget(
             SettingItem(
-                judul="New registrant",
-                deskripsi="Get alerts every time a user registers",
+                judul=lang.t("notif.item_registrant_title"),
+                deskripsi=lang.t("notif.item_registrant_desc"),
                 nama_setting="notif_registrant",
                 default_on=True,
             )

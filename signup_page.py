@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import (
     QGraphicsDropShadowEffect, QSizePolicy, QMessageBox
 )
 
+from language_manager import lang
+
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QEvent
 from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon
 import os
@@ -44,6 +46,8 @@ class SignUpPage(QWidget):
 
         # Apply stylesheet
         self.apply_style()
+        self._retranslate()
+        lang.language_changed.connect(self._retranslate)
 
         # Shadow effect untuk card
         shadow = QGraphicsDropShadowEffect()
@@ -107,8 +111,8 @@ class SignUpPage(QWidget):
         left_layout.addWidget(self.logo_label)
         left_layout.addSpacing(50)
 
-        # BIG TEXT
-        self.big_text = QLabel("Create your\nstudent account")
+        # BIG TEXT — dikosongkan, diisi oleh _retranslate()
+        self.big_text = QLabel()
         self.big_text.setObjectName("big_text")
         self.big_text.setAlignment(Qt.AlignCenter)
         self.big_text.setWordWrap(True)
@@ -122,12 +126,8 @@ class SignUpPage(QWidget):
         left_layout.addWidget(self.big_text)
         left_layout.addSpacing(20)
 
-        # SUBTEXT
-        self.sub_text = QLabel(
-            "Fill in your information below\n"
-            "to create your student account."
-        )
-
+        # SUBTEXT — dikosongkan, diisi oleh _retranslate()
+        self.sub_text = QLabel()
         self.sub_text.setObjectName("sub_text")
         self.sub_text.setAlignment(Qt.AlignCenter)
 
@@ -175,8 +175,8 @@ class SignUpPage(QWidget):
         right_layout.setContentsMargins(50, 30, 50, 30)
         right_layout.setSpacing(8)
 
-        # TITLE
-        self.title = QLabel("Sign Up")
+        # TITLE — dikosongkan, diisi oleh _retranslate()
+        self.title = QLabel()
         self.title.setObjectName("title")
         self.title.setAlignment(Qt.AlignCenter)
 
@@ -187,11 +187,8 @@ class SignUpPage(QWidget):
 
         right_layout.addWidget(self.title)
 
-        # SUBTITLE
-        self.subtitle = QLabel(
-            "Create your student account to get started"
-        )
-
+        # SUBTITLE — dikosongkan, diisi oleh _retranslate()
+        self.subtitle = QLabel()
         self.subtitle.setObjectName("subtitle")
         self.subtitle.setAlignment(Qt.AlignCenter)
 
@@ -211,7 +208,7 @@ class SignUpPage(QWidget):
         # FULL NAME
         # ======================================================
 
-        self.label_name = QLabel("Full Name")
+        self.label_name = QLabel()
         self.label_name.setObjectName("label_field")
         self.label_name.setFont(label_font)
 
@@ -219,7 +216,6 @@ class SignUpPage(QWidget):
 
         self.input_name = QLineEdit()
         self.input_name.setObjectName("input_field")
-        self.input_name.setPlaceholderText("Enter your full name")
         self.input_name.setFixedHeight(48)
         self.input_name.setFont(input_font)
         self.input_name.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -231,7 +227,7 @@ class SignUpPage(QWidget):
         # EMAIL
         # ======================================================
 
-        self.label_email = QLabel("Email Address")
+        self.label_email = QLabel()
         self.label_email.setObjectName("label_field")
         self.label_email.setFont(label_font)
 
@@ -239,7 +235,6 @@ class SignUpPage(QWidget):
 
         self.input_email = QLineEdit()
         self.input_email.setObjectName("input_field")
-        self.input_email.setPlaceholderText("Enter your email address")
         self.input_email.setFixedHeight(48)
         self.input_email.setFont(input_font)
         self.input_email.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -262,13 +257,12 @@ class SignUpPage(QWidget):
         phone_layout = QVBoxLayout()
         phone_layout.setSpacing(6)
 
-        self.label_phone = QLabel("Phone Number")
+        self.label_phone = QLabel()
         self.label_phone.setObjectName("label_field")
         self.label_phone.setFont(label_font)
 
         self.input_phone = QLineEdit()
         self.input_phone.setObjectName("input_field")
-        self.input_phone.setPlaceholderText("Enter your phone number")
         self.input_phone.setFixedHeight(48)
         self.input_phone.setFont(input_font)
         self.input_phone.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -283,13 +277,12 @@ class SignUpPage(QWidget):
         university_layout = QVBoxLayout()
         university_layout.setSpacing(6)
 
-        self.label_university = QLabel("University")
+        self.label_university = QLabel()
         self.label_university.setObjectName("label_field")
         self.label_university.setFont(label_font)
 
         self.input_university = QLineEdit()
         self.input_university.setObjectName("input_field")
-        self.input_university.setPlaceholderText("Enter your university")
         self.input_university.setFixedHeight(48)
         self.input_university.setFont(input_font)
         self.input_university.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -311,7 +304,7 @@ class SignUpPage(QWidget):
         # PASSWORD INPUT + EYE BUTTON
         # =========================================
 
-        self.label_password = QLabel("Password")
+        self.label_password = QLabel()
         self.label_password.setObjectName("label_field")
         self.label_password.setFont(label_font)
         right_layout.addWidget(self.label_password)
@@ -324,7 +317,6 @@ class SignUpPage(QWidget):
 
         self.input_password = QLineEdit()
         self.input_password.setObjectName("input_password")
-        self.input_password.setPlaceholderText("Create password")
         self.input_password.setEchoMode(QLineEdit.Password)
         self.input_password.setFixedHeight(48)
         self.input_password.setFont(input_font)
@@ -357,7 +349,7 @@ class SignUpPage(QWidget):
         # CONFIRM PASSWORD + EYE BUTTON
         # =========================================
 
-        self.label_confirm = QLabel("Confirm Password")
+        self.label_confirm = QLabel()
         self.label_confirm.setObjectName("label_field")
         self.label_confirm.setFont(label_font)
         right_layout.addWidget(self.label_confirm)
@@ -370,7 +362,6 @@ class SignUpPage(QWidget):
 
         self.input_confirm = QLineEdit()
         self.input_confirm.setObjectName("input_password")
-        self.input_confirm.setPlaceholderText("Confirm your password")
         self.input_confirm.setEchoMode(QLineEdit.Password)
         self.input_confirm.setFixedHeight(48)
         self.input_confirm.setFont(input_font)
@@ -400,10 +391,10 @@ class SignUpPage(QWidget):
         right_layout.addSpacing(20)
 
         # ======================================================
-        # BUTTON SIGN UP
+        # BUTTON SIGN UP — dikosongkan, diisi oleh _retranslate()
         # ======================================================
 
-        self.btn_signup = QPushButton("Sign Up")
+        self.btn_signup = QPushButton()
         self.btn_signup.setObjectName("btn_signup")
         self.btn_signup.setFixedHeight(48)
         self.btn_signup.setCursor(Qt.PointingHandCursor)
@@ -415,15 +406,14 @@ class SignUpPage(QWidget):
         right_layout.addWidget(self.btn_signup)
 
         # ======================================================
-        # BUTTON BACK
+        # BUTTON BACK — dikosongkan, diisi oleh _retranslate()
         # ======================================================
 
-        self.btn_back = QPushButton("← Back to Login")
+        self.btn_back = QPushButton()
         self.btn_back.setObjectName("btn_back")
         self.btn_back.setFixedHeight(48)
         self.btn_back.setCursor(Qt.PointingHandCursor)
 
-        # Saat diklik -> kirim signal kembali
         self.btn_back.clicked.connect(
             self.kembali_diklik.emit
         )
@@ -609,59 +599,59 @@ class SignUpPage(QWidget):
         if nama == "":
             QMessageBox.warning(
                 self,
-                "Invalid Name",
-                "Full name cannot be empty."
+                lang.t("signup.msg_invalid_name_title"),
+                lang.t("signup.msg_invalid_name_body")
             )
             return
-        
+
         if email == "":
             QMessageBox.warning(
                 self,
-                "Incomplete Data",
-                "Email must be filled."
+                lang.t("signup.msg_incomplete_title"),
+                lang.t("signup.msg_email_empty")
             )
             return
 
         if phone == "":
             QMessageBox.warning(
                 self,
-                "Incomplete Data",
-                "Phone number must be filled."
+                lang.t("signup.msg_incomplete_title"),
+                lang.t("signup.msg_phone_empty")
             )
             return
 
         if password == "":
             QMessageBox.warning(
                 self,
-                "Incomplete Data",
-                "Password must be filled."
+                lang.t("signup.msg_incomplete_title"),
+                lang.t("signup.msg_password_empty")
             )
             return
 
         if confirm_password == "":
             QMessageBox.warning(
                 self,
-                "Incomplete Data",
-                "Confirm password must be filled."
+                lang.t("signup.msg_incomplete_title"),
+                lang.t("signup.msg_confirm_empty")
             )
             return
 
         if university == "":
             QMessageBox.warning(
                 self,
-                "Incomplete Data",
-                "University must be filled."
+                lang.t("signup.msg_incomplete_title"),
+                lang.t("signup.msg_university_empty")
             )
             return
-        
+
         # =========================
         # VALIDASI EMAIL
         # =========================
         if "@" not in email:
             QMessageBox.warning(
                 self,
-                "Invalid Email",
-                'Email must contain "@".'
+                lang.t("signup.msg_invalid_email_title"),
+                lang.t("signup.msg_invalid_email_body")
             )
             return
 
@@ -671,16 +661,16 @@ class SignUpPage(QWidget):
         if not phone.isdigit():
             QMessageBox.warning(
                 self,
-                "Invalid Phone Number",
-                "Phone number must contain numbers only."
+                lang.t("signup.msg_invalid_phone_title"),
+                lang.t("signup.msg_phone_not_digit")
             )
             return
 
         if len(phone) > 12:
             QMessageBox.warning(
                 self,
-                "Invalid Phone Number",
-                "Phone number maximum is 12 digits."
+                lang.t("signup.msg_invalid_phone_title"),
+                lang.t("signup.msg_phone_too_long")
             )
             return
 
@@ -690,8 +680,8 @@ class SignUpPage(QWidget):
         if len(password) < 8:
             QMessageBox.warning(
                 self,
-                "Weak Password",
-                "Password must be at least 8 characters."
+                lang.t("signup.msg_weak_password_title"),
+                lang.t("signup.msg_weak_password_body")
             )
             return
 
@@ -701,8 +691,8 @@ class SignUpPage(QWidget):
         if password != confirm_password:
             QMessageBox.warning(
                 self,
-                "Password Error",
-                "Password and confirm password do not match."
+                lang.t("signup.msg_password_mismatch_title"),
+                lang.t("signup.msg_password_mismatch_body")
             )
             return
 
@@ -719,8 +709,8 @@ class SignUpPage(QWidget):
 
         QMessageBox.information(
             self,
-            "Success",
-            "Account created successfully!"
+            lang.t("signup.msg_success_title"),
+            lang.t("signup.msg_success_body")
         )
 
         self.kembali_diklik.emit()
@@ -834,3 +824,32 @@ class SignUpPage(QWidget):
                     self.btn_confirm_eye.setStyleSheet("")
 
         return super().eventFilter(source, event)
+
+    def _retranslate(self):
+        # LEFT SIDE
+        self.big_text.setText(lang.t("signup.big_text"))
+        self.sub_text.setText(lang.t("signup.sub_text"))
+
+        # RIGHT SIDE
+        self.title.setText(lang.t("signup.title"))
+        self.subtitle.setText(lang.t("signup.subtitle"))
+
+        # LABELS
+        self.label_name.setText(lang.t("signup.label_name"))
+        self.label_email.setText(lang.t("signup.label_email"))
+        self.label_phone.setText(lang.t("signup.label_phone"))
+        self.label_university.setText(lang.t("signup.label_university"))
+        self.label_password.setText(lang.t("signup.label_password"))
+        self.label_confirm.setText(lang.t("signup.label_confirm"))
+
+        # PLACEHOLDERS
+        self.input_name.setPlaceholderText(lang.t("signup.placeholder_name"))
+        self.input_email.setPlaceholderText(lang.t("signup.placeholder_email"))
+        self.input_phone.setPlaceholderText(lang.t("signup.placeholder_phone"))
+        self.input_university.setPlaceholderText(lang.t("signup.placeholder_university"))
+        self.input_password.setPlaceholderText(lang.t("signup.placeholder_password"))
+        self.input_confirm.setPlaceholderText(lang.t("signup.placeholder_confirm"))
+
+        # BUTTONS
+        self.btn_signup.setText(lang.t("signup.button"))
+        self.btn_back.setText(lang.t("signup.back_to_login"))

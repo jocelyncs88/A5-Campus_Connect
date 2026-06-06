@@ -574,7 +574,7 @@ class MainWindow(QMainWindow):
         CHIP_INACTIVE = "background: rgba(255,255,255,0.71); color: #516465; border-radius: 21px; padding: 9px 24px; font-size: 17px; border: none; font-weight: bold;"
 
         # ── Grup Jenis Event ──────────────────────────────────────
-        lbl_jenis = QLabel("Type:")
+        lbl_jenis = QLabel(lang.t("home.filter_type"))
         lbl_jenis.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
         bar_layout.addWidget(lbl_jenis)
 
@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
         bar_layout.addSpacing(4)
 
         # ── Grup Tipe Tiket ───────────────────────────────────────
-        lbl_tiket = QLabel("Ticket:")
+        lbl_tiket = QLabel(lang.t("home.filter_ticket"))
         lbl_tiket.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
         bar_layout.addWidget(lbl_tiket)
 
@@ -628,7 +628,7 @@ class MainWindow(QMainWindow):
         bar_layout.addSpacing(6)
 
         # ── Grup Sumber ───────────────────────────────────────────
-        lbl_sumber = QLabel("Source:")
+        lbl_sumber = QLabel(lang.t("home.filter_source"))
         lbl_sumber.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
         bar_layout.addWidget(lbl_sumber)
 
@@ -663,7 +663,7 @@ class MainWindow(QMainWindow):
         self.hero_widget = QWidget()
         hero_widget = self.hero_widget
         layout = QVBoxLayout(hero_widget)
-        l1 = QLabel("Welcome to,")
+        l1 = QLabel(lang.t("home.welcome_to"))
         l1.setStyleSheet(f"font-size: 48px; font-style: italic; color: {COLOR_TEXT_PRIMARY};")
         l2 = QLabel(
             f"<span style='font-family: \"{self.font_lobster}\"; font-size: 165px; font-weight: bold; color: {COLOR_TEXT_PRIMARY};'>Campus </span>"
@@ -883,7 +883,7 @@ class MainWindow(QMainWindow):
             if self.current_user_role == "guest":
                 QMessageBox.warning(
                     self,
-                    "Login Required",
+                    lang.t("detail.login_required_title"),
                     "You must login as a student first to book this event."
                 )
 
@@ -900,7 +900,7 @@ class MainWindow(QMainWindow):
         # Kalau mahasiswa → booking berhasil
         QMessageBox.information(
             self,
-            "Booking Success",
+            lang.t("msg.booking_success"),
             f'You successfully booked "{data_event.get("nama_event", "")}"'
         )
 
@@ -956,7 +956,7 @@ class MainWindow(QMainWindow):
         is_valid, errors, payload = prepare_create(form_data)
         if not is_valid:
             pesan_error = "\n".join(errors.values()) if errors else "Invalid event data."
-            QMessageBox.warning(self, "Failed to Publish Event", pesan_error)
+            QMessageBox.warning(self, lang.t("msg.failed_publish"), pesan_error)
             return
 
         save_payload(payload)
@@ -1076,17 +1076,17 @@ class MainWindow(QMainWindow):
             try:
                 request_id = int(str(event_ref).split(":", 1)[1])
             except Exception:
-                QMessageBox.warning(self, "Error", "Format request update tidak valid.")
+                QMessageBox.warning(self, lang.t("msg.error"), lang.t("msg.invalid_update_request"))
                 return
 
             request_data = db_manager.get_event_update_request(request_id)
             if not request_data:
-                QMessageBox.warning(self, "Error", "Request update tidak ditemukan.")
+                QMessageBox.warning(self, lang.t("msg.error"), lang.t("msg.update_request_not_found"))
                 return
 
             sukses = db_manager.apply_event_update_request(request_id, status_baru)
             if not sukses:
-                QMessageBox.warning(self, "Error", "Gagal memproses request update.")
+                QMessageBox.warning(self, lang.t("msg.error"), lang.t("msg.process_update_failed"))
                 return
 
             item_label = f"REQ:{request_id}"
@@ -1152,7 +1152,7 @@ class MainWindow(QMainWindow):
 
         # 4. Beri notifikasi ke Admin
         aksi = "Approved" if status_baru == "approved" else "Rejected"
-        QMessageBox.information(self, "Success", f"Item {item_label} successfully {aksi}!")
+        QMessageBox.information(self, lang.t("msg.success"), f"Item {item_label} successfully {aksi}!")
 
         # 5. Refresh tabel di halaman admin
         self.admin_page.load_data_antrean()
@@ -1264,14 +1264,14 @@ class MainWindow(QMainWindow):
         if account_db.register_account(email, password, role="mahasiswa"):
             QMessageBox.information(
                 self,
-                "Success",
+                lang.t("msg.success"),
                 "Account created successfully. Please login."
             )
             self.show_login_page()
         else:
             QMessageBox.warning(
                 self,
-                "Registration Failed",
+                lang.t("msg.registration_failed"),
                 "This email is already registered. Please use another email or login."
             )
 
@@ -1300,14 +1300,14 @@ class MainWindow(QMainWindow):
                 self.settings_page = None
                 
                 # 2. Beri notifikasi sukses
-                QMessageBox.information(self, "Success", f"Successful Login as {user_role.upper()}!")
+                QMessageBox.information(self, lang.t("msg.success"), f"Successful Login as {user_role.upper()}!")
                 
                 # 3. Panggil fungsi untuk mengubah tampilan navbar
                 self.update_navbar_berdasarkan_role()
                 self._cek_notifikasi_mahasiswa()
 
                 # 4. Cek apakah ada pending redirect setelah login
-                #    (contoh: user dibawa ke sini dari dialog "Login Required" di Account Settings)
+                #    (contoh: user dibawa ke sini dari dialog lang.t("detail.login_required_title") di Account Settings)
                 pending = getattr(self, "_pending_after_login", None)
                 if pending:
                     self._pending_after_login = None
@@ -1320,7 +1320,7 @@ class MainWindow(QMainWindow):
                 # 5. Kembali ke halaman utama (default)
                 self.show_home_page()
             else:
-                QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
+                QMessageBox.warning(self, lang.t("msg.failed"), lang.t("msg.login_failed"))
                 
     def update_navbar_berdasarkan_role(self):
         """Mengubah tampilan Navbar dan isi Menu secara dinamis sesuai role"""
@@ -1477,7 +1477,7 @@ class MainWindow(QMainWindow):
 
     def proses_logout(self):
         # Konfirmasi logout
-        jawaban = QMessageBox.question(self, "Logout", "Are you sure you want to logout?", QMessageBox.Yes | QMessageBox.No)
+        jawaban = QMessageBox.question(self, lang.t("msg.logout"), lang.t("msg.logout_confirm"), QMessageBox.Yes | QMessageBox.No)
         
         if jawaban == QMessageBox.Yes:
             # Kembalikan state ke guest
@@ -1493,16 +1493,16 @@ class MainWindow(QMainWindow):
             self.update_navbar_berdasarkan_role()
             # Buka ulang halaman home
             self.show_home_page()
-            QMessageBox.information(self, "Logout", "Successfully logout.")
+            QMessageBox.information(self, lang.t("msg.logout"), lang.t("msg.logout_success"))
         
     def proses_login(self, email, password):
     # Cek ke database
         if account_db.check_login(email, password):
         #   TODO: Nanti kita buat logika ganti tampilan Navbar di sini
-            QMessageBox.information(self, "Success", "Login Successful!")
+            QMessageBox.information(self, lang.t("msg.success"), lang.t("msg.login_success"))
             self.show_home_page()
         else:
-            QMessageBox.warning(self, "Failed", "Email or Password is incorrect!")
+            QMessageBox.warning(self, lang.t("msg.failed"), lang.t("msg.login_failed"))
     
     def _tampil_dialog_login_diperlukan(self, panel_index=0, untuk_edit=False):
         """
@@ -1513,7 +1513,7 @@ class MainWindow(QMainWindow):
         - Tombol 'Cancel'  → kembali ke Homepage.
         """
         dialog = QDialog(self)
-        dialog.setWindowTitle("Login Required")
+        dialog.setWindowTitle(lang.t("detail.login_required_title"))
         dialog.setFixedSize(420, 240)
         dialog.setWindowFlags(dialog.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         dialog.setModal(True)
@@ -1536,7 +1536,7 @@ class MainWindow(QMainWindow):
         layout.addSpacing(12)
 
         # ── Judul ──
-        lbl_title = QLabel("Login Required")
+        lbl_title = QLabel(lang.t("detail.login_required_title"))
         lbl_title.setAlignment(Qt.AlignCenter)
         lbl_title.setStyleSheet(
             "font-size: 18px; font-weight: bold; color: #2D3748; background: transparent;"
@@ -1564,7 +1564,7 @@ class MainWindow(QMainWindow):
         BUTTON_HEIGHT = 44
         BUTTON_RADIUS = 22
 
-        btn_cancel = QPushButton("Cancel")
+        btn_cancel = QPushButton(lang.t("btn.cancel"))
         btn_cancel.setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT)
         btn_cancel.setCursor(Qt.PointingHandCursor)
         btn_cancel.setStyleSheet(f"""
@@ -1584,7 +1584,7 @@ class MainWindow(QMainWindow):
             }}
         """)
 
-        btn_login = QPushButton("Log In")
+        btn_login = QPushButton(lang.t("login.btn_login"))
         btn_login.setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT)
         btn_login.setCursor(Qt.PointingHandCursor)
         btn_login.setStyleSheet(f"""

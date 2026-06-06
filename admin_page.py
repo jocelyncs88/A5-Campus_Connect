@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
                              QTableWidgetItem, QHeaderView, QAbstractItemView)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
+from language_manager import lang
 
 class AdminPage(QWidget):
     # Sinyal untuk komunikasi dengan main_window.py
@@ -20,6 +21,7 @@ class AdminPage(QWidget):
         super().__init__(parent)
         self.setup_ui()
         self.apply_style()
+        lang.language_changed.connect(self._retranslate)
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -30,15 +32,15 @@ class AdminPage(QWidget):
         header_layout = QHBoxLayout()
         
         title_layout = QVBoxLayout()
-        self.judul_label = QLabel("Event Validation Dashboard")
+        self.judul_label = QLabel(lang.t("admin.validation_dashboard"))
         self.judul_label.setObjectName("judul")
-        self.sub_judul = QLabel("Manage event validation queue from Event Organizers")
+        self.sub_judul = QLabel(lang.t("admin.validation_subtitle"))
         self.sub_judul.setObjectName("sub_judul")
         
         title_layout.addWidget(self.judul_label)
         title_layout.addWidget(self.sub_judul)
         
-        self.btn_kembali = QPushButton("← Return to Homepage")
+        self.btn_kembali = QPushButton(lang.t("admin.return_home"))
         self.btn_kembali.setObjectName("btn_kembali")
         self.btn_kembali.setCursor(Qt.PointingHandCursor)
         self.btn_kembali.clicked.connect(self.kembali_diklik.emit)
@@ -117,13 +119,13 @@ class AdminPage(QWidget):
             action_layout.setContentsMargins(5, 5, 5, 5)
             action_layout.setSpacing(10)
 
-            btn_approve = QPushButton("✓ Approve")
+            btn_approve = QPushButton(lang.t("admin.btn_approve_full"))
             btn_approve.setObjectName("btn_approve")
             btn_approve.setCursor(Qt.PointingHandCursor)
             # Kirim evt_id ke main_window saat diklik
             btn_approve.clicked.connect(lambda checked, key=action_key: self.validasi_diklik.emit(key, "approved"))
 
-            btn_decline = QPushButton("✗ Decline")
+            btn_decline = QPushButton(lang.t("admin.btn_decline_full"))
             btn_decline.setObjectName("btn_decline")
             btn_decline.setCursor(Qt.PointingHandCursor)
             btn_decline.clicked.connect(lambda checked, key=action_key: self.validasi_diklik.emit(key, "rejected"))
@@ -163,3 +165,15 @@ class AdminPage(QWidget):
             }
             QPushButton#btn_decline:hover { background-color: #fc8181; }
         """)
+
+    def _retranslate(self, _code=""):
+        self.judul_label.setText(lang.t("admin.validation_dashboard"))
+        self.sub_judul.setText(lang.t("admin.validation_subtitle"))
+        self.btn_kembali.setText(lang.t("admin.return_home"))
+        self.tabel.setHorizontalHeaderLabels([
+            "Event ID",
+            "Event Name",
+            "Type",
+            "Time",
+            "Validation Action"
+        ])

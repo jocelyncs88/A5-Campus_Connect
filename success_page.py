@@ -111,7 +111,7 @@ class SuccessPage(QWidget):
 
         # ---- JUDUL SUKSES ----
 
-        self.judul_label = QLabel("Event submitted successfully!")
+        self.judul_label = QLabel(lang.t("success.submitted_success"))
         self.judul_label.setObjectName("judul_label")
         self.judul_label.setAlignment(Qt.AlignCenter)
 
@@ -181,7 +181,7 @@ class SuccessPage(QWidget):
         btn_layout.setSpacing(12)
 
         # Tombol Lihat Event (outline)
-        self.btn_lihat = QPushButton("View Event")
+        self.btn_lihat = QPushButton(lang.t("success.view_event"))
         self.btn_lihat.setObjectName("btn_lihat")
         self.btn_lihat.setFixedHeight(48)
 
@@ -194,7 +194,7 @@ class SuccessPage(QWidget):
         self.btn_lihat.setCursor(Qt.PointingHandCursor) 
 
         # Tombol Buat Event Lain (teal gelap)
-        self.btn_buat_lain = QPushButton("Create Another Event")
+        self.btn_buat_lain = QPushButton(lang.t("success.create_another"))
         self.btn_buat_lain.setObjectName("btn_buat_lain")
         self.btn_buat_lain.setFixedHeight(48)
         self.btn_buat_lain.setFont(font_btn)

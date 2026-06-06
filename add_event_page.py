@@ -5,6 +5,14 @@
 #     pertahankan "status" lama ke dalam data_event yang di-emit,
 #     sehingga setting_window._simpan_perubahan_event() bisa
 #     menemukan row yang benar di database.
+#
+# FIX MULTILINGUAL (4 titik):
+#   1. Menu "Internal" / "External" sekarang pakai lang.t() +
+#      di-retranslate di _retranslate()
+#   2. Validasi required field tidak lagi campur bahasa —
+#      masing-masing field punya key lang sendiri
+#   3. "Event date cannot be in the past!" → lang.t("add_event.err_date_past")
+#   4. "Time has not been entered!"        → lang.t("add_event.err_time_empty")
 # ==============================================================
 
 from PyQt5.QtWidgets import (
@@ -19,6 +27,7 @@ from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon, QIntValidator
 from toggle_widget import ToggleSwitch
 from upload_widget import PosterUploadDialog
 import os
+from language_manager import lang
 
 
 class AddEventPage(QWidget):
@@ -33,6 +42,7 @@ class AddEventPage(QWidget):
         self.setObjectName("add_event_page")
         self.setup_ui()
         self.apply_style()
+        lang.language_changed.connect(self._retranslate)
         self.jenis_terpilih = ""
 
         if self.data_event:
@@ -44,7 +54,7 @@ class AddEventPage(QWidget):
         outer_layout.setContentsMargins(20, 20, 20, 20)
         outer_layout.setSpacing(12)
 
-        self.judul_label = QLabel("Add New Event")
+        self.judul_label = QLabel(lang.t("add_event.title_new"))
         self.judul_label.setObjectName("judul_label")
         font_judul = QFont("Inter", 24)
         font_judul.setWeight(QFont.ExtraBold)
@@ -52,7 +62,7 @@ class AddEventPage(QWidget):
         outer_layout.addWidget(self.judul_label)
 
         self.sub_judul = QLabel(
-            "Fill in the event details completely so participants can find it easily"
+            lang.t("add_event.subtitle_new")
         )
         self.sub_judul.setObjectName("sub_judul")
         font_sub = QFont("Inter", 12)
@@ -67,7 +77,7 @@ class AddEventPage(QWidget):
         form_layout = QVBoxLayout()
         form_layout.setSpacing(16)
 
-        self.label_info = QLabel("MAIN INFORMATION")
+        self.label_info = QLabel(lang.t("add_event.section_main"))
         self.label_info.setObjectName("label_section")
         font_section = QFont("Inter SemiBold", 11)
         font_section.setWeight(QFont.DemiBold)
@@ -84,19 +94,19 @@ class AddEventPage(QWidget):
         baris1_layout.setSpacing(16)
 
         nama_layout = QVBoxLayout()
-        self.label_nama  = QLabel("Event Name *")
+        self.label_nama  = QLabel(lang.t("add_event.field_name_req"))
         self.label_nama.setObjectName("label_field")
         self.input_nama  = QLineEdit()
-        self.input_nama.setPlaceholderText("Enter event name")
+        self.input_nama.setPlaceholderText(lang.t("add_event.ph_name"))
         self.input_nama.setObjectName("input_field")
         nama_layout.addWidget(self.label_nama)
         nama_layout.addWidget(self.input_nama)
 
         jenis_layout = QVBoxLayout()
-        self.label_jenis = QLabel("Event Type *")
+        self.label_jenis = QLabel(lang.t("add_event.field_type_req"))
         self.label_jenis.setObjectName("label_field")
 
-        self.input_jenis = QPushButton("Select event type")
+        self.input_jenis = QPushButton(lang.t("add_event.select_type"))
         self.input_jenis.setObjectName("input_combo")
         self.input_jenis.setFixedHeight(42)
         self.input_jenis.setCursor(Qt.PointingHandCursor)
@@ -117,9 +127,10 @@ class AddEventPage(QWidget):
             QMenu::separator { height: 1px; background: #E5E7EB; margin: 2px 6px; }
         """)
 
-        self.action_internal = self.menu_jenis.addAction("Internal")
+        # FIX #1 — pakai lang.t() bukan string hardcoded
+        self.action_internal = self.menu_jenis.addAction(lang.t("detail.internal"))
         self.menu_jenis.addSeparator()
-        self.action_external = self.menu_jenis.addAction("External")
+        self.action_external = self.menu_jenis.addAction(lang.t("detail.external"))
         self.action_internal.triggered.connect(lambda: self.pilih_jenis("Internal"))
         self.action_external.triggered.connect(lambda: self.pilih_jenis("External"))
 
@@ -139,20 +150,20 @@ class AddEventPage(QWidget):
         baris2_layout.setSpacing(16)
 
         deskripsi_layout = QVBoxLayout()
-        self.label_deskripsi = QLabel("Event Description *")
+        self.label_deskripsi = QLabel(lang.t("add_event.field_desc_req"))
         self.label_deskripsi.setObjectName("label_field")
         self.input_deskripsi = QLineEdit()
-        self.input_deskripsi.setPlaceholderText("Enter event description")
+        self.input_deskripsi.setPlaceholderText(lang.t("add_event.ph_desc"))
         self.input_deskripsi.setObjectName("input_field")
         deskripsi_layout.addWidget(self.label_deskripsi)
         deskripsi_layout.addWidget(self.input_deskripsi)
 
         kategori_layout = QVBoxLayout()
-        self.label_kategori = QLabel("Event Category *")
+        self.label_kategori = QLabel(lang.t("add_event.field_category_req"))
         self.label_kategori.setObjectName("label_field")
         self.input_kategori = QLineEdit()
         self.input_kategori.setPlaceholderText(
-            "Seminar/Competition/Workshop/Recruitment/etc"
+            lang.t("add_event.ph_category")
         )
         self.input_kategori.setObjectName("input_field")
         kategori_layout.addWidget(self.label_kategori)
@@ -163,7 +174,7 @@ class AddEventPage(QWidget):
         form_layout.addLayout(baris2_layout)
 
         # ---- LABEL WAKTU & TEMPAT ----
-        self.label_waktu_tempat = QLabel("Time & Venue")
+        self.label_waktu_tempat = QLabel(lang.t("add_event.section_time_venue"))
         self.label_waktu_tempat.setObjectName("label_section")
         self.label_waktu_tempat.setFont(font_section)
         form_layout.addWidget(self.label_waktu_tempat)
@@ -178,7 +189,7 @@ class AddEventPage(QWidget):
         baris3_layout.setSpacing(16)
 
         tanggal_layout = QVBoxLayout()
-        self.label_tanggal = QLabel("Date *")
+        self.label_tanggal = QLabel(lang.t("add_event.field_date_req"))
         self.label_tanggal.setObjectName("label_field")
         self.input_tanggal = QDateEdit()
         self.input_tanggal.setCalendarPopup(True)
@@ -202,7 +213,7 @@ class AddEventPage(QWidget):
         tanggal_layout.addWidget(self.input_tanggal)
 
         waktu_layout = QVBoxLayout()
-        self.label_waktu = QLabel("Time *")
+        self.label_waktu = QLabel(lang.t("add_event.field_time_req"))
         self.label_waktu.setObjectName("label_field")
         self.input_waktu = QTimeEdit()
         self.input_waktu.setDisplayFormat("HH:mm")
@@ -229,19 +240,19 @@ class AddEventPage(QWidget):
         baris4_layout.setSpacing(16)
 
         lokasi_layout = QVBoxLayout()
-        self.label_lokasi = QLabel("Location *")
+        self.label_lokasi = QLabel(lang.t("add_event.field_location_req"))
         self.label_lokasi.setObjectName("label_field")
         self.input_lokasi = QLineEdit()
-        self.input_lokasi.setPlaceholderText("Enter event location")
+        self.input_lokasi.setPlaceholderText(lang.t("add_event.ph_location"))
         self.input_lokasi.setObjectName("input_field")
         lokasi_layout.addWidget(self.label_lokasi)
         lokasi_layout.addWidget(self.input_lokasi)
 
         kampus_layout = QVBoxLayout()
-        self.label_kampus = QLabel("Campus Name *")
+        self.label_kampus = QLabel(lang.t("add_event.field_campus_req"))
         self.label_kampus.setObjectName("label_field")
         self.input_kampus = QLineEdit()
-        self.input_kampus.setPlaceholderText("Enter campus name")
+        self.input_kampus.setPlaceholderText(lang.t("add_event.ph_campus"))
         self.input_kampus.setObjectName("input_field")
         kampus_layout.addWidget(self.label_kampus)
         kampus_layout.addWidget(self.input_kampus)
@@ -252,11 +263,11 @@ class AddEventPage(QWidget):
 
         # ---- TIPE TIKET ----
         tiket_layout = QHBoxLayout()
-        self.label_tiket = QLabel("Ticket Type *")
+        self.label_tiket = QLabel(lang.t("add_event.field_ticket_req"))
         self.label_tiket.setObjectName("label_field")
         self.toggle_tiket = ToggleSwitch()
         self.toggle_tiket.set_on(False)
-        self.label_status_tiket = QLabel("free")
+        self.label_status_tiket = QLabel(lang.t("add_event.free"))
         self.label_status_tiket.setObjectName("label_status_tiket")
         self.toggle_tiket.toggled.connect(self.on_toggle_tiket)
         tiket_layout.addWidget(self.toggle_tiket)
@@ -268,10 +279,10 @@ class AddEventPage(QWidget):
         self.harga_widget = QWidget()
         harga_layout = QVBoxLayout()
         harga_layout.setContentsMargins(0, 0, 0, 0)
-        self.label_harga = QLabel("Ticket Price (Rp) *")
+        self.label_harga = QLabel(lang.t("add_event.field_price_req"))
         self.label_harga.setObjectName("label_field")
         self.input_harga = QLineEdit()
-        self.input_harga.setPlaceholderText("Enter ticket price using numbers only, e.g. 1000")
+        self.input_harga.setPlaceholderText(lang.t("add_event.ph_price"))
         # QIntValidator(1, 999999999) = hanya angka dari 1 sampai 999999999
         # angka 0 tidak bisa karena minimum 1
         validator = QIntValidator(1, 999999999, self)
@@ -290,7 +301,7 @@ class AddEventPage(QWidget):
         poster_layout.setSpacing(8)
         poster_layout.setAlignment(Qt.AlignTop)
 
-        self.label_poster = QLabel("Poster Event")
+        self.label_poster = QLabel(lang.t("add_event.field_poster"))
         self.label_poster.setObjectName("label_field")
         font_poster = QFont("Inter SemiBold", 12)
         self.label_poster.setFont(font_poster)
@@ -308,7 +319,7 @@ class AddEventPage(QWidget):
         self.poster_preview_icon.setObjectName("poster_preview_icon")
         self.poster_preview_icon.setAlignment(Qt.AlignCenter)
 
-        self.poster_preview_text = QLabel("Click to\nupload poster")
+        self.poster_preview_text = QLabel(lang.t("add_event.upload_hint"))
         self.poster_preview_text.setObjectName("poster_preview_text")
         self.poster_preview_text.setAlignment(Qt.AlignCenter)
 
@@ -336,7 +347,7 @@ class AddEventPage(QWidget):
         btn_layout.setSpacing(12)
         btn_layout.addStretch()
 
-        self.btn_batal = QPushButton("Cancel")
+        self.btn_batal = QPushButton(lang.t("btn.cancel"))
         self.btn_batal.setObjectName("btn_batal")
         self.btn_batal.setFixedSize(120, 45)
         self.btn_batal.setCursor(Qt.PointingHandCursor)
@@ -344,7 +355,7 @@ class AddEventPage(QWidget):
         self.btn_batal.setFont(font_btn)
         self.btn_batal.clicked.connect(self.dibatalkan.emit)
 
-        self.btn_publikasi = QPushButton("✓  Publish Event!")
+        self.btn_publikasi = QPushButton(lang.t("add_event.btn_publish_full"))
         self.btn_publikasi.setObjectName("btn_publikasi")
         self.btn_publikasi.setFixedSize(160, 45)
         self.btn_publikasi.setCursor(Qt.PointingHandCursor)
@@ -383,10 +394,10 @@ class AddEventPage(QWidget):
     # ----------------------------------------------------------
     def on_toggle_tiket(self, is_on):
         if is_on:
-            self.label_status_tiket.setText("Paid")
+            self.label_status_tiket.setText(lang.t("add_event.paid"))
             self.harga_widget.show()
         else:
-            self.label_status_tiket.setText("Free")
+            self.label_status_tiket.setText(lang.t("add_event.free"))
             self.harga_widget.hide()
 
     # ----------------------------------------------------------
@@ -403,14 +414,14 @@ class AddEventPage(QWidget):
         self.input_harga.clear()
 
         self.jenis_terpilih = ""
-        self.input_jenis.setText("Select event type")
+        self.input_jenis.setText(lang.t("add_event.select_type"))
         self.input_jenis.setLayoutDirection(Qt.RightToLeft)
         self.input_jenis.setIcon(QIcon("assets/arrow_down.png"))
         self.input_jenis.setIconSize(QSize(12, 12))
 
         self.toggle_tiket.set_on(False)
         self.toggle_tiket.setCursor(Qt.PointingHandCursor)
-        self.label_status_tiket.setText("Free")
+        self.label_status_tiket.setText(lang.t("add_event.free"))
         self.harga_widget.hide()
 
         self.poster_path = ""
@@ -454,38 +465,42 @@ class AddEventPage(QWidget):
             setting_window._simpan_perubahan_event() bisa menemukan
             row yang tepat di database (WHERE event_id = ?).
           - Mode create tetap mengirim status = "pending".
+
+        FIX MULTILINGUAL:
+          - Semua pesan error validasi sekarang menggunakan lang.t()
         """
 
         # ---- VALIDASI ----
         if not self.jenis_terpilih:
-            self.tampilkan_error("Please select the Event Type!")
+            self.tampilkan_error(lang.t("add_event.err_select_type"))
             return
 
+        # FIX #2 — setiap field punya key lang sendiri, tidak campur bahasa
         text_fields = [
-            ("Nama Event",      self.input_nama),
-            ("Deskripsi Event", self.input_deskripsi),
-            ("Kategori Event",  self.input_kategori),
-            ("Lokasi",          self.input_lokasi),
-            ("Nama Kampus",     self.input_kampus),
+            (lang.t("add_event.err_name_required"),     self.input_nama),
+            (lang.t("add_event.err_desc_required"),     self.input_deskripsi),
+            (lang.t("add_event.err_category_required"), self.input_kategori),
+            (lang.t("add_event.err_location_required"), self.input_lokasi),
+            (lang.t("add_event.err_campus_required"),   self.input_kampus),
         ]
-        for nama, field in text_fields:
+        for pesan_error, field in text_fields:
             if not field.text().strip():
-                self.tampilkan_error(f"{nama} is required!")
+                self.tampilkan_error(pesan_error)
                 return
 
         tanggal = self.input_tanggal.date().toString("yyyy-MM-dd")
         waktu   = self.input_waktu.time().toString("HH:mm")
 
         # ---- VALIDASI TANGGAL & WAKTU ----
-        tanggal_pilih = self.input_tanggal.date()
-        waktu_pilih = self.input_waktu.time()
-
+        tanggal_pilih    = self.input_tanggal.date()
+        waktu_pilih      = self.input_waktu.time()
         tanggal_sekarang = QDate.currentDate()
-        waktu_sekarang = QTime.currentTime()
+        waktu_sekarang   = QTime.currentTime()
 
         # 1. Tidak boleh pilih tanggal yang sudah lewat
         if tanggal_pilih < tanggal_sekarang:
-            self.tampilkan_error("Event date cannot be in the past!")
+            # FIX #3 — gunakan key yang sudah ada
+            self.tampilkan_error(lang.t("add_event.err_date_past"))
             return
 
         # 2. Jika tanggal hari ini, jam tidak boleh lewat (khusus mode create).
@@ -493,35 +508,38 @@ class AddEventPage(QWidget):
         # (mis. perbaikan deskripsi/poster) sebelum dikirim ulang ke admin.
         if tanggal_pilih == tanggal_sekarang and not self.data_event:
             if waktu_pilih < waktu_sekarang:
-                self.tampilkan_error("For today's event, the time cannot be earlier than the current time!")
+                self.tampilkan_error(lang.t("add_event.err_time_past"))
                 return
 
         if not tanggal.strip():
-            self.tampilkan_error("Date has not been entered!")
+            self.tampilkan_error(lang.t("add_event.err_date_empty"))
             return
+
         if not waktu.strip():
-            self.tampilkan_error("Time has not been entered!")
+            # FIX #4 — gunakan key yang sudah ada
+            self.tampilkan_error(lang.t("add_event.err_time_empty"))
             return
 
         if self.toggle_tiket.is_on() and not self.input_harga.text().strip():
-            self.tampilkan_error("Please enter the ticket price!")
+            self.tampilkan_error(lang.t("add_event.err_price_empty"))
             return
+
         if not self.poster_path:
-            self.tampilkan_error("Please upload the event poster!")
+            self.tampilkan_error(lang.t("add_event.err_upload_poster"))
             return
-        # Validasi tambahan harga tiket
+
         # Validasi tambahan harga tiket
         if self.toggle_tiket.is_on():
             harga_text = self.input_harga.text().strip()
 
             if not harga_text:
-                self.tampilkan_error("Please enter the ticket price!")
+                self.tampilkan_error(lang.t("add_event.err_price_empty"))
                 return
 
             if int(harga_text) < 1000:
-                self.tampilkan_error("Ticket price must be at least 4 digits (minimum Rp1000)!")
+                self.tampilkan_error(lang.t("add_event.err_price_min"))
                 return
-            
+
         # ---- BANGUN DICT ----
         data_event = {
             "nama_event"       : self.input_nama.text().strip(),
@@ -555,11 +573,11 @@ class AddEventPage(QWidget):
 
     # ----------------------------------------------------------
     def tampilkan_error(self, pesan):
-        teks = (pesan or "Please check all required fields and try again.").strip()
+        teks = (pesan or lang.t("add_event.err_required_check")).strip()
 
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Warning)
-        msg.setWindowTitle("Validation Failed")
+        msg.setWindowTitle(lang.t("add_event.validation_failed"))
         msg.setText(teks)
         msg.setStandardButtons(QMessageBox.Ok)
         msg.setStyleSheet("""
@@ -584,9 +602,9 @@ class AddEventPage(QWidget):
 
     # ----------------------------------------------------------
     def _prefill_form(self, data):
-        self.judul_label.setText("Edit Event")
-        self.sub_judul.setText("Perbarui detail event yang sudah dipublikasi")
-        self.btn_publikasi.setText("✓  Simpan Perubahan")
+        self.judul_label.setText(lang.t("add_event.title_edit"))
+        self.sub_judul.setText(lang.t("add_event.subtitle_edit"))
+        self.btn_publikasi.setText(lang.t("add_event.btn_save_changes"))
 
         self.input_nama.setText(data.get("nama_event", ""))
         self.input_deskripsi.setText(data.get("deskripsi_singkat", ""))
@@ -632,6 +650,47 @@ class AddEventPage(QWidget):
             self.poster_preview_icon.hide()
             self.poster_preview_text.hide()
             self.poster_preview_img.show()
+
+    # ----------------------------------------------------------
+    def _retranslate(self, _code: str = ""):
+        is_edit = bool(self.data_event)
+        self.judul_label.setText(lang.t("add_event.title_edit") if is_edit else lang.t("add_event.title_new"))
+        self.sub_judul.setText(lang.t("add_event.subtitle_edit") if is_edit else lang.t("add_event.subtitle_new"))
+        self.label_info.setText(lang.t("add_event.section_main"))
+        self.label_nama.setText(lang.t("add_event.field_name_req"))
+        self.input_nama.setPlaceholderText(lang.t("add_event.ph_name"))
+        self.label_jenis.setText(lang.t("add_event.field_type_req"))
+        if not self.jenis_terpilih:
+            self.input_jenis.setText(lang.t("add_event.select_type"))
+        # FIX #1 — retranslate teks menu Internal/External
+        self.action_internal.setText(lang.t("detail.internal"))
+        self.action_external.setText(lang.t("detail.external"))
+        self.label_deskripsi.setText(lang.t("add_event.field_desc_req"))
+        self.input_deskripsi.setPlaceholderText(lang.t("add_event.ph_desc"))
+        self.label_kategori.setText(lang.t("add_event.field_category_req"))
+        self.input_kategori.setPlaceholderText(lang.t("add_event.ph_category"))
+        self.label_waktu_tempat.setText(lang.t("add_event.section_time_venue"))
+        self.label_tanggal.setText(lang.t("add_event.field_date_req"))
+        self.label_waktu.setText(lang.t("add_event.field_time_req"))
+        self.label_lokasi.setText(lang.t("add_event.field_location_req"))
+        self.input_lokasi.setPlaceholderText(lang.t("add_event.ph_location"))
+        self.label_kampus.setText(lang.t("add_event.field_campus_req"))
+        self.input_kampus.setPlaceholderText(lang.t("add_event.ph_campus"))
+        self.label_tiket.setText(lang.t("add_event.field_ticket_req"))
+        self.label_harga.setText(lang.t("add_event.field_price_req"))
+        self.input_harga.setPlaceholderText(lang.t("add_event.ph_price"))
+        self.label_poster.setText(lang.t("add_event.field_poster"))
+        self.poster_preview_text.setText(lang.t("add_event.upload_hint"))
+        self.btn_batal.setText(lang.t("btn.cancel"))
+        self.btn_publikasi.setText(lang.t("add_event.btn_save_changes") if is_edit else lang.t("add_event.btn_publish_full"))
+        self.update_label_tiket()
+
+    # ----------------------------------------------------------
+    def update_label_tiket(self):
+        if self.toggle_tiket.is_on():
+            self.label_status_tiket.setText(lang.t("add_event.paid"))
+        else:
+            self.label_status_tiket.setText(lang.t("add_event.free"))
 
     # ----------------------------------------------------------
     def apply_style(self):

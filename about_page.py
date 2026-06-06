@@ -1,4 +1,5 @@
 import os
+from language_manager import lang
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -66,6 +67,19 @@ class AboutPage(QWidget):
 
         self.setFont(QFont("Segoe UI"))
         self.build()
+        lang.language_changed.connect(self._rebuild)
+
+
+    def _rebuild(self, _code: str = ""):
+        old = self.layout()
+        if old is not None:
+            while old.count():
+                item = old.takeAt(0)
+                widget = item.widget()
+                if widget:
+                    widget.deleteLater()
+            QWidget().setLayout(old)
+        self.build()
 
     def build(self):
         root = QVBoxLayout(self)
@@ -86,7 +100,7 @@ class AboutPage(QWidget):
         badge.setTextFormat(Qt.RichText)
         badge.setStyleSheet("background: transparent;")
 
-        title = QLabel("About Us")
+        title = QLabel(lang.t("about.hero_title"))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"""
             color: {C_TITLE};
@@ -95,7 +109,7 @@ class AboutPage(QWidget):
             background: transparent;
         """)
 
-        subtitle = QLabel("Helping students discover campus events, communities, and opportunities in one place.")
+        subtitle = QLabel(lang.t("about.subtitle"))
         subtitle.setAlignment(Qt.AlignCenter)
         subtitle.setWordWrap(True)
         subtitle.setStyleSheet(f"""
@@ -132,15 +146,14 @@ class AboutPage(QWidget):
 
         intro_box = self.big_info_card(
             "🎓",
-            "Built for Campus Life",
-            "Campus Connect is a desktop application designed to help students find campus events faster, easier, and more centrally. "
-            "It connects academic life with social activities, so students can stay informed and involved."
+            lang.t("about.built_title"),
+            lang.t("about.built_body")
         )
 
         mission_box = self.big_info_card(
             "🚀",
-            "Our Mission",
-            "We aim to make campus information more accessible and encourage students to grow beyond the classroom through events, communities, and collaboration."
+            lang.t("about.mission_title"),
+            lang.t("about.mission_body")
         )
 
         intro_row.addWidget(intro_box)
@@ -152,9 +165,9 @@ class AboutPage(QWidget):
         feature_row = QHBoxLayout()
         feature_row.setSpacing(16)
 
-        feature_row.addWidget(self.feature_card("🔎", "Discover", "Find campus events quickly."))
-        feature_row.addWidget(self.feature_card("🤝", "Connect", "Bridge students and organizers."))
-        feature_row.addWidget(self.feature_card("✨", "Participate", "Explore opportunities beyond class."))
+        feature_row.addWidget(self.feature_card("🔎", lang.t("about.discover_title"), lang.t("about.discover_body")))
+        feature_row.addWidget(self.feature_card("🤝", lang.t("about.connect_title"), lang.t("about.connect_body")))
+        feature_row.addWidget(self.feature_card("✨", lang.t("about.participate_title"), lang.t("about.participate_body")))
 
         card_layout.addLayout(feature_row)
 
@@ -166,7 +179,7 @@ class AboutPage(QWidget):
         # ===== FOOTER =====
         root.addSpacing(18)
 
-        footer = QLabel("© 2026 Campus Connect · Academic Serenity for the Modern Student")
+        footer = QLabel(lang.t("about.footer"))
         footer.setAlignment(Qt.AlignCenter)
         footer.setStyleSheet(f"""
             color: {C_MUTED};
@@ -283,14 +296,14 @@ class AboutPage(QWidget):
         title_wrap = QVBoxLayout()
         title_wrap.setSpacing(2)
 
-        title = QLabel("Development Team")
+        title = QLabel(lang.t("about.team_title"))
         title.setStyleSheet(f"""
             color: {C_TITLE};
             font-size: 23px;
             font-weight: bold;
         """)
 
-        sub = QLabel("INFORMATICS A5 TEAM")
+        sub = QLabel(lang.t("about.team_name"))
         sub.setStyleSheet(f"""
             color: {C_MUTED};
             font-size: 11px;
@@ -357,7 +370,7 @@ class AboutPage(QWidget):
             font-weight: bold;
         """)
 
-        role_lbl = QLabel("A5 Team Member")
+        role_lbl = QLabel(lang.t("about.team_member"))
         role_lbl.setStyleSheet(f"""
             color: {C_MUTED};
             font-size: 12px;

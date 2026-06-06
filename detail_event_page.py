@@ -25,6 +25,7 @@ from PyQt5.QtCore import QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPixmap, QColor, QIcon
 
 import os
+from language_manager import lang
 import requests
 import db_manager
 
@@ -60,6 +61,7 @@ class DetailEventPage(QWidget):
         self.setObjectName("detail_event_page")
         self.setup_ui()
         self.apply_style()
+        lang.language_changed.connect(self._retranslate)
 
 
     # ----------------------------------------------------------
@@ -134,7 +136,7 @@ class DetailEventPage(QWidget):
         self.poster_label.setObjectName("poster_label")
         self.poster_label.setFixedSize(380, 530)
         self.poster_label.setAlignment(Qt.AlignCenter)
-        self.poster_label.setText("No Image")
+        self.poster_label.setText(lang.t("detail.no_image"))
 
         # Shadow untuk poster
         shadow = QGraphicsDropShadowEffect()
@@ -154,14 +156,14 @@ class DetailEventPage(QWidget):
         bawah_poster_layout.setSpacing(8)
 
         # Info tiket dan tanggal di bawah poster
-        self.info_bawah_label = QLabel("Free  |  -")
+        self.info_bawah_label = QLabel(f"{lang.t("detail.free")}  |  -")
         self.info_bawah_label.setObjectName("info_bawah_label")
         font_info_bawah = QFont("Inter SemiBold", 13)
         font_info_bawah.setWeight(QFont.DemiBold)
         self.info_bawah_label.setFont(font_info_bawah)
 
         # Tombol Get Ticket
-        self.btn_get_ticket = QPushButton("Book")
+        self.btn_get_ticket = QPushButton(lang.t("detail.book"))
         self.btn_get_ticket.setObjectName("btn_get_ticket")
         self.btn_get_ticket.setFixedHeight(48)
         self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
@@ -212,7 +214,7 @@ class DetailEventPage(QWidget):
 
         # ---- BADGE JENIS EVENT ----
         # Internal atau External
-        self.badge_jenis = QLabel("External")
+        self.badge_jenis = QLabel(lang.t("detail.external"))
         self.badge_jenis.setObjectName("badge_external")
         self.badge_jenis.setFixedHeight(28)
         font_badge = QFont("Inter SemiBold", 11)
@@ -224,7 +226,7 @@ class DetailEventPage(QWidget):
 
 
         # ---- NAMA EVENT ----
-        self.nama_label = QLabel("Nama Event")
+        self.nama_label = QLabel("")
         self.nama_label.setObjectName("nama_label")
         self.nama_label.setWordWrap(True)
         font_nama = QFont("Inter", 40)
@@ -252,7 +254,7 @@ class DetailEventPage(QWidget):
         self.icon_lokasi.setPixmap(lokasi_pixmap)
         self.icon_lokasi.setFixedSize(24, 24)
 
-        self.lokasi_label = QLabel("Lokasi belum tersedia")
+        self.lokasi_label = QLabel(lang.t("detail.location_empty"))
         self.lokasi_label.setObjectName("info_label")
         self.lokasi_label.setWordWrap(True)
         font_info = QFont("Inter", 17)
@@ -284,7 +286,7 @@ class DetailEventPage(QWidget):
         self.icon_waktu.setPixmap(waktu_pixmap)
         self.icon_waktu.setFixedSize(24, 24)
 
-        self.waktu_label = QLabel("Tanggal belum tersedia")
+        self.waktu_label = QLabel(lang.t("detail.date_empty"))
         self.waktu_label.setObjectName("info_label")
         self.waktu_label.setFont(font_info)
         waktu_layout.addWidget(self.icon_waktu)
@@ -310,7 +312,7 @@ class DetailEventPage(QWidget):
         self.icon_penyelenggara.setPixmap(home_pixmap)
         self.icon_penyelenggara.setFixedSize(24, 24)
 
-        self.penyelenggara_label = QLabel("Penyelenggara belum tersedia")
+        self.penyelenggara_label = QLabel(lang.t("detail.organizer_empty"))
         self.penyelenggara_label.setObjectName("info_label")
         self.penyelenggara_label.setFont(font_info)
         penyelenggara_layout.addWidget(self.icon_penyelenggara)
@@ -335,7 +337,7 @@ class DetailEventPage(QWidget):
 
         self.icon_tiket.setPixmap(tiket_pixmap)
         self.icon_tiket.setFixedSize(24, 24)
-        self.tiket_label = QLabel("Gratis")
+        self.tiket_label = QLabel(lang.t("detail.free"))
         self.tiket_label.setObjectName("info_label")
         self.tiket_label.setFont(font_info)
         tiket_layout.addWidget(self.icon_tiket)
@@ -351,7 +353,7 @@ class DetailEventPage(QWidget):
         info_layout.addSpacing(4)
 
         # ---- LABEL OVERVIEW ----
-        self.label_overview = QLabel("Overview")
+        self.label_overview = QLabel(lang.t("detail.overview"))
         self.label_overview.setObjectName("label_overview")
         font_overview = QFont("Inter", 26)
         font_overview.setWeight(QFont.Bold)
@@ -360,7 +362,7 @@ class DetailEventPage(QWidget):
 
         # ---- DESKRIPSI EVENT ----
 
-        self.deskripsi_label = QLabel("Deskripsi belum tersedia")
+        self.deskripsi_label = QLabel(lang.t("detail.desc_empty"))
         self.deskripsi_label.setObjectName("deskripsi_label")
         self.deskripsi_label.setWordWrap(True)
         font_desk = QFont("Inter", 17)
@@ -464,7 +466,7 @@ class DetailEventPage(QWidget):
             """)
 
         else:
-            self.poster_label.setText("No Image")
+            self.poster_label.setText(lang.t("detail.no_image"))
             self.poster_label.setStyleSheet("""
                 QLabel {
                     background-color: #D2E6E5;
@@ -484,11 +486,11 @@ class DetailEventPage(QWidget):
             self.badge_jenis.setObjectName("badge_external")
 
         # ---- NAMA EVENT ----
-        self.nama_label.setText(data.get("nama_event", "Nama Event"))
+        self.nama_label.setText(data.get("nama_event", ""))
 
         # ---- LOKASI ----
         lokasi = data.get("lokasi", "")
-        self.lokasi_label.setText(lokasi if lokasi else "Lokasi belum tersedia")
+        self.lokasi_label.setText(lokasi if lokasi else lang.t("detail.location_empty"))
 
         # ---- TANGGAL & WAKTU ----
         tanggal_waktu = data.get("tanggal_waktu", "")
@@ -496,13 +498,13 @@ class DetailEventPage(QWidget):
             tanggal = data.get("tanggal_display", "")
             waktu = data.get("waktu_display", "")
             tanggal_waktu = f"{tanggal} {waktu}".strip()
-        self.waktu_label.setText(tanggal_waktu if tanggal_waktu else "Tanggal belum tersedia")
+        self.waktu_label.setText(tanggal_waktu if tanggal_waktu else lang.t("detail.date_empty"))
 
         # ---- PENYELENGGARA ----
         # Database menyimpan nama_eo, bukan penyelenggara
         penyelenggara = data.get("penyelenggara", "") or data.get("nama_eo", "")
         self.penyelenggara_label.setText(
-            penyelenggara if penyelenggara else "Penyelenggara belum tersedia"
+            penyelenggara if penyelenggara else lang.t("detail.organizer_empty")
         )
 
         # ---- TIKET ----
@@ -511,7 +513,7 @@ class DetailEventPage(QWidget):
         if tipe_tiket.lower() in ("paid", "berbayar"):
             self.tiket_label.setText(f"Paid | Rp {harga}")
         else:
-            self.tiket_label.setText("Free")
+            self.tiket_label.setText(lang.t("detail.free"))
 
         # ---- INFO BAWAH POSTER ----
         # Update label info di bawah poster (tipe tiket + tanggal)
@@ -539,7 +541,7 @@ class DetailEventPage(QWidget):
     def toggle_booking(self):
         if not self.current_user_email:
             from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.warning(None, "Login Required", "You must login as a student first to book this event.")
+            QMessageBox.warning(None, lang.t("detail.login_required_title"), lang.t("detail.login_required_book"))
             return
 
         # =========================
@@ -550,8 +552,8 @@ class DetailEventPage(QWidget):
 
             QMessageBox.warning(
                 None,
-                "Access Denied",
-                "Only student accounts can book events."
+                lang.t("detail.access_denied_title"),
+                lang.t("detail.access_denied_book")
             )
             return
 
@@ -579,8 +581,8 @@ class DetailEventPage(QWidget):
             from PyQt5.QtWidgets import QMessageBox
             QMessageBox.warning(
                 None,
-                "Login Required",
-                "You must login as a student first to like this event."
+                lang.t("detail.login_required_title"),
+                lang.t("detail.login_required_like")
             )
             return
 
@@ -588,8 +590,8 @@ class DetailEventPage(QWidget):
             from PyQt5.QtWidgets import QMessageBox
             QMessageBox.warning(
                 None,
-                "Access Denied",
-                "Only student accounts can like events."
+                lang.t("detail.access_denied_title"),
+                lang.t("detail.access_denied_like")
             )
             return
 
@@ -638,7 +640,7 @@ class DetailEventPage(QWidget):
         else:
             self.is_booked = False
 
-        self.btn_get_ticket.setText("Booked" if self.is_booked else "Book")
+        self.btn_get_ticket.setText(lang.t("detail.booked") if self.is_booked else lang.t("detail.book"))
         self.btn_get_ticket.setProperty("booked", "true" if self.is_booked else "false")
         self.btn_get_ticket.setCursor(Qt.PointingHandCursor)
         self.btn_get_ticket.setEnabled(True)
@@ -648,6 +650,22 @@ class DetailEventPage(QWidget):
 
     # ----------------------------------------------------------
     # FUNGSI apply_style()
+
+    def _retranslate(self, _code: str = ""):
+        self.label_overview.setText(lang.t("detail.overview"))
+        if not getattr(self, "data_event", None):
+            self.poster_label.setText(lang.t("detail.no_image"))
+            self.btn_get_ticket.setText(lang.t("detail.book"))
+            self.badge_jenis.setText(lang.t("detail.external"))
+            self.lokasi_label.setText(lang.t("detail.location_empty"))
+            self.waktu_label.setText(lang.t("detail.date_empty"))
+            self.penyelenggara_label.setText(lang.t("detail.organizer_empty"))
+            self.tiket_label.setText(lang.t("detail.free"))
+            self.deskripsi_label.setText(lang.t("detail.desc_empty"))
+        else:
+            self.tampilkan_data(self.data_event)
+        self.update_book_button_state()
+
     # ----------------------------------------------------------
     def apply_style(self):
 
@@ -773,4 +791,4 @@ class DetailEventPage(QWidget):
                 color: #516465;
                 font-size: 13px;
             }
-     """)                        
+     """)

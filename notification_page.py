@@ -32,6 +32,7 @@
 
 import sys
 import os
+from language_manager import lang
 from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -172,7 +173,7 @@ class NotifItemWidget(QWidget):
 
         # Label "Tap to view" untuk notif actionable yang belum dibaca
         if self.tipe_notif in _TIPE_ACTIONABLE and not self.is_read:
-            lbl_tap = QLabel("Tap to view →")
+            lbl_tap = QLabel(lang.t("notif.tap_to_view"))
             lbl_tap.setFont(QFont(self.font_regular, 10))
             lbl_tap.setStyleSheet(
                 f"color: {COLOR_TEAL_MID}; background: transparent; font-style: italic;"
@@ -355,7 +356,7 @@ class NotificationPage(QWidget):
         btn_kembali.clicked.connect(self.kembali_diklik.emit)
         layout.addWidget(btn_kembali)
 
-        lbl_judul = QLabel("Notifications")
+        lbl_judul = QLabel(lang.t("notif.title"))
         lbl_judul.setFont(QFont(self.font_semi, 18))
         lbl_judul.setStyleSheet(
             f"color: {COLOR_TEAL_DARK}; font-weight: bold; background: transparent;"
@@ -363,7 +364,7 @@ class NotificationPage(QWidget):
         layout.addWidget(lbl_judul)
         layout.addStretch()
 
-        self.btn_baca_semua = QPushButton("Mark all as read")
+        self.btn_baca_semua = QPushButton(lang.t("notif.mark_all_read"))
         self.btn_baca_semua.setCursor(Qt.PointingHandCursor)
         self.btn_baca_semua.setFont(QFont(self.font_regular, 11))
         self.btn_baca_semua.setStyleSheet(f"""

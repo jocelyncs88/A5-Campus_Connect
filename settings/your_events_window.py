@@ -21,6 +21,7 @@
 
 import sys
 import os
+from language_manager import lang
 import requests
 
 # Tambahkan root ke sys.path agar bisa import dari luar folder settings/
@@ -284,6 +285,7 @@ class YourEventsPanel(QWidget):
 
         self.setStyleSheet("background: transparent;")
         self._render()
+        lang.language_changed.connect(self._retranslate)
 
 
     def _minta_buka_add_event(self):
@@ -327,15 +329,15 @@ class YourEventsPanel(QWidget):
         email = self.user_data.get("email", "")
         event_id = self._event_id_from(event)
         if not email:
-            QMessageBox.warning(self, "Login Required",
-                "You must login as a student first to book this event.")
+            QMessageBox.warning(self, lang.t("detail.login_required_title"),
+                lang.t("detail.login_required_book"))
             return False
         if str(self.role).lower() != ROLE_MAHASISWA:
-            QMessageBox.warning(self, "Access Denied",
-                "Only student accounts can book events.")
+            QMessageBox.warning(self, lang.t("detail.access_denied_title"),
+                lang.t("detail.access_denied_book"))
             return False
         if not event_id:                          # <-- validasi BARU
-            QMessageBox.warning(self, "Booking Failed", "Event ID is missing.")
+            QMessageBox.warning(self, lang.t("your_events.booking_failed"), lang.t("your_events.event_id_missing"))
             return False
         try:
             import db_manager
@@ -344,7 +346,7 @@ class YourEventsPanel(QWidget):
                 event["is_booked"] = True
                 return True
         except Exception as exc:
-            QMessageBox.warning(self, "Booking Failed", f"Failed to book event:\n{exc}")
+            QMessageBox.warning(self, lang.t("your_events.booking_failed"), f"{lang.t("your_events.failed_book")}\n{exc}")
             return False
         return False
 
@@ -463,7 +465,7 @@ class YourEventsPanel(QWidget):
         layout.setSpacing(18)
 
         # Judul panel
-        lbl_judul = QLabel("Your Events Settings")
+        lbl_judul = QLabel(lang.t("your_events.settings_title"))
         self._set_label_style(lbl_judul, 30, C_TITLE, bold=True)
         layout.addWidget(lbl_judul)
 
@@ -490,17 +492,17 @@ class YourEventsPanel(QWidget):
     #   - Setiap kartu punya icon edit yang muncul saat hover
     # ----------------------------------------------------------
     def _render_eo(self, layout):
-        lbl_sub = QLabel("Published Events")
+        lbl_sub = QLabel(lang.t("your_events.published"))
         self._set_label_style(lbl_sub, 17, C_TITLE, bold=True)
         layout.addWidget(lbl_sub)
 
         events = self._get_published_events()
 
         if not events:
-            lbl_empty = QLabel("You haven't created any events yet!")
+            lbl_empty = QLabel(lang.t("your_events.empty_created"))
             self._set_label_style(lbl_empty, 13, C_SUBTITLE)
 
-            lbl_buat = QLabel('<u>Create your first event now!</u>')
+            lbl_buat = QLabel(lang.t("your_events.create_first"))
             self._set_label_style(lbl_buat, 13, C_TITLE, bold=True)
             lbl_buat.setTextFormat(Qt.RichText)
             lbl_buat.setCursor(Qt.PointingHandCursor)
@@ -652,12 +654,12 @@ class YourEventsPanel(QWidget):
     #   - Liked Events: grid kartu dengan aksi unlike
     # ----------------------------------------------------------
     def _render_student(self, layout):
-        lbl_sub = QLabel("My Events")
+        lbl_sub = QLabel(lang.t("your_events.my_events"))
         self._set_label_style(lbl_sub, 15, C_SUBTITLE, bold=True)
         layout.addWidget(lbl_sub)
 
         # ---- BOOKED EVENTS ----
-        lbl_booked = QLabel("Booked Events")
+        lbl_booked = QLabel(lang.t("your_events.booked_events"))
         self._set_label_style(lbl_booked, 17, C_TITLE, bold=True)
         layout.addWidget(lbl_booked)
 
@@ -667,7 +669,7 @@ class YourEventsPanel(QWidget):
         layout.addSpacing(34)
 
         # ---- LIKED EVENTS ----
-        lbl_liked = QLabel("Liked Events")
+        lbl_liked = QLabel(lang.t("your_events.liked_events"))
         self._set_label_style(lbl_liked, 17, C_TITLE, bold=True)
         layout.addWidget(lbl_liked)
 
@@ -712,7 +714,7 @@ class YourEventsPanel(QWidget):
             vbox.setContentsMargins(0, 0, 0, 0)
             vbox.setSpacing(0)
 
-            lbl_empty = QLabel("You haven't booked any events yet.")
+            lbl_empty = QLabel(lang.t("your_events.empty_booked"))
             self._set_label_style(lbl_empty, 13, C_SUBTITLE)
             vbox.addWidget(lbl_empty)
             return container
@@ -810,7 +812,7 @@ class YourEventsPanel(QWidget):
         ]
 
         if not tampil:
-            lbl_empty = QLabel("You haven't liked any events yet.")
+            lbl_empty = QLabel(lang.t("your_events.empty_liked"))
             self._set_label_style(lbl_empty, 13, C_SUBTITLE)
             grid.addWidget(lbl_empty, 0, 0)
             return
@@ -922,7 +924,7 @@ class YourEventsPanel(QWidget):
         sudah_booked = self._is_event_booked(event)
         event["is_booked"] = sudah_booked
 
-        btn_tiket = QPushButton("Booked" if sudah_booked else "Get ticket")
+        btn_tiket = QPushButton(lang.t("detail.booked") if sudah_booked else lang.t("your_events.get_ticket"))
         btn_tiket.setFixedSize(84, 34)
         btn_tiket.setCursor(Qt.PointingHandCursor)
         btn_tiket.setFont(QFont(self.font_bold, 11))
@@ -938,7 +940,7 @@ class YourEventsPanel(QWidget):
                 return
 
             if self._book_event_from_settings(ev):
-                btn.setText("Booked")
+                btn.setText(lang.t("detail.booked"))
                 btn.setStyleSheet(self._ticket_button_style(True))
                 QTimer.singleShot(0, self._render)
 
@@ -1129,7 +1131,7 @@ class YourEventsPanel(QWidget):
         sudah_booked = self._is_event_booked(event)
         event["is_booked"] = sudah_booked
 
-        btn_tiket2 = QPushButton("Booked" if sudah_booked else "Get ticket")
+        btn_tiket2 = QPushButton(lang.t("detail.booked") if sudah_booked else lang.t("your_events.get_ticket"))
         btn_tiket2.setFixedSize(100, 44)
         btn_tiket2.setCursor(Qt.PointingHandCursor)
         btn_tiket2.setFont(QFont(self.font_bold, 9))
@@ -1143,7 +1145,7 @@ class YourEventsPanel(QWidget):
                 return
 
             if self._book_event_from_settings(ev):
-                btn.setText("Booked")
+                btn.setText(lang.t("detail.booked"))
                 btn.setStyleSheet(self._ticket_button_style(True))
                 QTimer.singleShot(0, self._render)
 
@@ -1246,7 +1248,7 @@ class YourEventsPanel(QWidget):
         kanan_layout.addWidget(contact_widget)
 
         # 4. Overview
-        lbl_overview_title = QLabel("Overview")
+        lbl_overview_title = QLabel(lang.t("detail.overview"))
         lbl_overview_title.setFont(QFont(self.font_bold, 18))
         lbl_overview_title.setStyleSheet("color: black;")
         kanan_layout.addWidget(lbl_overview_title)
@@ -1479,6 +1481,10 @@ class YourEventsPanel(QWidget):
         except Exception as e:
             print(f"[YourEventsPanel] Error ambil liked events: {e}")
             return []
+    
+    def _retranslate(self, _code=""):
+        if hasattr(self, "_render"):
+            self._render()
 
 
 # ==============================================================
@@ -1522,3 +1528,4 @@ if __name__ == "__main__":
 
     dialog.show()
     sys.exit(app.exec_())
+

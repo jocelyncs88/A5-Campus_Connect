@@ -27,6 +27,7 @@ from PyQt5.QtCore import QSize, Qt, pyqtSignal, QUrl, QEvent
 from PyQt5.QtGui import QFont, QDesktopServices, QPixmap, QIcon, QColor
 
 import os
+from language_manager import lang
 
 
 # ==============================================================
@@ -60,6 +61,7 @@ class LoginPage(QWidget):
 
         self.setup_ui()
         self.apply_style()
+        lang.language_changed.connect(self._retranslate)
 
         # Menambahkan efek shadow pada card
         shadow = QGraphicsDropShadowEffect()
@@ -94,7 +96,7 @@ class LoginPage(QWidget):
 
         # ---- JUDUL "Login" ----
 
-        self.judul_label = QLabel("Login")
+        self.judul_label = QLabel(lang.t("login.heading"))
         self.judul_label.setObjectName("judul_label")
         self.judul_label.setAlignment(Qt.AlignCenter)
 
@@ -108,7 +110,7 @@ class LoginPage(QWidget):
 
         # ---- TEKS "Do you already have an account..." ----
 
-        self.teks_akun = QLabel("Do you already have an account?")
+        self.teks_akun = QLabel(lang.t("login.have_account"))
         self.teks_akun.setObjectName("teks_akun")
         self.teks_akun.setAlignment(Qt.AlignCenter)
         self.teks_akun.setWordWrap(True)
@@ -123,7 +125,7 @@ class LoginPage(QWidget):
 
         # ---- TEKS "Enter your email to continue" ----
 
-        self.teks_sub = QLabel("Enter your email address to continue")
+        self.teks_sub = QLabel(lang.t("login.email_continue"))
         self.teks_sub.setObjectName("teks_sub")
         self.teks_sub.setAlignment(Qt.AlignCenter)
 
@@ -170,7 +172,7 @@ class LoginPage(QWidget):
             icon_email.setText("✉")
 
         # Teks "Email"
-        teks_email = QLabel("Email")
+        teks_email = QLabel(lang.t("login.email"))
         teks_email.setObjectName("label_field")
         teks_email.setFont(font_label)
 
@@ -186,7 +188,7 @@ class LoginPage(QWidget):
 
         self.input_email = QLineEdit()
         self.input_email.setObjectName("input_field")
-        self.input_email.setPlaceholderText("email@domain.com")
+        self.input_email.setPlaceholderText(lang.t("login.email_placeholder"))
         self.input_email.setFixedHeight(48)
         self.input_email.setFont(font_input)
         main_layout.addWidget(self.input_email)
@@ -195,7 +197,7 @@ class LoginPage(QWidget):
 
         # ---- LABEL PASSWORD + ICON ----
 
-        self.label_password = QLabel("🔒  Password")
+        self.label_password = QLabel("🔒  " + lang.t("login.password"))
         self.label_password.setObjectName("label_field")
         self.label_password.setFont(font_label)
         main_layout.addWidget(self.label_password)
@@ -215,7 +217,7 @@ class LoginPage(QWidget):
         # Input password
         self.input_password = QLineEdit()
         self.input_password.setObjectName("input_password")
-        self.input_password.setPlaceholderText("Password")
+        self.input_password.setPlaceholderText(lang.t("login.password"))
         self.input_password.setFixedHeight(48)
         self.input_password.setFont(font_input)
 
@@ -245,7 +247,7 @@ class LoginPage(QWidget):
 
         # ---- TEKS "Forgot password?" ----
 
-        self.teks_lupa = QLabel("Forgot password?")
+        self.teks_lupa = QLabel(lang.t("login.forgot_password"))
         self.teks_lupa.setObjectName("teks_lupa")
         self.teks_lupa.setAlignment(Qt.AlignRight)
         self.teks_lupa.setCursor(Qt.PointingHandCursor)
@@ -259,7 +261,7 @@ class LoginPage(QWidget):
 
         # ---- TOMBOL CONTINUE ----
 
-        self.btn_continue = QPushButton("Continue")
+        self.btn_continue = QPushButton(lang.t("login.continue"))
         self.btn_continue.setObjectName("btn_continue")
         self.btn_continue.setFixedHeight(48)
         self.btn_continue.setCursor(Qt.PointingHandCursor)
@@ -272,7 +274,7 @@ class LoginPage(QWidget):
 
         # ---- TOMBOL KEMBALI KE HOMEPAGE ----
 
-        self.btn_kembali = QPushButton("← Return to Homepage")
+        self.btn_kembali = QPushButton(lang.t("login.return_home"))
         self.btn_kembali.setObjectName("btn_kembali")
         self.btn_kembali.setFixedHeight(48)
         self.btn_kembali.setCursor(Qt.PointingHandCursor)
@@ -295,7 +297,7 @@ class LoginPage(QWidget):
         garis_kiri.setObjectName("garis_pemisah")
 
         # Teks di tengah garis
-        self.teks_belum_akun = QLabel("Don't have an account yet?")
+        self.teks_belum_akun = QLabel(lang.t("login.no_account"))
         self.teks_belum_akun.setObjectName("teks_belum_akun")
         self.teks_belum_akun.setAlignment(Qt.AlignCenter)
 
@@ -328,12 +330,12 @@ class LoginPage(QWidget):
         )
         if os.path.exists(wa_icon_path):
             self.btn_contact.setIcon(QIcon(wa_icon_path))
-            self.btn_contact.setText("  Contact us")
+            self.btn_contact.setText("  " + lang.t("login.contact_us"))
         else:
-            self.btn_contact.setText("📱  Contact us")
+            self.btn_contact.setText("📱  " + lang.t("login.contact_us"))
         self.btn_contact.clicked.connect(self.buka_whatsapp)
 
-        self.btn_signup = QPushButton("Sign Up")
+        self.btn_signup = QPushButton(lang.t("login.signup"))
         self.btn_signup.setObjectName("btn_signup")
         self.btn_signup.setFixedHeight(48)
         self.btn_signup.setCursor(Qt.PointingHandCursor)
@@ -350,9 +352,7 @@ class LoginPage(QWidget):
         main_layout.addSpacing(8)
 
         # ---- TEKS BAWAH DUA TOMBOL ----
-        self.teks_admin = QLabel(
-            "Contact the admin to register as an Event Organizer or sign up as a student"
-        )
+        self.teks_admin = QLabel(lang.t("login.admin_help"))
         self.teks_admin.setObjectName("teks_admin")
         self.teks_admin.setAlignment(Qt.AlignCenter)
         self.teks_admin.setWordWrap(True)
@@ -469,6 +469,22 @@ class LoginPage(QWidget):
     # ----------------------------------------------------------
     # FUNGSI apply_style()
     # Mengatur tampilan visual
+
+    def _retranslate(self, _code: str = ""):
+        self.judul_label.setText(lang.t("login.heading"))
+        self.teks_akun.setText(lang.t("login.have_account"))
+        self.teks_sub.setText(lang.t("login.email_continue"))
+        self.input_email.setPlaceholderText(lang.t("login.email_placeholder"))
+        self.label_password.setText("🔒  " + lang.t("login.password"))
+        self.input_password.setPlaceholderText(lang.t("login.password"))
+        self.teks_lupa.setText(lang.t("login.forgot_password"))
+        self.btn_continue.setText(lang.t("login.continue"))
+        self.btn_kembali.setText(lang.t("login.return_home"))
+        self.teks_belum_akun.setText(lang.t("login.no_account"))
+        self.btn_contact.setText("  " + lang.t("login.contact_us"))
+        self.teks_admin.setText(lang.t("login.admin_help"))
+        self.btn_signup.setText(lang.t("login.signup"))
+
     # ----------------------------------------------------------
     def apply_style(self):
 
