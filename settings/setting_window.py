@@ -39,6 +39,13 @@ ROLE_MAHASISWA = "mahasiswa"
 ROLE_UMUM = "umum"
 
 
+def _is_eo_role(role):
+    return (role or "").lower().strip() in ("eo", "organizer")
+
+def _is_mahasiswa_role(role):
+    return (role or "").lower().strip() in ("mahasiswa", "student")
+
+
 class SettingsWindow(QWidget):
     minta_buka_add_event = pyqtSignal()
 
@@ -301,7 +308,10 @@ class SettingsWindow(QWidget):
             btn.setStyleSheet(self._style_sidebar_btn(False))
             btn.clicked.connect(lambda checked, i=index: self.switch_panel(i))
 
-            if key == "settings.your_events" and self.role not in [ROLE_ORGANIZER, ROLE_MAHASISWA]:
+            if key == "settings.your_events" and not (_is_eo_role(self.role) or _is_mahasiswa_role(self.role)):
+                btn.hide()
+
+            if key == "settings.notifications" and self.role == "admin":
                 btn.hide()
 
             layout.addWidget(btn)
@@ -341,6 +351,12 @@ class SettingsWindow(QWidget):
             aktif = i == index
             btn.setChecked(aktif)
             btn.setStyleSheet(self._style_sidebar_btn(aktif))
+
+        if index == 1 and hasattr(self, "panel_your_events"):
+            panel = self.panel_your_events
+            if not getattr(panel, "_rendered", False):
+                panel._render()
+                panel._rendered = True
 
     def buka_add_event(self):
         self.minta_buka_add_event.emit()
@@ -456,9 +472,9 @@ class SettingsWindow(QWidget):
         layout.addWidget(lbl_judul)
 
         # FIX #3 — deskripsi per-role pakai lang.t()
-        if self.role == ROLE_ORGANIZER:
+        if _is_eo_role(self.role):
             deskripsi = lang.t("notif.desc_organizer")
-        elif self.role == ROLE_MAHASISWA:
+        elif _is_mahasiswa_role(self.role):
             deskripsi = lang.t("notif.desc_mahasiswa")
         else:
             deskripsi = lang.t("notif.desc_umum")

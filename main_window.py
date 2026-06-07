@@ -218,10 +218,6 @@ class MainWindow(QMainWindow):
 
     def refresh_tampilan_homepage(self):
         """Membangun ulang kanvas kartu dari nol agar tidak ada bug UI nyangkut."""
-        try:
-            from main import _cache_image
-        except ImportError:
-            _cache_image = lambda x: x
 
         # Reuse kanvas scroll yang sudah ada, lalu bersihkan isi lamanya.
         if self.scroll.widget() is None:
@@ -240,31 +236,40 @@ class MainWindow(QMainWindow):
             if widget is not None:
                 widget.deleteLater()
 
-        # 1. Ambil data terbaru dari database tanpa membatasi status,
-        # agar homepage tetap konsisten dengan tampilan awal aplikasi.
+        # 1. Ambil data terbaru dari database
         data_db_terbaru = db_manager.get_events_by_status("approved")
-        
-        # 2. Format ulang data
-        data_untuk_ui = []
-        for row in data_db_terbaru:
-            event_dict = {
-                "db_id": str(row.get("id", "")),
-                "event_id": row.get("event_id", ""),
-                "nama_event": row.get("nama_event") or "Tanpa Judul",
-                "deskripsi_singkat": row.get("deskripsi_singkat") or "...",
-                "gambar_poster": _cache_image(row.get("gambar_poster") or ""),
-                "jenis_event": (row.get("jenis_event") or "External").title(),
-                "tanggal_waktu": row.get("tanggal_waktu") or "TBA",
-                "lokasi"           : row.get("lokasi", "") or "",        # ← TAMBAH
-                "penyelenggara"    : row.get("nama_eo", "") or "",       # ← TAMBAH
-                "tipe_tiket"       : row.get("tipe_tiket", "Free") or "Free",  # ← TAMBAH
-                "harga_tiket"      : row.get("harga_tiket", "0") or "0",      # ← TAMBAH
-                "source"           : row.get("source", "") or "",              # ← TAMBAH
-            }
-            data_untuk_ui.append(event_dict)
-            
-        # 3. Cetak ulang kartu di kanvas yang sudah dibersihkan
-        self.render_event_cards(data_untuk_ui)
+
+        # 2. Format ulang data — _cache_image dijalankan di thread terpisah
+        #    agar tidak memblokir UI saat ada gambar URL yang perlu diunduh.
+        def _prepare_data():
+            try:
+                from main import _cache_image
+            except ImportError:
+                _cache_image = lambda x: x
+            result = []
+            for row in data_db_terbaru:
+                result.append({
+                    "db_id":            str(row.get("id", "")),
+                    "event_id":         row.get("event_id", ""),
+                    "nama_event":       row.get("nama_event") or "Tanpa Judul",
+                    "deskripsi_singkat":row.get("deskripsi_singkat") or "...",
+                    "gambar_poster":    _cache_image(row.get("gambar_poster") or ""),
+                    "jenis_event":      (row.get("jenis_event") or "External").title(),
+                    "tanggal_waktu":    row.get("tanggal_waktu") or "TBA",
+                    "lokasi":           row.get("lokasi", "") or "",
+                    "penyelenggara":    row.get("nama_eo", "") or "",
+                    "tipe_tiket":       row.get("tipe_tiket", "Free") or "Free",
+                    "harga_tiket":      row.get("harga_tiket", "0") or "0",
+                    "source":           row.get("source", "") or "",
+                })
+            return result
+
+        self._thread_refresh = ScraperThread(_prepare_data)
+        self._thread_refresh.selesai.connect(self.render_event_cards)
+        self._thread_refresh.error.connect(
+            lambda msg: print(f"[REFRESH ERROR] {msg}")
+        )
+        self._thread_refresh.start()
         
     def show_home_page(self):
         self._hide_all_pages()
@@ -579,7 +584,7 @@ class MainWindow(QMainWindow):
         bar_layout.addWidget(lbl_jenis)
 
         jenis_chips = []
-        for label, value in [("All", None), ("Internal", "Internal"), ("External", "External")]:
+        for label, value in [(lang.t("home.filter_all"), None), (lang.t("home.filter_internal"), "Internal"), (lang.t("home.filter_external"), "External")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(42)
@@ -607,7 +612,7 @@ class MainWindow(QMainWindow):
         bar_layout.addWidget(lbl_tiket)
 
         tiket_chips = []
-        for label, value in [("All", None), ("Free", "Free"), ("Paid", "Paid")]:
+        for label, value in [(lang.t("home.filter_all"), None), (lang.t("home.filter_free"), "Free"), (lang.t("home.filter_paid"), "Paid")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(42)
@@ -633,7 +638,7 @@ class MainWindow(QMainWindow):
         bar_layout.addWidget(lbl_sumber)
 
         sumber_chips = []
-        for label, value in [("All", None), ("Official Polban", "scraping"), ("Partnership", "manual")]:
+        for label, value in [(lang.t("home.filter_all"), None), (lang.t("home.filter_official"), "scraping"), (lang.t("home.filter_partner"), "manual")]:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(42)
@@ -1092,12 +1097,9 @@ class MainWindow(QMainWindow):
             item_label = f"REQ:{request_id}"
             nama_event = request_data.get("nama_event", f"Request #{request_id}")
             email_eo = request_data.get("requested_by_email", "") or request_data.get("nama_eo", "")
-            judul = "Event Update Approved ✅" if status_baru == "approved" else "Event Update Rejected ❌"
             if status_baru == "approved":
-                pesan = (
-                    f'Perubahan untuk "{nama_event}" telah disetujui admin dan event di database '
-                    f"sudah diperbarui."
-                )
+                judul = lang.t("notif.msg_update_approved_title")
+                pesan = lang.t("notif.msg_update_approved_body").format(event=nama_event)
 
                 # NEW: kirim notifikasi critical update ke mahasiswa
                 # yang sudah booking event ini.
@@ -1105,9 +1107,8 @@ class MainWindow(QMainWindow):
                 if event_id_update and hasattr(db_manager, "kirim_notif_critical_update"):
                     db_manager.kirim_notif_critical_update(event_id_update, nama_event)
             else:
-                pesan = (
-                    f'Perubahan untuk "{nama_event}" ditolak admin. Event asli tetap tidak berubah.'
-                )
+                judul = lang.t("notif.msg_update_rejected_title")
+                pesan = lang.t("notif.msg_update_rejected_body").format(event=nama_event)
             db_manager.tambah_notifikasi_eo(email_eo, judul, pesan)
             
         else:
@@ -1125,11 +1126,8 @@ class MainWindow(QMainWindow):
 
             # 3. Simpan notifikasi ke database agar EO bisa lihat
             if status_baru == "approved":
-                judul = "Event Approved ✅"
-                pesan = (
-                    f'"{nama_event}" has been approved by the admin and is now live '
-                    f"on Campus Connect! Your event is ready to accept registration"
-                )
+                judul = lang.t("notif.msg_approved_title")
+                pesan = lang.t("notif.msg_approved_body").format(event=nama_event)
                 # kirim interest match ke mahasiswa yang punya interest sesuai kategori event
                 kategori = data_event.get("kategori", "")
                 if kategori and hasattr(db_manager, "kirim_notif_interest_match"):
@@ -1141,11 +1139,8 @@ class MainWindow(QMainWindow):
                     if hasattr(db_manager, "kirim_notif_campus_spotlight"):
                         db_manager.kirim_notif_campus_spotlight(event_id, nama_event)
             else:
-                judul = "Event Rejected ❌"
-                pesan = (
-                    f'"{nama_event}" has been rejected by the admin. '
-                    f"Please double-check the event details or contact the admin for further information."
-                )
+                judul = lang.t("notif.msg_rejected_title")
+                pesan = lang.t("notif.msg_rejected_body").format(event=nama_event)
 
         if email_eo:
             db_manager.simpan_notifikasi(email_eo, judul, pesan)
@@ -1290,7 +1285,7 @@ class MainWindow(QMainWindow):
                 
                 # CRITICAL: Create/ensure user exists in database.db users table
                 # This is required for booking functionality to work
-                db_manager.ensure_user_exists(email)
+                db_manager.ensure_user_exists(email, role=user_role)
 
                 # Load profil lengkap dari database (nama, foto, dll)
                 profil = db_manager.get_user_profile(email)
@@ -1300,7 +1295,7 @@ class MainWindow(QMainWindow):
                 self.settings_page = None
                 
                 # 2. Beri notifikasi sukses
-                QMessageBox.information(self, lang.t("msg.success"), f"Successful Login as {user_role.upper()}!")
+                QMessageBox.information(self, lang.t("msg.success"), lang.t("msg.login_success_role").format(role=user_role.upper()))
                 
                 # 3. Panggil fungsi untuk mengubah tampilan navbar
                 self.update_navbar_berdasarkan_role()
@@ -1640,18 +1635,19 @@ class MainWindow(QMainWindow):
         self.layout_utama.setSpacing(0)
 
         if self.settings_page is None:
-            # Kirim email user yang sedang login ke user_data
-            # agar YourEventsPanel bisa query event berdasarkan email_eo
-            # Email disimpan saat login di self.current_user_email
+            # Ambil profil lengkap dari DB agar semua field (kontak, bio, dll.) terisi
+            email = getattr(self, "current_user_email", "")
+            profil = db_manager.get_user_profile(email) if email else {}
+
             self.settings_page = SettingsWindow(
                 user_data={
-                    "nama"            : getattr(self, "current_user_nama", ""),
-                    "bio"             : "",
-                    "email"           : getattr(self, "current_user_email", ""),
-                    "kontak"          : "",
-                    "role"            : self.current_user_role,
-                    "inisial"         : "",
-                    "foto_profil_path": getattr(self, "current_user_foto_path", ""),
+                    "nama"            : profil.get("nama", getattr(self, "current_user_nama", "")),
+                    "bio"             : profil.get("bio", ""),
+                    "email"           : profil.get("email", email),
+                    "kontak"          : profil.get("kontak", ""),
+                    "role"            : self.current_user_role,  # pakai langsung dari account_db, bukan dari profil DB
+                    "inisial"         : profil.get("inisial", ""),
+                    "foto_profil_path": profil.get("foto_profil_path", getattr(self, "current_user_foto_path", "")),
                 }
             )
             self.settings_page.btn_home.clicked.connect(self.show_home_page)

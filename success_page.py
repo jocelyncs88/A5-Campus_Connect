@@ -23,6 +23,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 # QGraphicsDropShadowEffect = efek bayangan
 from PyQt5.QtGui import QFont, QColor
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from language_manager import lang
 
 
 # ==============================================================
