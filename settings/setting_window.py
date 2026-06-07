@@ -24,6 +24,7 @@ from settings.notifications_window import NotificationsPanel
 from settings.your_events_window import YourEventsPanel
 from settings.language_window import LanguagePanel
 from setting_item_widget import SettingItem
+from resource_path import asset_path
 from language_manager import lang
 
 
@@ -166,7 +167,7 @@ class SettingsWindow(QWidget):
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.btn_home = QPushButton(lang.t("settings.home_btn"))
-        self.btn_home.setIcon(QIcon("assets/icons/home.png"))
+        self.btn_home.setIcon(QIcon(asset_path("assets", "icons", "home.png")))
         self.btn_home.setIconSize(QSize(20, 20))
         self.btn_home.setCursor(Qt.PointingHandCursor)
         self.btn_home.setStyleSheet(f"""
@@ -300,7 +301,7 @@ class SettingsWindow(QWidget):
         self.sidebar_buttons = []
         for key, index, icon_file in self._sidebar_menu_defs:
             btn = QPushButton(f"  {lang.t(key)}")
-            btn.setIcon(QIcon(f"assets/icons/{icon_file}.png"))
+            btn.setIcon(QIcon(asset_path("assets", "icons", f"{icon_file}.png")))
             btn.setIconSize(QSize(22, 22))
             btn.setCursor(Qt.PointingHandCursor)
             btn.setCheckable(True)

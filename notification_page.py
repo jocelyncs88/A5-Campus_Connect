@@ -32,6 +32,7 @@
 
 import sys
 import os
+from resource_path import asset_path
 from language_manager import lang
 from datetime import datetime, timedelta
 
@@ -430,7 +431,7 @@ class NotificationPage(QWidget):
         layout.setSpacing(12)
 
         btn_kembali = QPushButton()
-        btn_kembali.setIcon(QIcon("assets/icons/back.png"))
+        btn_kembali.setIcon(QIcon(asset_path("assets", "icons", "back.png")))
         btn_kembali.setIconSize(QSize(22, 22))
         btn_kembali.setCursor(Qt.PointingHandCursor)
         btn_kembali.setFixedSize(40, 40)

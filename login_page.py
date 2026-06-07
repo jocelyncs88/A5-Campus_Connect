@@ -28,6 +28,7 @@ from PyQt5.QtGui import QFont, QDesktopServices, QPixmap, QIcon, QColor
 
 import os
 from language_manager import lang
+from resource_path import asset_path
 
 
 # ==============================================================
@@ -229,7 +230,7 @@ class LoginPage(QWidget):
         # Tombol mata untuk show/hide password
         self.btn_mata = QPushButton()
         self.btn_mata.installEventFilter(self)
-        self.btn_mata.setIcon(QIcon("assets/icons/eye_outline.png"))
+        self.btn_mata.setIcon(QIcon(asset_path("assets", "icons", "eye_outline.png")))
         self.btn_mata.setIconSize(QSize(20, 20))
         self.btn_mata.setObjectName("btn_mata")
         self.btn_mata.setFixedSize(48, 48)
@@ -324,10 +325,7 @@ class LoginPage(QWidget):
         self.btn_contact.setCursor(Qt.PointingHandCursor)
         self.btn_contact.setFont(font_btn)
 
-        wa_icon_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "assets", "whatsapp.png"
-        )
+        wa_icon_path = asset_path("assets", "whatsapp.png")
         if os.path.exists(wa_icon_path):
             self.btn_contact.setIcon(QIcon(wa_icon_path))
             self.btn_contact.setText("  " + lang.t("login.contact_us"))
@@ -374,11 +372,11 @@ class LoginPage(QWidget):
     def toggle_password(self):
         if self.password_visible:
             self.input_password.setEchoMode(QLineEdit.Password)
-            self.btn_mata.setIcon(QIcon("assets/icons/eye_outline.png"))
+            self.btn_mata.setIcon(QIcon(asset_path("assets", "icons", "eye_outline.png")))
             self.password_visible = False
         else:
             self.input_password.setEchoMode(QLineEdit.Normal)
-            self.btn_mata.setIcon(QIcon("assets/icons/eye_filled.png"))
+            self.btn_mata.setIcon(QIcon(asset_path("assets", "icons", "eye_filled.png")))
             self.password_visible = True
 
     def eventFilter(self, source, event):

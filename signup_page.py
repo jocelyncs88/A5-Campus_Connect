@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 )
 
 from language_manager import lang
+from resource_path import asset_path
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QEvent
 from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon, QFontDatabase
 import os
@@ -35,7 +36,7 @@ class SignUpPage(QWidget):
         self.setObjectName("signup_page")
 
         # Load custom fonts
-        id_lobster = QFontDatabase.addApplicationFont("assets/fonts/LobsterTwo-Regular.ttf")
+        id_lobster = QFontDatabase.addApplicationFont(asset_path("assets", "fonts", "LobsterTwo-Regular.ttf"))
         self.font_lobster = QFontDatabase.applicationFontFamilies(id_lobster)[0] if id_lobster != -1 else "serif"
 
         # Password visibility flag
@@ -333,7 +334,7 @@ class SignUpPage(QWidget):
         self.btn_password_eye.setFixedSize(48, 48)
         self.btn_password_eye.setCursor(Qt.PointingHandCursor)
 
-        self.btn_password_eye.setIcon(QIcon("assets/icons/eye_outline.png"))
+        self.btn_password_eye.setIcon(QIcon(asset_path("assets", "icons", "eye_outline.png")))
         self.btn_password_eye.setIconSize(QSize(20, 20))
 
         self.btn_password_eye.clicked.connect(
@@ -378,7 +379,7 @@ class SignUpPage(QWidget):
         self.btn_confirm_eye.setFixedSize(48, 48)
         self.btn_confirm_eye.setCursor(Qt.PointingHandCursor)
 
-        self.btn_confirm_eye.setIcon(QIcon("assets/icons/eye_outline.png"))
+        self.btn_confirm_eye.setIcon(QIcon(asset_path("assets", "icons", "eye_outline.png")))
         self.btn_confirm_eye.setIconSize(QSize(20, 20))
 
         self.btn_confirm_eye.clicked.connect(
@@ -732,7 +733,7 @@ class SignUpPage(QWidget):
             self.input_password.setEchoMode(QLineEdit.Password)
 
             self.btn_password_eye.setIcon(
-                QIcon("assets/icons/eye_outline.png")
+                QIcon(asset_path("assets", "icons", "eye_outline.png"))
             )
 
             self.password_visible = False
@@ -742,7 +743,7 @@ class SignUpPage(QWidget):
             self.input_password.setEchoMode(QLineEdit.Normal)
 
             self.btn_password_eye.setIcon(
-                QIcon("assets/icons/eye_filled.png")
+                QIcon(asset_path("assets", "icons", "eye_filled.png"))
             )
 
             self.password_visible = True
@@ -759,7 +760,7 @@ class SignUpPage(QWidget):
             self.input_confirm.setEchoMode(QLineEdit.Password)
 
             self.btn_confirm_eye.setIcon(
-                QIcon("assets/icons/eye_outline.png")
+                QIcon(asset_path("assets", "icons", "eye_outline.png"))
             )
 
             self.confirm_visible = False
@@ -769,7 +770,7 @@ class SignUpPage(QWidget):
             self.input_confirm.setEchoMode(QLineEdit.Normal)
 
             self.btn_confirm_eye.setIcon(
-                QIcon("assets/icons/eye_filled.png")
+                QIcon(asset_path("assets", "icons", "eye_filled.png"))
             )
 
             self.confirm_visible = True
