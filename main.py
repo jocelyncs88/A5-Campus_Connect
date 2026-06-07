@@ -13,6 +13,7 @@ import account_db
 import main_window
 from main_window import MainWindow
 from resource_path import resource_path
+from worker_thread import ScraperThread
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -111,7 +112,8 @@ def _load_ui_events_from_db():
         if not event.get("jenis_event") or event.get("jenis_event").strip() == "":
             event["jenis_event"] = "External"
         
-        event["gambar_poster"] = _cache_image(event.get("gambar_poster", ""))
+        # Defer poster downloading/caching to UI components (background threads)
+        event["gambar_poster"] = event.get("gambar_poster", "")
         events.append(event)
 
     # Dipakai untuk mengganti dumgit commit -m "Simpan sementara sebelum pull"data saat data DB tersedia.
@@ -125,70 +127,15 @@ def _event_identity(event):
     return nama_event, tanggal_waktu
 
 
-def _sync_scraped_events_to_db():
-    """Ambil data dari scraper, lalu tambahkan event baru saja tanpa mengulang data lama."""
-    conn = sqlite3.connect(db_manager.DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT nama_event, tanggal_waktu FROM events")
-    existing_keys = {
-        ((row[0] or "").strip().lower(), (row[1] or "").strip().lower())
-        for row in cursor.fetchall()
-    }
-
-    hasil_scraping = scraper.ambil_event_polban(limit=100, existing_keys=existing_keys)
-    if not hasil_scraping:
-        conn.close()
-        return False
-
-    inserted_count = 0
-
-    for event in hasil_scraping:
-        event_key = _event_identity(event)
-
-        # Begitu ketemu event yang sudah ada, asumsi sisanya adalah data lama.
-        # Ini cocok untuk website yang urut dari event terbaru ke yang lebih lama.
-        if event_key in existing_keys:
-            print(f"Data lama ditemukan di scraper: {event.get('nama_event')} - hentikan scraping lanjutan.")
-            break
-
-        cursor.execute("""
-        INSERT OR IGNORE INTO events
-        (event_id, nama_event, deskripsi_singkat, gambar_poster,
-         jenis_event, tanggal_waktu, source, kategori, lokasi, nama_eo, tipe_tiket, harga_tiket, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            event.get("event_id"),
-            event.get("nama_event"),
-            event.get("deskripsi_singkat"),
-            event.get("gambar_poster"),
-            event.get("jenis_event"),
-            event.get("tanggal_waktu"),
-            event.get("source"),
-            event.get("kategori"),
-            event.get("lokasi", "Jawa Barat"),      
-            event.get("penyelenggara", "Polban"),             
-            event.get("tipe_tiket", "Free"),                 
-            event.get("harga_tiket", "0"),  
-            "approved"
-        ))
-        inserted_count += 1
-        existing_keys.add(event_key)
-
-    conn.commit()
-    conn.close()
-    return inserted_count > 0
-
-
 def main():
     """Entry point aplikasi: init DB, siapkan data UI, lalu jalankan PyQt app."""
     # Ensure local database and tables exist before UI is shown.
     db_manager.init_db()
     account_db.create_table()
 
-     # Jalankan scraping saat aplikasi dimulai agar data yang tampil selalu diperbarui.
-    _sync_scraped_events_to_db()
-    
     # Muat data event dari DB untuk ditampilkan di homepage.
+    # NOTE: avoid doing network I/O (image download) at startup —
+    # `main_window` will perform poster caching/download in background threads.
     db_events = _load_ui_events_from_db()
     if db_events:
         # Override dummy list in main_window only when DB has data.
@@ -202,6 +149,71 @@ def main():
     if db_events:
         window.refresh_tampilan_homepage()
     window.show()
+
+    # Start background scraping AFTER the UI is shown to avoid blocking startup.
+    def _on_scraper_done(hasil):
+        # hasil = list of event dicts from scraper. Insert/update in DB on main thread.
+        if not hasil:
+            return
+        for event in hasil:
+            event["status"] = "approved"
+            try:
+                # Prefer db_manager.upsert_event if available
+                if hasattr(db_manager, 'upsert_event'):
+                    db_manager.upsert_event(event)
+                else:
+                    # Fallback to manual insert
+                    conn = sqlite3.connect(db_manager.DB_NAME)
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                    INSERT OR IGNORE INTO events
+                    (event_id, nama_event, deskripsi_singkat, gambar_poster,
+                     jenis_event, tanggal_waktu, source, kategori, lokasi, nama_eo, tipe_tiket, harga_tiket, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        event.get("event_id"),
+                        event.get("nama_event"),
+                        event.get("deskripsi_singkat"),
+                        event.get("gambar_poster"),
+                        event.get("jenis_event"),
+                        event.get("tanggal_waktu"),
+                        event.get("source"),
+                        event.get("kategori"),
+                        event.get("lokasi", "Jawa Barat"),
+                        event.get("penyelenggara", "Polban"),
+                        event.get("tipe_tiket", "Free"),
+                        event.get("harga_tiket", "0"),
+                        "approved"
+                    ))
+                    conn.commit()
+                    conn.close()
+            except Exception:
+                # ignore DB write errors in background sync
+                pass
+
+        # Refresh homepage UI to show any newly added events
+        try:
+            window.refresh_tampilan_homepage()
+        except Exception:
+            pass
+
+    try:
+        # Prepare existing keys to reduce scraper work without loading all event fields.
+        conn = sqlite3.connect(db_manager.DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT nama_event, tanggal_waktu FROM events")
+        existing_keys = {
+            ((row[0] or "").strip().lower(), (row[1] or "").strip().lower())
+            for row in cursor.fetchall()
+        }
+        conn.close()
+        fungsi_scraper = lambda: scraper.ambil_event_polban(limit=100, existing_keys=existing_keys)
+        thread = ScraperThread(fungsi_scraper)
+        thread.selesai.connect(_on_scraper_done)
+        thread.error.connect(lambda msg: print(f"[BACKGROUND SCRAPER ERROR] {msg}"))
+        thread.start()
+    except Exception as e:
+        print(f"Failed to start background scraper: {e}")
 
     sys.exit(app.exec_())
 
