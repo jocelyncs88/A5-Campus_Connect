@@ -1229,6 +1229,13 @@ class YourEventsPanel(QWidget):
         btn_tiket2.setStyleSheet(self._ticket_button_style(sudah_booked))
 
         def on_tiket2_diklik(checked, ev=event, btn=btn_tiket2):
+            if self._is_event_booked(ev):
+                if self._unbook_event_from_settings(ev):
+                    btn.setText(lang.t("your_events.get_ticket"))
+                    btn.setStyleSheet(self._ticket_button_style(False))
+                    QTimer.singleShot(0, self._render)
+                return
+
             if not self._is_free_ticket(ev):
                 QMessageBox.information(
                     self, "Payment", "Payment feature will be available soon!"
