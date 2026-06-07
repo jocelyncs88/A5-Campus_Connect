@@ -11,10 +11,13 @@ from PyQt5.QtWidgets import (
 )
 
 from language_manager import lang
-
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QEvent
-from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon
+from PyQt5.QtGui import QFont, QColor, QPixmap, QIcon, QFontDatabase
 import os
+
+# ─── WARNA ─────────────────────────────────────────────────────
+COLOR_TEXT_PRIMARY = "#5D6B6B"
+COLOR_PINK_LOGIN = "#ff99aa"
 
 class SignUpPage(QWidget):
 
@@ -30,6 +33,10 @@ class SignUpPage(QWidget):
         super().__init__(parent)
 
         self.setObjectName("signup_page")
+
+        # Load custom fonts
+        id_lobster = QFontDatabase.addApplicationFont("assets/LobsterTwo-Regular.ttf")
+        self.font_lobster = QFontDatabase.applicationFontFamilies(id_lobster)[0] if id_lobster != -1 else "serif"
 
         # Password visibility flag
         self.password_visible = False
@@ -98,15 +105,14 @@ class SignUpPage(QWidget):
         left_layout.setContentsMargins(40, 40, 40, 40)
         left_layout.setSpacing(0)
 
-        # LOGO
-        self.logo_label = QLabel("Campus Connect")
+        # LOGO — sama dengan main_window.py
+        self.logo_label = QLabel(
+            f"<span style='font-family: \"{self.font_lobster}\"; font-size: 60px; color: {COLOR_TEXT_PRIMARY};'>Campus</span><br>"
+            f"<span style='font-family: \"{self.font_lobster}\"; font-size: 60px; font-weight: bold; color: {COLOR_PINK_LOGIN};'>Connect</span>"
+        )
         self.logo_label.setObjectName("logo_label")
         self.logo_label.setAlignment(Qt.AlignCenter)
-
-        logo_font = QFont("Inter", 22)
-        logo_font.setBold(True)
-
-        self.logo_label.setFont(logo_font)
+        self.logo_label.setTextFormat(Qt.RichText)
 
         left_layout.addWidget(self.logo_label)
         left_layout.addSpacing(50)
@@ -827,29 +833,29 @@ class SignUpPage(QWidget):
 
     def _retranslate(self):
         # LEFT SIDE
-        self.big_text.setText(lang.t("signup.big_text"))
-        self.sub_text.setText(lang.t("signup.sub_text"))
+        self.big_text.setText(lang.t("signup.hero_title"))
+        self.sub_text.setText(lang.t("signup.hero_subtitle"))
 
         # RIGHT SIDE
         self.title.setText(lang.t("signup.title"))
         self.subtitle.setText(lang.t("signup.subtitle"))
 
         # LABELS
-        self.label_name.setText(lang.t("signup.label_name"))
-        self.label_email.setText(lang.t("signup.label_email"))
-        self.label_phone.setText(lang.t("signup.label_phone"))
-        self.label_university.setText(lang.t("signup.label_university"))
-        self.label_password.setText(lang.t("signup.label_password"))
-        self.label_confirm.setText(lang.t("signup.label_confirm"))
+        self.label_name.setText(lang.t("signup.full_name"))
+        self.label_email.setText(lang.t("signup.email"))
+        self.label_phone.setText(lang.t("signup.phone"))
+        self.label_university.setText(lang.t("signup.university"))
+        self.label_password.setText(lang.t("signup.password"))
+        self.label_confirm.setText(lang.t("signup.confirm_password"))
 
         # PLACEHOLDERS
-        self.input_name.setPlaceholderText(lang.t("signup.placeholder_name"))
-        self.input_email.setPlaceholderText(lang.t("signup.placeholder_email"))
-        self.input_phone.setPlaceholderText(lang.t("signup.placeholder_phone"))
-        self.input_university.setPlaceholderText(lang.t("signup.placeholder_university"))
-        self.input_password.setPlaceholderText(lang.t("signup.placeholder_password"))
-        self.input_confirm.setPlaceholderText(lang.t("signup.placeholder_confirm"))
+        self.input_name.setPlaceholderText(lang.t("signup.ph_name"))
+        self.input_email.setPlaceholderText(lang.t("signup.ph_email"))
+        self.input_phone.setPlaceholderText(lang.t("signup.ph_phone"))
+        self.input_university.setPlaceholderText(lang.t("signup.ph_university"))
+        self.input_password.setPlaceholderText(lang.t("signup.ph_password"))
+        self.input_confirm.setPlaceholderText(lang.t("signup.ph_confirm"))
 
         # BUTTONS
         self.btn_signup.setText(lang.t("signup.button"))
-        self.btn_back.setText(lang.t("signup.back_to_login"))
+        self.btn_back.setText(lang.t("signup.back_login"))

@@ -193,7 +193,7 @@ _TRANSLATIONS = {
     "add_event.field_campus_req": {"en": "Campus Name *", "id": "Nama Kampus *"},
     "add_event.field_ticket_req": {"en": "Ticket Type *", "id": "Jenis Tiket *"},
     "add_event.field_price_req": {"en": "Ticket Price (Rp) *", "id": "Harga Tiket (Rp) *"},
-    "add_event.field_poster": {"en": "Poster Event", "id": "Poster Event"},
+    "add_event.field_poster": {"en": "Poster Event *", "id": "Poster Event *"},
     "add_event.ph_name": {"en": "Enter event name", "id": "Masukkan nama event"},
     "add_event.ph_desc": {"en": "Enter event description", "id": "Masukkan deskripsi event"},
     "add_event.ph_category": {"en": "Seminar/Competition/Workshop/Recruitment/etc", "id": "Seminar/Kompetisi/Workshop/Rekrutmen/dll"},
@@ -250,7 +250,8 @@ _TRANSLATIONS = {
     "login.email_placeholder":  {"en": "Enter email address",              "id": "Masukkan alamat email"},
     "login.return_home":       {"en": "← Back to Homepage",               "id": "← Kembali ke Beranda"},
     "login.contact_us":        {"en": "Contact us",                        "id": "Hubungi Kami"},
-    "login.admin_help":        {"en": "Help",                              "id": "Bantuan"},
+    "login.admin_help":        {"en": "Contact the admin to register as an Event Organizer or sign up as a student",                              
+                                "id": "Hubungi admin untuk mendaftar sebagai Event Organizer atau daftar sebagai mahasiswa"},
 
     # "account.name_desc":               {"en": "Your name can only be changed once every 30 days.",                                      "id": "Nama hanya dapat diubah setiap 30 hari sekali."},
     "account.bio_desc":                {"en": "You can edit your bio anytime.",                                                          "id": "Anda dapat mengubah bio kapan saja."},
@@ -278,6 +279,7 @@ _TRANSLATIONS = {
     "signup.ph_university": {"en": "Enter your university", "id": "Masukkan universitas"},
     "signup.ph_password": {"en": "Create password", "id": "Buat kata sandi"},
     "signup.ph_confirm": {"en": "Confirm your password", "id": "Konfirmasi kata sandi"},
+    "signup.button": {"en": "Sign Up", "id": "Daftar"},
     "signup.back_login": {"en": "← Back to Login", "id": "← Kembali ke Login"},
 
     "faq.subtitle": {"en": "Campus Connect Help Center", "id": "Pusat Bantuan Campus Connect"},
