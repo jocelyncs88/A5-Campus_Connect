@@ -511,8 +511,8 @@ class AccountPanel(QWidget):
                 teks_ket = lang.t("account.contact_desc_organizer")
             else:
                 teks_ket = lang.t("account.contact_desc_user")
-        elif field == lang.t("account.name"):
-            teks_ket = lang.t("account.name_desc")
+        # elif field == lang.t("account.name"):
+        #     teks_ket = lang.t("account.name_desc")
         else:
             teks_ket = lang.t("account.bio_desc")
 
@@ -1791,8 +1791,8 @@ class AccountPanel(QWidget):
                 teks_ket = lang.t("account.contact_desc_organizer")
             else:
                 teks_ket = lang.t("account.contact_desc_user")
-        elif field == lang.t("account.name"):
-            teks_ket = lang.t("account.name_desc")
+        # elif field == lang.t("account.name"):
+        #     # teks_ket = lang.t("account.name_desc")
         else:
             teks_ket = lang.t("account.bio_desc")
 

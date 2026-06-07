@@ -913,7 +913,13 @@ class YourEventsPanel(QWidget):
         lbl_poster.setScaledContents(True)
         lbl_poster.setStyleSheet("border-radius: 10px;")
 
-        _apply_poster_image(lbl_poster, event.get("gambar_poster", ""), placeholder_color="#D2E6E5")
+        path = event.get("gambar_poster", "")
+        if path and os.path.exists(path):
+            lbl_poster.setPixmap(QPixmap(path))
+        else:
+            lbl_poster.setStyleSheet(
+                "background-color: #D2E6E5; border-radius: 10px;"
+            )
 
         btn_hati = QPushButton(poster_container)
         btn_hati.setFixedSize(28, 28)
@@ -1109,7 +1115,13 @@ class YourEventsPanel(QWidget):
         lbl_poster.setScaledContents(True)
         lbl_poster.setStyleSheet("border-radius: 10px;")
 
-        _apply_poster_image(lbl_poster, event.get("gambar_poster", ""), placeholder_color="#D2E6E5")
+        path = event.get("gambar_poster", "")
+        if path and os.path.exists(path):
+            lbl_poster.setPixmap(QPixmap(path))
+        else:
+            lbl_poster.setStyleSheet(
+                "background-color: #D2E6E5; border-radius: 10px;"
+            )
 
         # Icon hati di bawah poster
         btn_hati_desk = QPushButton()

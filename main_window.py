@@ -79,7 +79,9 @@ class MainWindow(QMainWindow):
 
         # 2. WINDOW SETTINGS
         self.setWindowTitle("Campus Connect - Homepage")
-        self.resize(1280, 900)
+        self.setMinimumSize(1024, 720)
+        self.resize(1280, 850) 
+        self.showMaximized()
         
         # 3. BACKGROUND CANVAS (Menggunakan Gradient QSS)
         self.central_widget = QWidget()
