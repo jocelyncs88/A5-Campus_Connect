@@ -252,7 +252,7 @@ _TRANSLATIONS = {
     "login.contact_us":        {"en": "Contact us",                        "id": "Hubungi Kami"},
     "login.admin_help":        {"en": "Help",                              "id": "Bantuan"},
 
-    "account.name_desc":               {"en": "Your name can only be changed once every 30 days.",                                      "id": "Nama hanya dapat diubah setiap 30 hari sekali."},
+    # "account.name_desc":               {"en": "Your name can only be changed once every 30 days.",                                      "id": "Nama hanya dapat diubah setiap 30 hari sekali."},
     "account.bio_desc":                {"en": "You can edit your bio anytime.",                                                          "id": "Anda dapat mengubah bio kapan saja."},
     "account.email_desc_organizer":    {"en": "Enter a professional email address for event inquiries and booking requests.",             "id": "Masukkan email profesional untuk pertanyaan dan pemesanan event."},
     "account.email_desc_user":         {"en": "Enter your email address to receive notifications, e-tickets, and event updates.",         "id": "Masukkan email untuk menerima notifikasi, e-ticket, dan update event."},
