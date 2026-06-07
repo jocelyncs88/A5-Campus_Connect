@@ -5,7 +5,6 @@
 
 import sqlite3
 import re
-import uuid
 from datetime import datetime
 
 DB_NAME = "database.db"
@@ -139,23 +138,6 @@ def init_db():
         UNIQUE(nama_event, tanggal_waktu)
     )
     """)
-
-    # Bersihkan duplikat legacy berdasarkan event_id lama yang belum unik.
-    # Simpan row terakhir untuk setiap event_id, termasuk event_id kosong.
-    cursor.execute("""
-        DELETE FROM events
-        WHERE id NOT IN (
-            SELECT MAX(id)
-            FROM events
-            GROUP BY COALESCE(NULLIF(TRIM(event_id), ''), '__EMPTY__')
-        )
-    """)
-
-    # Index unik untuk event_id agar booking mengarah ke satu event saja.
-    try:
-        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_events_event_id ON events(event_id)")
-    except Exception:
-        pass
 
     # =========================================================
     # TABEL USERS
@@ -303,29 +285,15 @@ def upsert_event(event):
     cursor = conn.cursor()
 
     status_event = event.get("status", "pending")
-    event_id = (event.get("event_id") or "").strip() or f"AUTO-{uuid.uuid4().hex[:12].upper()}"
 
     cursor.execute("""
-    INSERT INTO events
+    INSERT OR IGNORE INTO events
     (event_id, nama_event, deskripsi_singkat, gambar_poster,
      jenis_event, tanggal_waktu, source, kategori, status,
      lokasi, tipe_tiket, harga_tiket, nama_eo)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(event_id) DO UPDATE SET
-        nama_event = excluded.nama_event,
-        deskripsi_singkat = excluded.deskripsi_singkat,
-        gambar_poster = excluded.gambar_poster,
-        jenis_event = excluded.jenis_event,
-        tanggal_waktu = excluded.tanggal_waktu,
-        source = excluded.source,
-        kategori = excluded.kategori,
-        status = excluded.status,
-        lokasi = excluded.lokasi,
-        tipe_tiket = excluded.tipe_tiket,
-        harga_tiket = excluded.harga_tiket,
-        nama_eo = excluded.nama_eo
     """, (
-        event_id,
+        event.get("event_id"),
         event.get("nama_event"),
         event.get("deskripsi_singkat"),
         event.get("gambar_poster"),
@@ -422,11 +390,6 @@ def get_booked_events(user_id):
         SELECT e.* FROM events e
         JOIN bookings b ON e.event_id = b.event_id
         WHERE b.user_id = ?
-          AND e.id = (
-              SELECT MAX(e2.id)
-              FROM events e2
-              WHERE e2.event_id = e.event_id
-          )
         ORDER BY e.tanggal_waktu ASC
     """, (user_id,))
 
@@ -451,11 +414,6 @@ def get_liked_events(user_id):
         SELECT e.* FROM events e
         JOIN likes l ON e.event_id = l.event_id
         WHERE l.user_id = ?
-          AND e.id = (
-              SELECT MAX(e2.id)
-              FROM events e2
-              WHERE e2.event_id = e.event_id
-          )
     """, (user_id,))
 
     rows = cursor.fetchall()

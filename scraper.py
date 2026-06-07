@@ -1,5 +1,3 @@
-import hashlib
-
 import requests
 from bs4 import BeautifulSoup
 
@@ -72,10 +70,8 @@ def parse_events(html_content):
         content_div = container.find('div', class_='entry-content')
         deskripsi_singkat = content_div.text.strip()[:70] + "..." if content_div else "Deskripsi tidak tersedia."
 
-        # Generate ID unik yang stabil untuk event yang sama.
-        # Pakai URL + judul + waktu agar kecil kemungkinan bentrok.
-        raw_identity = f"{event_link}|{nama_event}|{tanggal_waktu}"
-        event_id = "SCR-" + hashlib.sha1(raw_identity.encode("utf-8")).hexdigest()[:12].upper()
+        # Generate ID unik
+        event_id = "SCR-" + nama_event[:10].replace(" ", "").upper()
 
         # UPGRADE 1: Logika Klasifikasi Internal/External
         teks_penentu = (nama_event + " " + deskripsi_singkat).lower()
