@@ -663,8 +663,7 @@ class DetailEventPage(QWidget):
             self.tiket_label.setText(lang.t("detail.free"))
             self.deskripsi_label.setText(lang.t("detail.desc_empty"))
         else:
-            self.tampilkan_data(self.data_event)
-        self.update_book_button_state()
+            self.set_data(self.data_event)
 
     # ----------------------------------------------------------
     def apply_style(self):
