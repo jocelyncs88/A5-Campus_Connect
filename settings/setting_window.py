@@ -65,10 +65,10 @@ class SettingsWindow(QWidget):
 
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         id_lobster = QFontDatabase.addApplicationFont(
-            os.path.join(base_dir, "assets", "LobsterTwo-Regular.ttf")
+            os.path.join(base_dir, "assets", "fonts", "LobsterTwo-Regular.ttf")
         )
         id_sans = QFontDatabase.addApplicationFont(
-            os.path.join(base_dir, "assets", "GoogleSans_17pt-Regular.ttf")
+            os.path.join(base_dir, "assets", "fonts", "GoogleSans_17pt-Regular.ttf")
         )
         self.font_lobster = (
             QFontDatabase.applicationFontFamilies(id_lobster)[0]
@@ -166,7 +166,7 @@ class SettingsWindow(QWidget):
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.btn_home = QPushButton(lang.t("settings.home_btn"))
-        self.btn_home.setIcon(QIcon("assets/home.png"))
+        self.btn_home.setIcon(QIcon("assets/icons/home.png"))
         self.btn_home.setIconSize(QSize(20, 20))
         self.btn_home.setCursor(Qt.PointingHandCursor)
         self.btn_home.setStyleSheet(f"""
@@ -300,7 +300,7 @@ class SettingsWindow(QWidget):
         self.sidebar_buttons = []
         for key, index, icon_file in self._sidebar_menu_defs:
             btn = QPushButton(f"  {lang.t(key)}")
-            btn.setIcon(QIcon(f"assets/{icon_file}.png"))
+            btn.setIcon(QIcon(f"assets/icons/{icon_file}.png"))
             btn.setIconSize(QSize(22, 22))
             btn.setCursor(Qt.PointingHandCursor)
             btn.setCheckable(True)

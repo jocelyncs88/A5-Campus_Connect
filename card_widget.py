@@ -90,13 +90,13 @@ class EventCard(QWidget):
         # Mendaftarkan font Inter Medium dari file .ttf ke aplikasi
         # os.path.join() = menggabungkan path folder + subfolder + nama file
         # Setelah didaftarkan, font bisa dipakai di QFont("Inter Medium")
-        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "Inter-Medium.ttf"))
+        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "fonts", "Inter-Medium.ttf"))
 
         # Mendaftarkan font Inter Regular (untuk deskripsi event)
-        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "Inter-Regular.ttf"))
+        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "fonts", "Inter-Regular.ttf"))
 
         # Mendaftarkan font Inter SemiBold (untuk badge Internal/External)
-        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "Inter-SemiBold.ttf"))
+        QFontDatabase.addApplicationFont(os.path.join(base_dir, "assets", "fonts", "Inter-SemiBold.ttf"))
 
         # Memanggil fungsi untuk membangun semua elemen tampilan kartu
         self.setup_ui()
