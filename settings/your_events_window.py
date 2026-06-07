@@ -33,6 +33,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import QDialog
 from detail_event_page import DetailEventPage
 
+# Global store for image loader threads to ensure they are not GC'd
+_GLOBAL_IMG_THREADS = []
+
 
 # ==============================================================
 # ASYNC IMAGE LOADER — mencegah UI freeze saat load gambar URL
@@ -272,19 +275,38 @@ def _apply_poster_image(label, image_source, placeholder_color="#D2E6E5"):
     if not source:
         return
 
-    thread = _ImageLoaderThread(source, label.size(), parent=label)
+    # Create thread without parent to avoid it being destroyed when label/widget is deleted
+    thread = _ImageLoaderThread(source, label.size(), parent=None)
 
     def _on_loaded(pixmap):
-        if not pixmap.isNull() and label:
-            label.setStyleSheet("border-radius: 8px;")
-            label.setPixmap(pixmap)
+        try:
+            if not pixmap.isNull():
+                label.setStyleSheet("border-radius: 8px;")
+                label.setPixmap(pixmap)
+        except RuntimeError:
+            # QLabel was deleted on the main thread; ignore safely
+            return
 
     thread.loaded.connect(_on_loaded)
-    # Simpan referensi agar thread tidak di-GC sebelum selesai
+    # Simpan referensi agar thread tidak di-GC sebelum selesai.
+    # Gunakan dua tempat penyimpanan: di label dan di global list.
     if not hasattr(label, "_img_threads"):
         label._img_threads = []
     label._img_threads.append(thread)
-    thread.finished.connect(lambda t=thread: label._img_threads.remove(t) if hasattr(label, "_img_threads") and t in label._img_threads else None)
+    _GLOBAL_IMG_THREADS.append(thread)
+    def _cleanup(t=thread):
+        try:
+            if hasattr(label, "_img_threads") and t in label._img_threads:
+                label._img_threads.remove(t)
+        except Exception:
+            pass
+        try:
+            if t in _GLOBAL_IMG_THREADS:
+                _GLOBAL_IMG_THREADS.remove(t)
+        except Exception:
+            pass
+
+    thread.finished.connect(_cleanup)
     thread.start()
 
 
@@ -373,8 +395,9 @@ class YourEventsPanel(QWidget):
             return bool(event.get("is_booked", False))
         try:
             import db_manager
+            event_date = str(event.get("tanggal_waktu") or event.get("tanggal_display") or "").strip()
             if hasattr(db_manager, "is_event_booked"):
-                return db_manager.is_event_booked(email, event_id)
+                return db_manager.is_event_booked(email, event_id, event_date)
         except Exception as exc:
             print(f"[YourEventsPanel] Gagal cek booking event: {exc}")
         return bool(event.get("is_booked", False))
@@ -395,8 +418,9 @@ class YourEventsPanel(QWidget):
             return False
         try:
             import db_manager
+            event_date = str(event.get("tanggal_waktu") or event.get("tanggal_display") or "").strip()
             if hasattr(db_manager, "book_event"):
-                db_manager.book_event(email, event_id)
+                db_manager.book_event(email, event_id, event_date)
                 event["is_booked"] = True
                 return True
         except Exception as exc:
@@ -411,8 +435,9 @@ class YourEventsPanel(QWidget):
             return False
         try:
             import db_manager
+            event_date = str(event.get("tanggal_waktu") or event.get("tanggal_display") or "").strip()
             if hasattr(db_manager, "unbook_event"):
-                db_manager.unbook_event(email, event_id)
+                db_manager.unbook_event(email, event_id, event_date)
                 event["is_booked"] = False
                 return True
         except Exception as exc:
@@ -532,6 +557,13 @@ class YourEventsPanel(QWidget):
 
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
+
+        self._rendered = True
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if getattr(self, '_rendered', False):
+            self._render()
 
 
     # ==========================================================
@@ -860,10 +892,7 @@ class YourEventsPanel(QWidget):
 
         liked_events = self._get_liked_events()
 
-        tampil = [
-            e for e in liked_events
-            if self.liked_status.get(e["event_id"], True)
-        ]
+        tampil = liked_events
 
         if not tampil:
             lbl_empty = QLabel(lang.t("your_events.empty_liked"))
@@ -932,20 +961,19 @@ class YourEventsPanel(QWidget):
         btn_hati.setIcon(QIcon(liked_icon_path))
         btn_hati.setIconSize(QSize(24, 24))
 
-        self.liked_status[event["event_id"]] = True
-
         def on_hati_diklik(checked, ev=event):
             event_id = str(ev.get("event_id", ""))
+            event_date = str(ev.get("tanggal_waktu") or ev.get("tanggal_display") or "").strip()
             email = self.user_data.get("email", "")
 
             try:
                 import db_manager
                 if email and event_id and hasattr(db_manager, "unlike_event"):
-                    db_manager.unlike_event(email, event_id)
+                    db_manager.unlike_event(email, event_id, event_date)
             except Exception as e:
                 print(f"[YourEventsPanel] Gagal unlike event: {e}")
 
-            self.liked_status[event_id] = False
+            self.liked_status[f"{event_id}|||{event_date}"] = False
             self._render_liked_grid()
 
         btn_hati.clicked.connect(on_hati_diklik)
@@ -1134,13 +1162,14 @@ class YourEventsPanel(QWidget):
 
         # Status liked dicek dari DB dulu
         event_id_popup = self._event_id_from(event)
+        event_date_popup = str(event.get("tanggal_waktu") or event.get("tanggal_display") or "").strip()
         email_popup = self.user_data.get("email", "")
-        liked_awal = self.liked_status.get(event_id_popup, True)
+        liked_awal = self.liked_status.get(f"{event_id_popup}|||{event_date_popup}", False)
 
         try:
             import db_manager
             if email_popup and event_id_popup and hasattr(db_manager, "is_event_liked"):
-                liked_awal = db_manager.is_event_liked(email_popup, event_id_popup)
+                liked_awal = db_manager.is_event_liked(email_popup, event_id_popup, event_date_popup)
         except Exception as exc:
             print(f"[YourEventsPanel] Gagal cek like event: {exc}")
 
@@ -1149,15 +1178,15 @@ class YourEventsPanel(QWidget):
 
         def toggle_hati_desk(checked, btn=btn_hati_desk):
             is_liked[0] = not is_liked[0]
-            self.liked_status[event_id_popup] = is_liked[0]
+            self.liked_status[f"{event_id_popup}|||{event_date_popup}"] = is_liked[0]
 
             try:
                 import db_manager
                 if email_popup and event_id_popup:
                     if is_liked[0] and hasattr(db_manager, "like_event"):
-                        db_manager.like_event(email_popup, event_id_popup)
+                        db_manager.like_event(email_popup, event_id_popup, event_date_popup)
                     elif not is_liked[0] and hasattr(db_manager, "unlike_event"):
-                        db_manager.unlike_event(email_popup, event_id_popup)
+                        db_manager.unlike_event(email_popup, event_id_popup, event_date_popup)
             except Exception as exc:
                 print(f"[YourEventsPanel] Gagal update like event: {exc}")
 

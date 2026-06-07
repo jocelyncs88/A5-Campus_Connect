@@ -8,6 +8,7 @@ import re
 from datetime import datetime
 from language_manager import lang
 DB_NAME = "database.db"
+LIKE_KEY_SEPARATOR = "|||"
 
 # =========================================================
 # SQLITE ROW -> DICTIONARY
@@ -39,6 +40,16 @@ def _normalize_month_names(value):
     for source, target in _MONTH_TRANSLATIONS.items():
         text = text.replace(source, target)
     return text
+
+
+def make_like_key(event_id, event_date=""):
+    event_id = str(event_id or "").strip()
+    event_date = str(event_date or "").strip()
+    if not event_id:
+        return ""
+    if not event_date:
+        return event_id
+    return f"{event_id}{LIKE_KEY_SEPARATOR}{event_date}"
 
 
 def _parse_event_datetime(value):
@@ -386,19 +397,49 @@ def get_booked_events(user_id):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT e.* FROM events e
-        JOIN bookings b ON e.event_id = b.event_id
-        WHERE b.user_id = ?
-        ORDER BY e.tanggal_waktu ASC
-    """, (user_id,))
+    cursor.execute(
+        "SELECT event_id FROM bookings WHERE user_id = ?",
+        (user_id,)
+    )
+    booked_keys = [row[0] for row in cursor.fetchall() if row and row[0]]
 
-    rows = cursor.fetchall()
+    result = []
+    seen = set()
+    for booked_key in booked_keys:
+        if LIKE_KEY_SEPARATOR in booked_key:
+            event_id, event_date = booked_key.split(LIKE_KEY_SEPARATOR, 1)
+            cursor.execute(
+                "SELECT * FROM events WHERE event_id = ? AND (tanggal_waktu = ? OR tanggal_display = ?)",
+                (event_id, event_date, event_date)
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM events WHERE event_id = ?",
+                (booked_key,)
+            )
 
-    result = [row_to_dict(cursor, row) for row in rows]
+        rows = cursor.fetchall()
+        if not rows:
+            continue
+
+        if LIKE_KEY_SEPARATOR not in booked_key and len(rows) > 1:
+            # Ambiguous legacy booking key: plain event_id matches multiple events.
+            # Agar tidak menandai semua event dengan event_id sama, skip jika tidak unik.
+            continue
+
+        for row in rows:
+            event = row_to_dict(cursor, row)
+            event_key = (
+                event.get("event_id", ""),
+                event.get("tanggal_waktu") or event.get("tanggal_display") or ""
+            )
+            if event_key not in seen:
+                seen.add(event_key)
+                result.append(event)
 
     conn.close()
-
+    # ensure sorted by tanggal_waktu like previous behavior
+    result = sorted(result, key=lambda r: r.get("tanggal_waktu") or r.get("tanggal_display") or "")
     return result
 
 
@@ -410,15 +451,45 @@ def get_liked_events(user_id):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT e.* FROM events e
-        JOIN likes l ON e.event_id = l.event_id
-        WHERE l.user_id = ?
-    """, (user_id,))
+    cursor.execute(
+        "SELECT event_id FROM likes WHERE user_id = ?",
+        (user_id,)
+    )
+    liked_keys = [row[0] for row in cursor.fetchall() if row and row[0]]
 
-    rows = cursor.fetchall()
+    result = []
+    seen = set()
+    for liked_key in liked_keys:
+        if LIKE_KEY_SEPARATOR in liked_key:
+            event_id, event_date = liked_key.split(LIKE_KEY_SEPARATOR, 1)
+            cursor.execute(
+                "SELECT * FROM events WHERE event_id = ? AND (tanggal_waktu = ? OR tanggal_display = ?)",
+                (event_id, event_date, event_date)
+            )
+        else:
+            cursor.execute(
+                "SELECT * FROM events WHERE event_id = ?",
+                (liked_key,)
+            )
 
-    result = [row_to_dict(cursor, row) for row in rows]
+        rows = cursor.fetchall()
+        if not rows:
+            continue
+
+        if LIKE_KEY_SEPARATOR not in liked_key and len(rows) > 1:
+            # Ambiguous legacy like key: plain event_id matches multiple events.
+            # Agar tidak menandai semua event dengan event_id sama, skip jika tidak unik.
+            continue
+
+        for row in rows:
+            event = row_to_dict(cursor, row)
+            event_key = (
+                event.get("event_id", ""),
+                event.get("tanggal_waktu") or event.get("tanggal_display") or ""
+            )
+            if event_key not in seen:
+                seen.add(event_key)
+                result.append(event)
 
     conn.close()
 
@@ -987,7 +1058,7 @@ def ensure_user_exists(email_user, role: str = "mahasiswa"):
     print(f"[ensure_user_exists] created new user id={new_user_id}, email={email_user}, role={role}")
     return new_user_id
 
-def book_event(email_user, event_id):
+def book_event(email_user, event_id, event_date=""):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     user = cursor.execute(
@@ -999,11 +1070,21 @@ def book_event(email_user, event_id):
         print(f"[book_event] user not found for email={email_user}; cannot book event_id={event_id}")
         return
 
+    # Use composite key for booking when date provided
+    booking_key = make_like_key(event_id, event_date)
+
+    # Remove legacy plain event_id booking if inserting date-specific booking
+    if event_date:
+        cursor.execute(
+            "DELETE FROM bookings WHERE user_id = ? AND event_id = ?",
+            (user[0], str(event_id))
+        )
+
     # Insert booking (IGNORE jika sudah ada — mencegah double notif)
     cursor.execute("""
         INSERT OR IGNORE INTO bookings (user_id, event_id, created_at)
         VALUES (?, ?, ?)
-    """, (user[0], event_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    """, (user[0], booking_key or str(event_id), datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     was_inserted = cursor.rowcount > 0   # 1 = baru, 0 = sudah ada sebelumnya
     conn.commit()
     conn.close()
@@ -1013,8 +1094,16 @@ def book_event(email_user, event_id):
         try:
             # Ambil info event: nama_event dan email_eo
             ev_rows = get_all_events()
-            ev = next((e for e in ev_rows
-                       if str(e.get("event_id", "")) == str(event_id)), None)
+            ev = None
+            for e in ev_rows:
+                if str(e.get("event_id", "")) == str(event_id):
+                    if event_date:
+                        if (e.get("tanggal_waktu") == event_date) or (e.get("tanggal_display") == event_date):
+                            ev = e
+                            break
+                        continue
+                    ev = e
+                    break
             if ev:
                 kirim_notif_new_registrant(
                     event_id=str(event_id),
@@ -1047,7 +1136,7 @@ def kirim_notif_cancellation(event_id: str, nama_event: str,
                       event_id_ref=event_id)
 
 
-def unbook_event(email_user, event_id):
+def unbook_event(email_user, event_id, event_date=""):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     user = cursor.execute(
@@ -1057,11 +1146,19 @@ def unbook_event(email_user, event_id):
         conn.close()
         return
 
-    print(f"[unbook_event] Unbooking user_id={user[0]} with event_id={event_id}")
-    cursor.execute(
-        "DELETE FROM bookings WHERE user_id = ? AND event_id = ?",
-        (user[0], event_id)
-    )
+    booking_key = make_like_key(event_id, event_date)
+    print(f"[unbook_event] Unbooking user_id={user[0]} with event_id={event_id} booking_key={booking_key}")
+    if event_date:
+        cursor.execute(
+            "DELETE FROM bookings WHERE user_id = ? AND event_id = ?",
+            (user[0], booking_key)
+        )
+    else:
+        # delete either legacy plain event_id or any dated booking matching event_id
+        cursor.execute(
+            "DELETE FROM bookings WHERE user_id = ? AND (event_id = ? OR event_id LIKE ?)",
+            (user[0], str(event_id), str(event_id) + LIKE_KEY_SEPARATOR + "%")
+        )
     was_deleted = cursor.rowcount > 0
     conn.commit()
     conn.close()
@@ -1070,8 +1167,16 @@ def unbook_event(email_user, event_id):
     if was_deleted:
         try:
             ev_rows = get_all_events()
-            ev = next((e for e in ev_rows
-                       if str(e.get("event_id", "")) == str(event_id)), None)
+            ev = None
+            for e in ev_rows:
+                if str(e.get("event_id", "")) == str(event_id):
+                    if event_date:
+                        if (e.get("tanggal_waktu") == event_date) or (e.get("tanggal_display") == event_date):
+                            ev = e
+                            break
+                        continue
+                    ev = e
+                    break
             if ev:
                 kirim_notif_cancellation(
                     event_id=str(event_id),
@@ -1082,7 +1187,7 @@ def unbook_event(email_user, event_id):
         except Exception as _e:
             print(f"[CANCELLATION NOTIF] {_e}")
 
-def is_event_booked(email_user, event_id):
+def is_event_booked(email_user, event_id, event_date=""):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     user = cursor.execute("SELECT id FROM users WHERE email = ?", (email_user,)).fetchone()
@@ -1090,14 +1195,23 @@ def is_event_booked(email_user, event_id):
         conn.close()
         print(f"[is_event_booked] user not found for email={email_user}; event_id={event_id} -> returning False")
         return False
-    result = cursor.execute("""
-        SELECT 1 FROM bookings WHERE user_id = ? AND event_id = ?
-    """, (user[0], event_id)).fetchone()
-    print(f"[is_event_booked] checked user_id={user[0]} email={email_user} event_id={event_id} -> {result is not None}")
+    booking_key = make_like_key(event_id, event_date)
+    if event_date:
+        result = cursor.execute(
+            "SELECT 1 FROM bookings WHERE user_id = ? AND event_id = ?",
+            (user[0], booking_key)
+        ).fetchone()
+    else:
+        # check either plain event_id or any dated booking matching event_id
+        result = cursor.execute(
+            "SELECT 1 FROM bookings WHERE user_id = ? AND (event_id = ? OR event_id LIKE ?)",
+            (user[0], str(event_id), str(event_id) + LIKE_KEY_SEPARATOR + "%")
+        ).fetchone()
+    print(f"[is_event_booked] checked user_id={user[0]} email={email_user} event_id={event_id} event_date={event_date} -> {result is not None}")
     conn.close()
     return result is not None
 
-def like_event(email_user, event_id):
+def like_event(email_user, event_id, event_date=""):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -1111,16 +1225,22 @@ def like_event(email_user, event_id):
         print(f"[like_event] user not found for email={email_user}; cannot like event_id={event_id}")
         return
 
+    event_key = make_like_key(event_id, event_date)
+    if event_date:
+        cursor.execute(
+            "DELETE FROM likes WHERE user_id = ? AND event_id = ?",
+            (user[0], str(event_id))
+        )
     cursor.execute("""
         INSERT OR IGNORE INTO likes (user_id, event_id)
         VALUES (?, ?)
-    """, (user[0], str(event_id)))
+    """, (user[0], event_key))
 
     conn.commit()
     conn.close()
 
 
-def unlike_event(email_user, event_id):
+def unlike_event(email_user, event_id, event_date=""):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -1133,16 +1253,17 @@ def unlike_event(email_user, event_id):
         conn.close()
         return
 
+    event_key = make_like_key(event_id, event_date)
     cursor.execute("""
         DELETE FROM likes
-        WHERE user_id = ? AND event_id = ?
-    """, (user[0], str(event_id)))
+        WHERE user_id = ? AND event_id IN (?, ?)
+    """, (user[0], event_key, str(event_id)))
 
     conn.commit()
     conn.close()
 
 
-def is_event_liked(email_user, event_id):
+def is_event_liked(email_user, event_id, event_date=""):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
@@ -1155,10 +1276,17 @@ def is_event_liked(email_user, event_id):
         conn.close()
         return False
 
-    result = cursor.execute("""
-        SELECT 1 FROM likes
-        WHERE user_id = ? AND event_id = ?
-    """, (user[0], str(event_id))).fetchone()
+    event_key = make_like_key(event_id, event_date)
+    if event_date:
+        result = cursor.execute(
+            "SELECT 1 FROM likes WHERE user_id = ? AND event_id = ?",
+            (user[0], event_key)
+        ).fetchone()
+    else:
+        result = cursor.execute(
+            "SELECT 1 FROM likes WHERE user_id = ? AND event_id = ?",
+            (user[0], str(event_id))
+        ).fetchone()
 
     conn.close()
     return result is not None

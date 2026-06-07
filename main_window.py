@@ -891,9 +891,13 @@ class MainWindow(QMainWindow):
                 or ""
             )
             if event_key:
+                event_date = str(
+                    data_event.get("tanggal_waktu") or data_event.get("tanggal_display") or ""
+                ).strip()
                 is_booked = db_manager.is_event_booked(
                     self.current_user_email,
-                    event_key
+                    event_key,
+                    event_date
                 )
                 data_event["is_booked"] = is_booked
 

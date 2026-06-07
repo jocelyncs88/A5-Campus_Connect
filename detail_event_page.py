@@ -413,8 +413,9 @@ class DetailEventPage(QWidget):
 
         # Reset tampilan like sesuai event yang dibuka
         event_id = str(data.get("event_id") or data.get("db_id") or data.get("id") or "")
+        event_date = str(data.get("tanggal_waktu") or data.get("tanggal_display") or "").strip()
         if self.current_user_email and hasattr(db_manager, "is_event_liked"):
-            self.liked = db_manager.is_event_liked(self.current_user_email, event_id)
+            self.liked = db_manager.is_event_liked(self.current_user_email, event_id, event_date)
         else:
             self.liked = False
         icon_path = "liked.png" if self.liked else "unliked.png"
@@ -558,6 +559,7 @@ class DetailEventPage(QWidget):
             return
 
         event_id = self.get_event_id()
+        event_date = str(self.data_event.get("tanggal_waktu") or self.data_event.get("tanggal_display") or "").strip()
 
         if not event_id:
             return
@@ -565,12 +567,12 @@ class DetailEventPage(QWidget):
         # Kalau sudah booked → unbook
         if self.is_booked:
             if hasattr(db_manager, "unbook_event"):
-                db_manager.unbook_event(self.current_user_email, event_id)
+                db_manager.unbook_event(self.current_user_email, event_id, event_date)
 
         # Kalau belum booked → book
         else:
             if hasattr(db_manager, "book_event"):
-                db_manager.book_event(self.current_user_email, event_id)
+                db_manager.book_event(self.current_user_email, event_id, event_date)
 
         # Refresh tampilan tombol
         self.refresh_booking_status()
@@ -596,20 +598,21 @@ class DetailEventPage(QWidget):
             return
 
         event_id = self.get_event_id()
+        event_date = str(self.data_event.get("tanggal_waktu") or self.data_event.get("tanggal_display") or "").strip()
         if not event_id:
             return
 
         # Ambil status terbaru dari database
         current_liked = False
         if hasattr(db_manager, "is_event_liked"):
-            current_liked = db_manager.is_event_liked(self.current_user_email, event_id)
+            current_liked = db_manager.is_event_liked(self.current_user_email, event_id, event_date)
 
         # Toggle ke database
         if current_liked:
-            db_manager.unlike_event(self.current_user_email, event_id)
+            db_manager.unlike_event(self.current_user_email, event_id, event_date)
             self.liked = False
         else:
-            db_manager.like_event(self.current_user_email, event_id)
+            db_manager.like_event(self.current_user_email, event_id, event_date)
             self.liked = True
 
         # Update icon love
@@ -634,8 +637,9 @@ class DetailEventPage(QWidget):
 
     def refresh_booking_status(self):
         event_id = self.get_event_id()
+        event_date = str(self.data_event.get("tanggal_waktu") or self.data_event.get("tanggal_display") or "").strip()
         if self.current_user_email and hasattr(db_manager, "is_event_booked"):
-            is_booked = db_manager.is_event_booked(self.current_user_email, event_id)
+            is_booked = db_manager.is_event_booked(self.current_user_email, event_id, event_date)
             self.is_booked = is_booked
         else:
             self.is_booked = False
