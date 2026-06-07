@@ -371,7 +371,8 @@ class AccountPanel(QWidget):
         baris = QWidget()
         baris.setStyleSheet("background: transparent;")
         baris.setFixedHeight(56)
-        baris.setCursor(Qt.PointingHandCursor)
+        is_email_field = field_label == lang.t("account.email")
+        baris.setCursor(Qt.ArrowCursor if is_email_field else Qt.PointingHandCursor)
 
         layout = QHBoxLayout(baris)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -394,24 +395,30 @@ class AccountPanel(QWidget):
         )
         lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        btn_arrow = QPushButton()
-        icon_path = _asset("next.png")
-        if os.path.exists(icon_path):
-            btn_arrow.setIcon(QIcon(icon_path))
-        btn_arrow.setIconSize(QSize(16, 12))
-        btn_arrow.setCursor(Qt.PointingHandCursor)
-        btn_arrow.setFixedSize(28, 28)
-        btn_arrow.setStyleSheet("background: transparent; border: none;")
-        btn_arrow.clicked.connect(
-            lambda checked, f=field_label: self.buka_panel_edit(f)
-        )
+        # Only create arrow button for non-email fields
+        if not is_email_field:
+            btn_arrow = QPushButton()
+            icon_path = _asset("next.png")
+            if os.path.exists(icon_path):
+                btn_arrow.setIcon(QIcon(icon_path))
+            btn_arrow.setIconSize(QSize(16, 12))
+            btn_arrow.setCursor(Qt.PointingHandCursor)
+            btn_arrow.setFixedSize(28, 28)
+            btn_arrow.setStyleSheet("background: transparent; border: none;")
+            btn_arrow.clicked.connect(
+                lambda checked, f=field_label: self.buka_panel_edit(f)
+            )
 
         layout.addWidget(lbl_field)
         layout.addWidget(lbl_value, stretch=1)
         layout.addSpacing(8)
-        layout.addWidget(btn_arrow)
+        
+        if not is_email_field:
+            layout.addWidget(btn_arrow)
 
-        baris.mousePressEvent = lambda e, f=field_label: self.buka_panel_edit(f)
+        # Only enable click event for editable fields
+        if not is_email_field:
+            baris.mousePressEvent = lambda e, f=field_label: self.buka_panel_edit(f)
 
         return baris
 
@@ -1651,7 +1658,8 @@ class AccountPanel(QWidget):
         baris = QWidget()
         baris.setStyleSheet("background: transparent;")
         baris.setFixedHeight(56)
-        baris.setCursor(Qt.PointingHandCursor)
+        is_email_field = field_label == lang.t("account.email")
+        baris.setCursor(Qt.ArrowCursor if is_email_field else Qt.PointingHandCursor)
 
         layout = QHBoxLayout(baris)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1674,24 +1682,30 @@ class AccountPanel(QWidget):
         )
         lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        btn_arrow = QPushButton()
-        icon_path = _asset("next.png")
-        if os.path.exists(icon_path):
-            btn_arrow.setIcon(QIcon(icon_path))
-        btn_arrow.setIconSize(QSize(16, 12))
-        btn_arrow.setCursor(Qt.PointingHandCursor)
-        btn_arrow.setFixedSize(28, 28)
-        btn_arrow.setStyleSheet("background: transparent; border: none;")
-        btn_arrow.clicked.connect(
-            lambda checked, f=field_label: self.buka_panel_edit(f)
-        )
+        # Only create arrow button for non-email fields
+        if not is_email_field:
+            btn_arrow = QPushButton()
+            icon_path = _asset("next.png")
+            if os.path.exists(icon_path):
+                btn_arrow.setIcon(QIcon(icon_path))
+            btn_arrow.setIconSize(QSize(16, 12))
+            btn_arrow.setCursor(Qt.PointingHandCursor)
+            btn_arrow.setFixedSize(28, 28)
+            btn_arrow.setStyleSheet("background: transparent; border: none;")
+            btn_arrow.clicked.connect(
+                lambda checked, f=field_label: self.buka_panel_edit(f)
+            )
 
         layout.addWidget(lbl_field)
         layout.addWidget(lbl_value, stretch=1)
         layout.addSpacing(8)
-        layout.addWidget(btn_arrow)
+        
+        if not is_email_field:
+            layout.addWidget(btn_arrow)
 
-        baris.mousePressEvent = lambda e, f=field_label: self.buka_panel_edit(f)
+        # Only enable click event for editable fields
+        if not is_email_field:
+            baris.mousePressEvent = lambda e, f=field_label: self.buka_panel_edit(f)
 
         return baris
 
