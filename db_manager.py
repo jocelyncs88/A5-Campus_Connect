@@ -877,6 +877,20 @@ def simpan_notifikasi(email_user: str, judul: str, pesan: str,
     conn.close()
 
 
+def tambah_notifikasi_eo(email_user: str, judul: str, pesan: str,
+                          event_id_ref: str = ""):
+    """
+    Alias untuk menyimpan notifikasi EO.
+
+    Dipanggil saat admin melakukan approve/decline event yang dikirim oleh EO.
+    """
+    if not email_user:
+        return
+    simpan_notifikasi(email_user, judul, pesan,
+                      tipe_notif="EO_APPROVAL",
+                      event_id_ref=event_id_ref)
+
+
 def kirim_notif_critical_update(event_id: str, nama_event: str):
     """
     Mengirim notifikasi Critical Update ke semua student
