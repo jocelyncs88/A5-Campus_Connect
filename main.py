@@ -127,69 +127,12 @@ def _event_identity(event):
     return nama_event, tanggal_waktu
 
 
-def _sync_scraped_events_to_db():
-    """Ambil data dari scraper, lalu tambahkan event baru saja tanpa mengulang data lama."""
-    conn = sqlite3.connect(db_manager.DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT nama_event, tanggal_waktu FROM events")
-    existing_keys = {
-        ((row[0] or "").strip().lower(), (row[1] or "").strip().lower())
-        for row in cursor.fetchall()
-    }
-
-    hasil_scraping = scraper.ambil_event_polban(limit=100, existing_keys=existing_keys)
-    if not hasil_scraping:
-        conn.close()
-        return False
-
-    inserted_count = 0
-
-    for event in hasil_scraping:
-        event_key = _event_identity(event)
-
-        # Begitu ketemu event yang sudah ada, asumsi sisanya adalah data lama.
-        # Ini cocok untuk website yang urut dari event terbaru ke yang lebih lama.
-        if event_key in existing_keys:
-            print(f"Data lama ditemukan di scraper: {event.get('nama_event')} - hentikan scraping lanjutan.")
-            break
-
-        cursor.execute("""
-        INSERT OR IGNORE INTO events
-        (event_id, nama_event, deskripsi_singkat, gambar_poster,
-         jenis_event, tanggal_waktu, source, kategori, lokasi, nama_eo, tipe_tiket, harga_tiket, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            event.get("event_id"),
-            event.get("nama_event"),
-            event.get("deskripsi_singkat"),
-            event.get("gambar_poster"),
-            event.get("jenis_event"),
-            event.get("tanggal_waktu"),
-            event.get("source"),
-            event.get("kategori"),
-            event.get("lokasi", "Jawa Barat"),      
-            event.get("penyelenggara", "Polban"),             
-            event.get("tipe_tiket", "Free"),                 
-            event.get("harga_tiket", "0"),  
-            "approved"
-        ))
-        inserted_count += 1
-        existing_keys.add(event_key)
-
-    conn.commit()
-    conn.close()
-    return inserted_count > 0
-
-
 def main():
     """Entry point aplikasi: init DB, siapkan data UI, lalu jalankan PyQt app."""
     # Ensure local database and tables exist before UI is shown.
     db_manager.init_db()
     account_db.create_table()
 
-     # Jalankan scraping saat aplikasi dimulai agar data yang tampil selalu diperbarui.
-    _sync_scraped_events_to_db()
-    
     # Muat data event dari DB untuk ditampilkan di homepage.
     # NOTE: avoid doing network I/O (image download) at startup —
     # `main_window` will perform poster caching/download in background threads.
@@ -255,12 +198,15 @@ def main():
             pass
 
     try:
-        # Prepare existing keys to reduce scraper work
-        data_db = db_manager.get_all_events()
+        # Prepare existing keys to reduce scraper work without loading all event fields.
+        conn = sqlite3.connect(db_manager.DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT nama_event, tanggal_waktu FROM events")
         existing_keys = {
-            (str(row.get("nama_event") or "").strip().lower(), str(row.get("tanggal_waktu") or "").strip().lower())
-            for row in data_db
+            ((row[0] or "").strip().lower(), (row[1] or "").strip().lower())
+            for row in cursor.fetchall()
         }
+        conn.close()
         fungsi_scraper = lambda: scraper.ambil_event_polban(limit=100, existing_keys=existing_keys)
         thread = ScraperThread(fungsi_scraper)
         thread.selesai.connect(_on_scraper_done)
