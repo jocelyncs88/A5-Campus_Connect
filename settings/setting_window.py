@@ -353,10 +353,7 @@ class SettingsWindow(QWidget):
             btn.setStyleSheet(self._style_sidebar_btn(aktif))
 
         if index == 1 and hasattr(self, "panel_your_events"):
-            panel = self.panel_your_events
-            if not getattr(panel, "_rendered", False):
-                panel._render()
-                panel._rendered = True
+            self.panel_your_events._render()
 
     def buka_add_event(self):
         self.minta_buka_add_event.emit()
