@@ -180,6 +180,9 @@ class MainWindow(QMainWindow):
         self.btn_about.setText(lang.t("nav.about"))
         self.search_bar.setPlaceholderText(lang.t("home.search_placeholder"))
         self.event_title.setText(lang.t("home.upcoming"))
+        # Retranslate filter chips jika sudah diinisialisasi
+        if hasattr(self, '_jenis_chips') and hasattr(self, '_tiket_chips') and hasattr(self, '_sumber_chips'):
+            self._retranslate_filters()
         self.update_navbar_berdasarkan_role()
 
     def jalankan_auto_update(self):
@@ -581,12 +584,14 @@ class MainWindow(QMainWindow):
         CHIP_INACTIVE = "background: rgba(255,255,255,0.71); color: #516465; border-radius: 21px; padding: 9px 24px; font-size: 17px; border: none; font-weight: bold;"
 
         # ── Grup Jenis Event ──────────────────────────────────────
-        lbl_jenis = QLabel(lang.t("home.filter_type"))
-        lbl_jenis.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
-        bar_layout.addWidget(lbl_jenis)
+        self.lbl_jenis = QLabel(lang.t("home.filter_type"))
+        self.lbl_jenis.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
+        bar_layout.addWidget(self.lbl_jenis)
 
+        # Mapping untuk retranslasi: (button_index, translation_key)
+        self._jenis_chips_keys = [(lang.t("home.filter_all"), None), (lang.t("home.filter_internal"), "Internal"), (lang.t("home.filter_external"), "External")]
         jenis_chips = []
-        for label, value in [(lang.t("home.filter_all"), None), (lang.t("home.filter_internal"), "Internal"), (lang.t("home.filter_external"), "External")]:
+        for label, value in self._jenis_chips_keys:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(42)
@@ -609,12 +614,14 @@ class MainWindow(QMainWindow):
         bar_layout.addSpacing(4)
 
         # ── Grup Tipe Tiket ───────────────────────────────────────
-        lbl_tiket = QLabel(lang.t("home.filter_ticket"))
-        lbl_tiket.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
-        bar_layout.addWidget(lbl_tiket)
+        self.lbl_tiket = QLabel(lang.t("home.filter_ticket"))
+        self.lbl_tiket.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
+        bar_layout.addWidget(self.lbl_tiket)
 
+        # Mapping untuk retranslasi
+        self._tiket_chips_keys = [(lang.t("home.filter_all"), None), (lang.t("home.filter_free"), "Free"), (lang.t("home.filter_paid"), "Paid")]
         tiket_chips = []
-        for label, value in [(lang.t("home.filter_all"), None), (lang.t("home.filter_free"), "Free"), (lang.t("home.filter_paid"), "Paid")]:
+        for label, value in self._tiket_chips_keys:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(42)
@@ -635,12 +642,14 @@ class MainWindow(QMainWindow):
         bar_layout.addSpacing(6)
 
         # ── Grup Sumber ───────────────────────────────────────────
-        lbl_sumber = QLabel(lang.t("home.filter_source"))
-        lbl_sumber.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
-        bar_layout.addWidget(lbl_sumber)
+        self.lbl_sumber = QLabel(lang.t("home.filter_source"))
+        self.lbl_sumber.setStyleSheet("color: #516465; font-size: 17px; font-weight: 700; background: transparent;")
+        bar_layout.addWidget(self.lbl_sumber)
 
+        # Mapping untuk retranslasi
+        self._sumber_chips_keys = [(lang.t("home.filter_all"), None), (lang.t("home.filter_official"), "scraping"), (lang.t("home.filter_partner"), "manual")]
         sumber_chips = []
-        for label, value in [(lang.t("home.filter_all"), None), (lang.t("home.filter_official"), "scraping"), (lang.t("home.filter_partner"), "manual")]:
+        for label, value in self._sumber_chips_keys:
             btn = QPushButton(label)
             btn.setCursor(Qt.PointingHandCursor)
             btn.setFixedHeight(42)
@@ -665,6 +674,34 @@ class MainWindow(QMainWindow):
                 self._chip_active_style if btn is clicked_btn else self._chip_inactive_style
             )
         self.filter_event_cards()
+
+    def _retranslate_filters(self):
+        """Retranslate semua filter chips ketika bahasa berubah."""
+        # Update label grup
+        self.lbl_jenis.setText(lang.t("home.filter_type"))
+        self.lbl_tiket.setText(lang.t("home.filter_ticket"))
+        self.lbl_sumber.setText(lang.t("home.filter_source"))
+        
+        # Definisikan ulang mapping keys dengan text terbaru
+        self._jenis_chips_keys = [(lang.t("home.filter_all"), None), 
+                                   (lang.t("home.filter_internal"), "Internal"), 
+                                   (lang.t("home.filter_external"), "External")]
+        self._tiket_chips_keys = [(lang.t("home.filter_all"), None), 
+                                  (lang.t("home.filter_free"), "Free"), 
+                                  (lang.t("home.filter_paid"), "Paid")]
+        self._sumber_chips_keys = [(lang.t("home.filter_all"), None), 
+                                   (lang.t("home.filter_official"), "scraping"), 
+                                   (lang.t("home.filter_partner"), "manual")]
+        
+        # Update text button chips
+        for i, btn in enumerate(self._jenis_chips):
+            btn.setText(self._jenis_chips_keys[i][0])
+        
+        for i, btn in enumerate(self._tiket_chips):
+            btn.setText(self._tiket_chips_keys[i][0])
+        
+        for i, btn in enumerate(self._sumber_chips):
+            btn.setText(self._sumber_chips_keys[i][0])
 
     def init_hero(self):
         self.hero_widget = QWidget()
