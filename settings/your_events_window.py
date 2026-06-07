@@ -674,7 +674,7 @@ class YourEventsPanel(QWidget):
         # Tersembunyi secara default, muncul saat mouse hover ke poster
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         btn_edit = QPushButton(poster_container)
-        btn_edit.setIcon(QIcon(os.path.join(BASE_DIR, "assets", "edit.png")))
+        btn_edit.setIcon(QIcon(os.path.join(BASE_DIR, "assets", "icons", "edit.png")))
         btn_edit.setIconSize(QSize(18, 18))
         btn_edit.setFixedSize(30, 30)
         btn_edit.move(CARD_WIDTH - 38, 8)  
@@ -954,8 +954,8 @@ class YourEventsPanel(QWidget):
         btn_hati.setStyleSheet("background: transparent; border: none;")
         btn_hati.setCursor(Qt.PointingHandCursor)
 
-        liked_icon_path = os.path.join(BASE_DIR, "assets", "liked.png")
-        unliked_icon_path = os.path.join(BASE_DIR, "assets", "unliked.png")
+        liked_icon_path = os.path.join(BASE_DIR, "assets", "icons", "liked.png")
+        unliked_icon_path = os.path.join(BASE_DIR, "assets", "icons", "unliked.png")
         btn_hati.setIcon(QIcon(liked_icon_path))
         btn_hati.setIconSize(QSize(24, 24))
 
@@ -1099,7 +1099,7 @@ class YourEventsPanel(QWidget):
         topbar_layout.setContentsMargins(20, 0, 20, 0)
 
         btn_back = QPushButton()
-        btn_back.setIcon(QIcon(os.path.join(BASE_DIR, "assets", "back.png")))
+        btn_back.setIcon(QIcon(os.path.join(BASE_DIR, "assets", "icons", "back.png")))
         btn_back.setIconSize(QSize(24, 24))
         btn_back.setFixedSize(36, 36)
         btn_back.setCursor(Qt.PointingHandCursor)
@@ -1149,8 +1149,8 @@ class YourEventsPanel(QWidget):
 
         # Icon hati di bawah poster
         btn_hati_desk = QPushButton()
-        liked_icon = os.path.join(BASE_DIR, "assets", "liked.png")
-        unliked_icon = os.path.join(BASE_DIR, "assets", "unliked.png")
+        liked_icon = os.path.join(BASE_DIR, "assets", "icons", "liked.png")
+        unliked_icon = os.path.join(BASE_DIR, "assets", "icons", "unliked.png")
         btn_hati_desk.setIconSize(QSize(28, 28))
         btn_hati_desk.setFixedSize(32, 32)
         btn_hati_desk.setStyleSheet("background: transparent; border: none;")
@@ -1307,7 +1307,7 @@ class YourEventsPanel(QWidget):
             hl = QHBoxLayout(w)
             hl.setContentsMargins(0, 0, 0, 0)
             hl.setSpacing(8)
-            icon_path = os.path.join(BASE_DIR, "assets", f"{icon_name}.png")
+            icon_path = os.path.join(BASE_DIR, "assets", "icons", f"{icon_name}.png")
             lbl_icon = QLabel()
             lbl_icon.setPixmap(QIcon(icon_path).pixmap(QSize(18, 18)))
             lbl_icon.setFixedSize(20, 20)

@@ -57,7 +57,7 @@ class AboutPage(QWidget):
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
         id_lobster = QFontDatabase.addApplicationFont(
-            os.path.join(base_dir, "assets", "LobsterTwo-Regular.ttf")
+            os.path.join(base_dir, "assets", "fonts", "LobsterTwo-Regular.ttf")
         )
         self.font_lobster = (
             QFontDatabase.applicationFontFamilies(id_lobster)[0]

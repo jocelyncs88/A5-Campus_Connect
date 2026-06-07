@@ -424,7 +424,7 @@ class AddEventPage(QWidget):
         self.jenis_terpilih = ""
         self.input_jenis.setText(lang.t("add_event.select_type"))
         self.input_jenis.setLayoutDirection(Qt.RightToLeft)
-        self.input_jenis.setIcon(QIcon("assets/arrow_down.png"))
+        self.input_jenis.setIcon(QIcon("assets/icons/arrow_down.png"))
         self.input_jenis.setIconSize(QSize(12, 12))
 
         self.toggle_tiket.set_on(False)

@@ -471,7 +471,7 @@ class AccountPanel(QWidget):
 
         btn_back = QPushButton()
         btn_back.setFixedSize(42, 42)
-        btn_back.setIcon(QIcon("assets/arrow_back.png"))
+        btn_back.setIcon(QIcon("assets/icons/arrow_back.png"))
         btn_back.setIconSize(QSize(24, 24))
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet("""
@@ -1758,7 +1758,7 @@ class AccountPanel(QWidget):
 
         btn_back = QPushButton()
         btn_back.setFixedSize(42, 42)
-        btn_back.setIcon(QIcon("assets/arrow_back.png"))
+        btn_back.setIcon(QIcon("assets/icons/arrow_back.png"))
         btn_back.setIconSize(QSize(24, 24))
         btn_back.setCursor(Qt.PointingHandCursor)
         btn_back.setStyleSheet("""
