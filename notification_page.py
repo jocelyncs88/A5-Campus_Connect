@@ -71,6 +71,90 @@ _TIPE_ICON = {
 _TIPE_ACTIONABLE = {"EVENT_UPDATED", "H1_REMINDER", "NEW_LIKED_MATCH", "CAMPUS_NEW_EVENT"}
 
 
+# Raw notification keys that may already be stored in the database.
+_NOTIF_TEMPLATE_KEYS = {
+    "notif.msg_new_registrant_title",
+    "notif.msg_new_registrant_body",
+    "notif.msg_cancellation_title",
+    "notif.msg_cancellation_body",
+    "notif.msg_approved_title",
+    "notif.msg_approved_body",
+    "notif.msg_rejected_title",
+    "notif.msg_rejected_body",
+    "notif.msg_update_approved_title",
+    "notif.msg_update_approved_body",
+    "notif.msg_update_rejected_title",
+    "notif.msg_update_rejected_body",
+    "notif.msg_h1_title",
+    "notif.msg_h1_body",
+    "notif.msg_event_updated_title",
+    "notif.msg_event_updated_body",
+    "notif.msg_interest_title",
+    "notif.msg_interest_body",
+    "notif.msg_new_event_title",
+    "notif.msg_new_event_body",
+}
+
+
+def _ambil_event_dari_id(event_id: str) -> dict:
+    """Ambil data event untuk membantu format template notifikasi."""
+    if not event_id:
+        return {}
+    try:
+        for event in db_manager.get_all_events():
+            if str(event.get("event_id", "")) == str(event_id):
+                return event
+    except Exception:
+        pass
+    return {}
+
+
+def _default_notif_args(notif_data: dict) -> dict:
+    """Args aman untuk format template notifikasi tanpa menerjemahkan konten event."""
+    event = _ambil_event_dari_id(notif_data.get("event_id_ref", ""))
+    nama_event = (
+        event.get("nama_event")
+        or event.get("judul")
+        or notif_data.get("event_name")
+        or "event"
+    )
+    kategori = event.get("kategori") or "event"
+
+    total = 1
+    sisa = 0
+    try:
+        if notif_data.get("event_id_ref"):
+            total = db_manager.hitung_registrant_event(notif_data.get("event_id_ref"))
+            sisa = total
+    except Exception:
+        pass
+
+    # suffix hanya dipakai English; Indonesian template mengabaikannya.
+    suffix_total = "" if total == 1 else "s"
+    suffix_sisa = "" if sisa == 1 else "s"
+
+    return {
+        "event": nama_event,
+        "kategori": kategori,
+        "total": total,
+        "sisa": sisa,
+        "suffix": suffix_total,
+        "time": event.get("waktu_display") or event.get("tanggal_waktu") or "",
+    }
+
+
+def _teks_notifikasi(value: str, notif_data: dict) -> str:
+    """Render teks notifikasi dari DB. Jika DB berisi raw key, terjemahkan."""
+    value = value or ""
+    if value in _NOTIF_TEMPLATE_KEYS:
+        template = lang.t(value)
+        try:
+            return template.format(**_default_notif_args(notif_data))
+        except Exception:
+            return template
+    return value
+
+
 # ==============================================================
 # HELPER: waktu relatif
 # ==============================================================
@@ -82,17 +166,19 @@ def _waktu_relatif(created_at_str: str) -> str:
     sekarang = datetime.now()
     delta = sekarang - waktu
     if delta < timedelta(minutes=1):
-        return "Just now"
+        return lang.t("notif.time_just_now")
     elif delta < timedelta(hours=1):
-        menit = int(delta.total_seconds() // 60)
-        return f"{menit} minute{'s' if menit > 1 else ''} ago"
+        n = int(delta.total_seconds() // 60)
+        s = "s" if n > 1 else ""
+        return lang.t("notif.time_minutes_ago").format(n=n, s=s)
     elif delta < timedelta(days=1):
-        jam = int(delta.total_seconds() // 3600)
-        return f"{jam} hour{'s' if jam > 1 else ''} ago"
+        n = int(delta.total_seconds() // 3600)
+        s = "s" if n > 1 else ""
+        return lang.t("notif.time_hours_ago").format(n=n, s=s)
     elif delta < timedelta(days=2):
-        return "Yesterday"
+        return lang.t("notif.time_yesterday")
     elif delta < timedelta(days=7):
-        return f"{delta.days} days ago"
+        return lang.t("notif.time_days_ago").format(n=delta.days)
     else:
         return waktu.strftime("%d %b %Y")
 
@@ -155,7 +241,7 @@ class NotifItemWidget(QWidget):
         tengah_layout.setContentsMargins(0, 0, 0, 0)
         tengah_layout.setSpacing(4)
 
-        judul = self.notif_data.get("judul", "")
+        judul = _teks_notifikasi(self.notif_data.get("judul", ""), self.notif_data)
         lbl_judul = QLabel(judul)
         lbl_judul.setFont(QFont(self.font_semi, 13))
         weight = "bold" if not self.is_read else "normal"
@@ -164,7 +250,7 @@ class NotifItemWidget(QWidget):
         )
         tengah_layout.addWidget(lbl_judul)
 
-        pesan = self.notif_data.get("pesan", "")
+        pesan = _teks_notifikasi(self.notif_data.get("pesan", ""), self.notif_data)
         lbl_pesan = QLabel(pesan)
         lbl_pesan.setFont(QFont(self.font_regular, 11))
         lbl_pesan.setStyleSheet(f"color: {COLOR_TEXT_MUTED}; background: transparent;")
@@ -269,6 +355,7 @@ class NotificationPage(QWidget):
         self.setStyleSheet("background: transparent;")
         self._build_ui()
         self.muat_notifikasi()
+        lang.language_changed.connect(self._retranslate)
 
     # ----------------------------------------------------------
     # Properti alias untuk kompatibilitas panggilan lama (email_eo=)
@@ -356,12 +443,12 @@ class NotificationPage(QWidget):
         btn_kembali.clicked.connect(self.kembali_diklik.emit)
         layout.addWidget(btn_kembali)
 
-        lbl_judul = QLabel(lang.t("notif.title"))
-        lbl_judul.setFont(QFont(self.font_semi, 18))
-        lbl_judul.setStyleSheet(
+        self.lbl_judul = QLabel(lang.t("notif.title"))
+        self.lbl_judul.setFont(QFont(self.font_semi, 18))
+        self.lbl_judul.setStyleSheet(
             f"color: {COLOR_TEAL_DARK}; font-weight: bold; background: transparent;"
         )
-        layout.addWidget(lbl_judul)
+        layout.addWidget(self.lbl_judul)
         layout.addStretch()
 
         self.btn_baca_semua = QPushButton(lang.t("notif.mark_all_read"))
@@ -390,13 +477,13 @@ class NotificationPage(QWidget):
                 w.deleteLater()
 
         if not self.email_user:
-            self._tampilkan_kosong("Please log in to view your notifications.")
+            self._tampilkan_kosong(lang.t("notif.empty_login"))
             return
 
         notif_list = db_manager.get_notifikasi(self.email_user)
 
         if not notif_list:
-            self._tampilkan_kosong("You're all caught up! No notifications yet.")
+            self._tampilkan_kosong(lang.t("notif.empty_no_notif"))
             return
 
         self._item_widgets = []
@@ -471,6 +558,15 @@ class NotificationPage(QWidget):
             if not w.is_read:
                 w.tandai_sudah_dibaca()
         self.badge_berubah.emit(0)
+
+    # ----------------------------------------------------------
+    def _retranslate(self, _code: str = ""):
+        """Update header dan isi notifikasi saat bahasa aplikasi berubah."""
+        if hasattr(self, "lbl_judul"):
+            self.lbl_judul.setText(lang.t("notif.title"))
+        if hasattr(self, "btn_baca_semua"):
+            self.btn_baca_semua.setText(lang.t("notif.mark_all_read"))
+        self.muat_notifikasi()
 
     # ----------------------------------------------------------
     def set_email(self, email: str, role: str = ""):

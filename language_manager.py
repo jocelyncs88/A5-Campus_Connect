@@ -16,6 +16,13 @@
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+# ─────────────────────────────────────────────
+# SEMUA STRING UI APLIKASI
+# Tambahkan key baru di sini ketika ada halaman baru.
+# Konten event (judul, deskripsi, dll.) TIDAK diterjemahkan
+# di sini — itu tanggung jawab tiap halaman untuk menampilkan
+# versi asli dari database.
+# ─────────────────────────────────────────────
 _TRANSLATIONS = {
     # ── UMUM / NAVIGASI ────────────────────────────────────────
     "nav.home":             {"en": "  Home",             "id": "  Beranda"},
@@ -150,8 +157,10 @@ _TRANSLATIONS = {
     "home.filter_type": {"en": "Type:", "id": "Tipe:"},
     "home.filter_ticket": {"en": "Ticket:", "id": "Tiket:"},
     "home.filter_source": {"en": "Source:", "id": "Sumber:"},
-    "home.filter_free": {"en": "Free", "id": "Gratis"},
-    "home.filter_paid": {"en": "Paid", "id": "Berbayar"},
+    "home.filter_free":     {"en": "Free",            "id": "Gratis"},
+    "home.filter_paid":     {"en": "Paid",            "id": "Berbayar"},
+    "home.filter_official": {"en": "Official Polban", "id": "Resmi Polban"},
+    "home.filter_partner":  {"en": "Partnership",     "id": "Kemitraan"},
 
     "about.hero_title": {"en": "About Us", "id": "Tentang Kami"},
     "about.subtitle": {"en": "Helping students discover campus events, communities, and opportunities in one place.", "id": "Membantu mahasiswa menemukan event kampus, komunitas, dan peluang dalam satu tempat."},
@@ -231,13 +240,6 @@ _TRANSLATIONS = {
     "admin.btn_approve_full": {"en": "✓ Approve", "id": "✓ Setujui"},
     "admin.btn_decline_full": {"en": "✗ Decline", "id": "✗ Tolak"},
 
-    # Kolom header tabel admin
-    "admin.col_event_id":   {"en": "Event ID",          "id": "ID Event"},
-    "admin.col_event_name": {"en": "Event Name",        "id": "Nama Event"},
-    "admin.col_type":       {"en": "Type",              "id": "Jenis"},
-    "admin.col_time":       {"en": "Time",              "id": "Waktu"},
-    "admin.col_action":     {"en": "Validation Action", "id": "Aksi Validasi"},
-
     "login.heading": {"en": "Login", "id": "Masuk"},
     "login.have_account": {"en": "Do you already have an account?", "id": "Sudah punya akun?"},
     "login.email_continue": {"en": "Enter your email address to continue", "id": "Masukkan alamat email untuk melanjutkan"},
@@ -245,73 +247,38 @@ _TRANSLATIONS = {
     "login.continue": {"en": "Continue", "id": "Lanjutkan"},
     "login.no_account": {"en": "Don't have an account yet?", "id": "Belum punya akun?"},
     "login.signup": {"en": "Sign Up", "id": "Daftar"},
+    "login.email_placeholder":  {"en": "Enter email address",              "id": "Masukkan alamat email"},
+    "login.return_home":       {"en": "← Back to Homepage",               "id": "← Kembali ke Beranda"},
+    "login.contact_us":        {"en": "Contact us",                        "id": "Hubungi Kami"},
+    "login.admin_help":        {"en": "Help",                              "id": "Bantuan"},
 
-    # ── SIGNUP ─────────────────────────────────────────────────
-    # Teks kiri (hero)
-    "signup.hero_title":            {"en": "Create your\nstudent account",  "id": "Buat akun\nmahasiswa Anda"},
-    "signup.big_text":              {"en": "Create your\nstudent account",  "id": "Buat akun\nmahasiswa Anda"},
-    "signup.hero_subtitle":         {"en": "Join Campus Connect and discover events, communities, and opportunities around your campus.",
-                                     "id": "Bergabung dengan Campus Connect dan temukan event, komunitas, serta peluang di sekitar kampus Anda."},
-    "signup.sub_text":              {"en": "Join Campus Connect and discover events, communities, and opportunities around your campus.",
-                                     "id": "Bergabung dengan Campus Connect dan temukan event, komunitas, serta peluang di sekitar kampus Anda."},
+    "account.name_desc":               {"en": "Your name can only be changed once every 30 days.",                                      "id": "Nama hanya dapat diubah setiap 30 hari sekali."},
+    "account.bio_desc":                {"en": "You can edit your bio anytime.",                                                          "id": "Anda dapat mengubah bio kapan saja."},
+    "account.email_desc_organizer":    {"en": "Enter a professional email address for event inquiries and booking requests.",             "id": "Masukkan email profesional untuk pertanyaan dan pemesanan event."},
+    "account.email_desc_user":         {"en": "Enter your email address to receive notifications, e-tickets, and event updates.",         "id": "Masukkan email untuk menerima notifikasi, e-ticket, dan update event."},
+    "account.contact_desc_organizer":  {"en": "Add a phone number so audiences can contact you about events or collaborations.",          "id": "Tambahkan nomor telepon agar peserta dapat menghubungi Anda terkait event atau kolaborasi."},
+    "account.contact_desc_user":       {"en": "Add your phone number so organizers can contact you about event updates.",                 "id": "Tambahkan nomor telepon agar penyelenggara dapat menghubungi Anda terkait update event."},
 
-    # Teks kanan (form header)
-    "signup.title":                 {"en": "Sign Up",                       "id": "Daftar"},
-    "signup.subtitle":              {"en": "Fill in your information to create your account",
-                                     "id": "Isi informasi Anda untuk membuat akun"},
+    "notif.push_translated":           {"en": "Push",                                                                                    "id": "Dorong"},
+    "msg.login_success_role":          {"en": "Successful Login as {role}!",                                                             "id": "Berhasil masuk sebagai {role}!"},
 
-    # Label field
-    "signup.label_name":            {"en": "Full Name",                     "id": "Nama Lengkap"},
-    "signup.label_email":           {"en": "Email Address",                 "id": "Alamat Email"},
-    "signup.label_phone":           {"en": "Phone Number",                  "id": "Nomor Telepon"},
-    "signup.label_university":      {"en": "University",                    "id": "Universitas"},
-    "signup.label_password":        {"en": "Password",                      "id": "Kata Sandi"},
-    "signup.label_confirm":         {"en": "Confirm Password",              "id": "Konfirmasi Kata Sandi"},
-
-    # Placeholder field
-    "signup.placeholder_name":      {"en": "Enter your full name",          "id": "Masukkan nama lengkap"},
-    "signup.placeholder_email":     {"en": "Enter your email address",      "id": "Masukkan alamat email"},
-    "signup.placeholder_phone":     {"en": "Enter your phone number",       "id": "Masukkan nomor telepon"},
-    "signup.placeholder_university":{"en": "Enter your university",         "id": "Masukkan universitas"},
-    "signup.placeholder_password":  {"en": "Create password",               "id": "Buat kata sandi"},
-    "signup.placeholder_confirm":   {"en": "Confirm your password",         "id": "Konfirmasi kata sandi"},
-
-    # Tombol
-    "signup.button":                {"en": "Sign Up",                       "id": "Daftar"},
-    "signup.back_to_login":         {"en": "← Back to Login",               "id": "← Kembali ke Login"},
-
-    # Popup validasi — nama tidak valid
-    "signup.msg_invalid_name_title":    {"en": "Invalid Name",              "id": "Nama Tidak Valid"},
-    "signup.msg_invalid_name_body":     {"en": "Full name cannot be empty.", "id": "Nama lengkap tidak boleh kosong."},
-
-    # Popup validasi — data tidak lengkap
-    "signup.msg_incomplete_title":      {"en": "Incomplete Data",           "id": "Data Tidak Lengkap"},
-    "signup.msg_email_empty":           {"en": "Email must be filled.",     "id": "Email harus diisi."},
-    "signup.msg_phone_empty":           {"en": "Phone number must be filled.", "id": "Nomor telepon harus diisi."},
-    "signup.msg_password_empty":        {"en": "Password must be filled.",  "id": "Kata sandi harus diisi."},
-    "signup.msg_confirm_empty":         {"en": "Confirm password must be filled.", "id": "Konfirmasi kata sandi harus diisi."},
-    "signup.msg_university_empty":      {"en": "University must be filled.", "id": "Universitas harus diisi."},
-
-    # Popup validasi — email tidak valid
-    "signup.msg_invalid_email_title":   {"en": "Invalid Email",             "id": "Email Tidak Valid"},
-    "signup.msg_invalid_email_body":    {"en": "Email must contain '@'.",   "id": "Email harus mengandung '@'."},
-
-    # Popup validasi — nomor telepon tidak valid
-    "signup.msg_invalid_phone_title":   {"en": "Invalid Phone Number",      "id": "Nomor Telepon Tidak Valid"},
-    "signup.msg_phone_not_digit":       {"en": "Phone number must contain numbers only.", "id": "Nomor telepon hanya boleh berisi angka."},
-    "signup.msg_phone_too_long":        {"en": "Phone number maximum is 12 digits.", "id": "Nomor telepon maksimal 12 digit."},
-
-    # Popup validasi — password lemah
-    "signup.msg_weak_password_title":   {"en": "Weak Password",             "id": "Kata Sandi Lemah"},
-    "signup.msg_weak_password_body":    {"en": "Password must be at least 8 characters.", "id": "Kata sandi minimal 8 karakter."},
-
-    # Popup validasi — password tidak cocok
-    "signup.msg_password_mismatch_title": {"en": "Password Error",          "id": "Kesalahan Kata Sandi"},
-    "signup.msg_password_mismatch_body":  {"en": "Password and confirm password do not match.", "id": "Kata sandi dan konfirmasi kata sandi tidak cocok."},
-
-    # Popup sukses
-    "signup.msg_success_title":         {"en": "Success",                   "id": "Berhasil"},
-    "signup.msg_success_body":          {"en": "Account created successfully!", "id": "Akun berhasil dibuat!"},
+    "signup.hero_title": {"en": "Create your\nstudent account", "id": "Buat akun\nmahasiswa Anda"},
+    "signup.hero_subtitle": {"en": "Join Campus Connect and discover events, communities, and opportunities around your campus.", "id": "Bergabung dengan Campus Connect dan temukan event, komunitas, serta peluang di sekitar kampus Anda."},
+    "signup.title": {"en": "Sign Up", "id": "Daftar"},
+    "signup.subtitle": {"en": "Fill in your information to create your account", "id": "Isi informasi Anda untuk membuat akun"},
+    "signup.full_name": {"en": "Full Name", "id": "Nama Lengkap"},
+    "signup.email": {"en": "Email Address", "id": "Alamat Email"},
+    "signup.phone": {"en": "Phone Number", "id": "Nomor Telepon"},
+    "signup.university": {"en": "University", "id": "Universitas"},
+    "signup.password": {"en": "Password", "id": "Kata Sandi"},
+    "signup.confirm_password": {"en": "Confirm Password", "id": "Konfirmasi Kata Sandi"},
+    "signup.ph_name": {"en": "Enter your full name", "id": "Masukkan nama lengkap"},
+    "signup.ph_email": {"en": "Enter your email address", "id": "Masukkan alamat email"},
+    "signup.ph_phone": {"en": "Enter your phone number", "id": "Masukkan nomor telepon"},
+    "signup.ph_university": {"en": "Enter your university", "id": "Masukkan universitas"},
+    "signup.ph_password": {"en": "Create password", "id": "Buat kata sandi"},
+    "signup.ph_confirm": {"en": "Confirm your password", "id": "Konfirmasi kata sandi"},
+    "signup.back_login": {"en": "← Back to Login", "id": "← Kembali ke Login"},
 
     "faq.subtitle": {"en": "Campus Connect Help Center", "id": "Pusat Bantuan Campus Connect"},
     "faq.footer": {"en": "© 2026 Campus Connect Team", "id": "© 2026 Tim Campus Connect"},
@@ -365,8 +332,10 @@ _TRANSLATIONS = {
     "account.zoom": {"en": "Zoom", "id": "Zoom"},
     "account.preview": {"en": "Preview", "id": "Pratinjau"},
     "account.crop_ratio": {"en": "Crop ratio", "id": "Rasio crop"},
+
     "account.invalid_image": {"en": "Invalid image file.", "id": "File gambar tidak valid."},
     "account.crop_open_failed": {"en": "Failed to open crop dialog:", "id": "Gagal membuka crop dialog:"},
+
     "account.free_crop": {"en": "Free", "id": "Bebas"},
 
     "your_events.settings_title": {"en": "Your Events Settings", "id": "Pengaturan Event Anda"},
@@ -385,6 +354,7 @@ _TRANSLATIONS = {
     "your_events.event_id_missing": {"en": "Event ID is missing.", "id": "Event ID tidak ditemukan."},
     "your_events.failed_book": {"en": "Failed to book event:", "id": "Gagal memesan event:"},
 
+
     "msg.success": {"en": "Success", "id": "Berhasil"},
     "msg.failed": {"en": "Failed", "id": "Gagal"},
     "msg.logout": {"en": "Logout", "id": "Keluar"},
@@ -396,6 +366,7 @@ _TRANSLATIONS = {
     "msg.failed_publish": {"en": "Failed to Publish Event", "id": "Gagal Mempublikasikan Event"},
     "msg.registration_failed": {"en": "Registration Failed", "id": "Pendaftaran Gagal"},
 
+
     "success.submitted_success": {"en": "Event submitted successfully!", "id": "Event berhasil dikirim!"},
     "success.view_event": {"en": "View Event", "id": "Lihat Event"},
     "success.create_another": {"en": "Create Another Event", "id": "Buat Event Lain"},
@@ -405,12 +376,7 @@ _TRANSLATIONS = {
     "upload.ratio": {"en": "Portrait ratio recommended", "id": "Rasio portrait disarankan"},
     "upload.uploading": {"en": "Uploading...", "id": "Sedang mengunggah..."},
     "upload.dont_close": {"en": "Don't close this window", "id": "Jangan tutup jendela ini"},
-    "upload.upload":          {"en": "Upload",                          "id": "Unggah"},
-    "upload.success_uploaded":{"en": "✓ Successfully uploaded",          "id": "✓ Berhasil diunggah"},
-    "upload.select_poster":   {"en": "Select Event Poster",              "id": "Pilih Poster Event"},
-    "upload.file_too_large":  {"en": "❌ File too large! Max 5MB",        "id": "❌ File terlalu besar! Maksimal 5MB"},
-    "upload.use_photo":       {"en": "Use This Photo ✓",                 "id": "Gunakan Foto Ini ✓"},
-    "upload.change_photo":    {"en": "Change Photo",                     "id": "Ganti Foto"},
+    "upload.upload": {"en": "Upload", "id": "Unggah"},
     "msg.error": {"en": "Error", "id": "Error"},
     "msg.invalid_update_request": {"en": "Invalid update request format.", "id": "Format request update tidak valid."},
     "msg.update_request_not_found": {"en": "Update request not found.", "id": "Request update tidak ditemukan."},
@@ -429,6 +395,91 @@ _TRANSLATIONS = {
     "err.invalid_email":        {"en": "Invalid email format.",             "id": "Format email tidak valid."},
     "err.login_failed":         {"en": "Incorrect email or password.",      "id": "Email atau kata sandi salah."},
     "err.db_error":             {"en": "Database error.",                   "id": "Error database."},
+
+    # ── ADMIN TABLE COLUMNS ────────────────────────────────────
+    "admin.col_event_id":       {"en": "Event ID",                         "id": "ID Event"},
+    "admin.col_event_name":     {"en": "Event Name",                       "id": "Nama Event"},
+    "admin.col_type":           {"en": "Type",                             "id": "Tipe"},
+    "admin.col_time":           {"en": "Time",                             "id": "Waktu"},
+    "admin.col_action":         {"en": "Validation Action",                "id": "Aksi Validasi"},
+
+    # ── NOTIFICATION MESSAGES ──────────────────────────────────
+    "notif.msg_new_event_title":{"en": "🏫 New campus event: {event}",     "id": "🏫 Event kampus baru: {event}"},
+    "notif.msg_new_event_body": {"en": "\"{event}\" from your campus is now live on Campus Connect! Be the first to know and grab your spot.",
+                                 "id": "\"{event}\" dari kampus Anda sekarang tersedia di Campus Connect! Jadilah yang pertama tahu dan ambil tempatmu."},
+
+    # ── ACCOUNT PLACEHOLDERS & FILE DIALOG ────────────────────
+    "account.add_name_ph":          {"en": "add name",                                          "id": "tambah nama"},
+    "account.add_bio_ph":           {"en": "add bio",                                           "id": "tambah bio"},
+    "account.add_email_ph":         {"en": "add email",                                         "id": "tambah email"},
+    "account.add_contact_ph":       {"en": "add contact",                                       "id": "tambah kontak"},
+    "account.select_profile_photo": {"en": "Select Profile Photo",                              "id": "Pilih Foto Profil"},
+    "account.image_filter":         {"en": "Images (*.png *.jpg *.jpeg *.webp *.bmp)",          "id": "Gambar (*.png *.jpg *.jpeg *.webp *.bmp)"},
+
+    # ── ACCOUNT PHONE VALIDATION ERRORS ───────────────────────
+    "account.err_phone_empty":      {"en": "Phone number cannot be empty.",                     "id": "Nomor telepon tidak boleh kosong."},
+    "account.err_phone_digits_only":{"en": "Phone number can only contain numbers.",            "id": "Nomor telepon hanya boleh berisi angka."},
+    "account.err_phone_start_8":    {"en": "Phone number must start with 8 after +62.",         "id": "Nomor telepon harus diawali dengan 8 setelah +62."},
+    "account.err_phone_length":     {"en": "Phone number must be 9–13 digits after +62.",       "id": "Nomor telepon harus 9–13 digit setelah +62."},
+
+    # ── UPLOAD POSTER DIALOG — key yang hilang ─────────────────
+    "upload.use_photo":       {"en": "Use This Photo",           "id": "Gunakan Foto Ini"},
+    "upload.change_photo":    {"en": "Change Photo",             "id": "Ganti Foto"},
+    "upload.success_uploaded":{"en": "✓ Successfully uploaded",  "id": "✓ Berhasil diunggah"},
+    "upload.select_poster":   {"en": "Select Poster Image",      "id": "Pilih Gambar Poster"},
+    "upload.file_too_large":  {"en": "File is too large! Max 5MB.", "id": "File terlalu besar! Maks 5MB."},
+
+    # ── NOTIFICATION SETTINGS — key yang hilang ────────────────
+    "notif.critical_updates":      {"en": "Critical updates",    "id": "Update penting"},
+    "notif.critical_updates_desc": {"en": "Get notified when details of an event you booked are changed by the organizer.",
+                                    "id": "Dapatkan notifikasi saat detail event yang Anda daftarkan diubah oleh penyelenggara."},
+
+    # ── NOTIFICATION EMPTY STATE ───────────────────────────────
+    "notif.empty_login":   {"en": "Please log in to view your notifications.",
+                            "id": "Silakan masuk untuk melihat notifikasi Anda."},
+    "notif.empty_no_notif":{"en": "You're all caught up! No notifications yet.",
+                            "id": "Semuanya sudah terbaca! Belum ada notifikasi."},
+
+    # ── NOTIFICATION RELATIVE TIME ─────────────────────────────
+    "notif.time_just_now":   {"en": "Just now",          "id": "Baru saja"},
+    "notif.time_minutes_ago":{"en": "{n} minute{s} ago", "id": "{n} menit yang lalu"},
+    "notif.time_hours_ago":  {"en": "{n} hour{s} ago",   "id": "{n} jam yang lalu"},
+    "notif.time_yesterday":  {"en": "Yesterday",          "id": "Kemarin"},
+    "notif.time_days_ago":   {"en": "{n} days ago",       "id": "{n} hari yang lalu"},
+
+    # ── NOTIFICATION MESSAGES (disimpan ke DB saat notif dibuat) ─
+    "notif.msg_new_registrant_title": {"en": "New Registrant for {event}!",
+                                       "id": "Pendaftar Baru untuk {event}!"},
+    "notif.msg_new_registrant_body":  {"en": "Congrats! There's a new registrant for \"{event}\". Your event now has {total} registrant{suffix}. Keep up the momentum!",
+                                       "id": "Selamat! Ada pendaftar baru untuk \"{event}\". Event Anda sekarang memiliki {total} pendaftar. Pertahankan momentumnya!"},
+    "notif.msg_cancellation_title":   {"en": "📋 Cancellation: {event}",
+                                       "id": "📋 Pembatalan: {event}"},
+    "notif.msg_cancellation_body":    {"en": "A participant has cancelled their registration for \"{event}\". Your event now has {sisa} registrant{suffix} remaining.",
+                                       "id": "Seorang peserta telah membatalkan pendaftarannya untuk \"{event}\". Event Anda sekarang memiliki {sisa} pendaftar tersisa."},
+    "notif.msg_approved_title":       {"en": "Event Approved ✅",    "id": "Event Disetujui ✅"},
+    "notif.msg_approved_body":        {"en": "\"{event}\" has been approved by the admin and is now live on Campus Connect! Your event is ready to accept registration.",
+                                       "id": "\"{event}\" telah disetujui oleh admin dan sekarang tayang di Campus Connect! Event Anda siap menerima pendaftaran."},
+    "notif.msg_rejected_title":       {"en": "Event Rejected ❌",    "id": "Event Ditolak ❌"},
+    "notif.msg_rejected_body":        {"en": "\"{event}\" has been rejected by the admin. Please double-check the event details or contact the admin for further information.",
+                                       "id": "\"{event}\" ditolak oleh admin. Silakan periksa kembali detail event atau hubungi admin untuk informasi lebih lanjut."},
+    "notif.msg_update_approved_title":{"en": "Event Update Approved ✅",  "id": "Pembaruan Event Disetujui ✅"},
+    "notif.msg_update_approved_body": {"en": "Changes for \"{event}\" have been approved by the admin and the event has been updated.",
+                                       "id": "Perubahan untuk \"{event}\" telah disetujui oleh admin dan event sudah diperbarui."},
+    "notif.msg_update_rejected_title":{"en": "Event Update Rejected ❌",  "id": "Pembaruan Event Ditolak ❌"},
+    "notif.msg_update_rejected_body": {"en": "Changes for \"{event}\" were rejected by the admin. The original event remains unchanged.",
+                                       "id": "Perubahan untuk \"{event}\" ditolak oleh admin. Event asli tetap tidak berubah."},
+    "notif.msg_h1_title":             {"en": "🔔 Reminder: {event} is tomorrow!",
+                                       "id": "🔔 Pengingat: {event} adalah besok!"},
+    "notif.msg_h1_body":              {"en": "Don't forget — \"{event}\" is happening tomorrow at {time}. Get ready!",
+                                       "id": "Jangan lupa — \"{event}\" akan berlangsung besok pukul {time}. Bersiaplah!"},
+    "notif.msg_event_updated_title":  {"en": "📢 Event Update: {event}",
+                                       "id": "📢 Pembaruan Event: {event}"},
+    "notif.msg_event_updated_body":   {"en": "\"{event}\" has been updated by the organizer. Please check the latest event details to stay up to date.",
+                                       "id": "\"{event}\" telah diperbarui oleh penyelenggara. Silakan cek detail event terbaru agar tetap terinformasi."},
+    "notif.msg_interest_title":       {"en": "✨ New event you might like!",
+                                       "id": "✨ Event baru yang mungkin Anda suka!"},
+    "notif.msg_interest_body":        {"en": "\"{event}\" is a new {kategori} event that matches your interests based on your liked events. Check it out!",
+                                       "id": "\"{event}\" adalah event {kategori} baru yang sesuai minat Anda berdasarkan event yang pernah Anda sukai. Cek sekarang!"},
 }
 
 
@@ -441,6 +492,7 @@ class LanguageManager(QObject):
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
+            # Buat instance baru dan langsung inisialisasi QObject-nya
             instance = super().__new__(cls)
             super(LanguageManager, instance).__init__()  # QObject.__init__
             instance._language = "en"
@@ -449,6 +501,7 @@ class LanguageManager(QObject):
         return cls._instance
 
     def __init__(self):
+        # Semua inisialisasi sudah dilakukan di __new__ — skip di sini
         pass
 
     # ─── PUBLIC API ────────────────────────────────────────────
@@ -459,6 +512,11 @@ class LanguageManager(QObject):
         return self._language
 
     def set_language(self, code: str) -> None:
+        """
+        Ganti bahasa aplikasi.
+        code: 'en' atau 'id'
+        Mengemit signal language_changed agar semua listener bisa retranslate.
+        """
         code = code.lower().strip()
         if code not in ("en", "id"):
             raise ValueError(f"Bahasa tidak didukung: {code!r}. Gunakan 'en' atau 'id'.")
@@ -467,6 +525,10 @@ class LanguageManager(QObject):
             self.language_changed.emit(code)
 
     def t(self, key: str, fallback: str = "") -> str:
+        """
+        Kembalikan string terjemahan untuk key dan bahasa aktif.
+        Jika key tidak ditemukan, kembalikan fallback (atau key itu sendiri).
+        """
         entry = _TRANSLATIONS.get(key)
         if entry is None:
             return fallback or key
@@ -478,10 +540,22 @@ class LanguageManager(QObject):
     def is_indonesian(self) -> bool:
         return self._language == "id"
 
+    # ─── HELPER UNTUK KONTEN EVENT ─────────────────────────────
+    # Konten yang dimasukkan EO (judul, deskripsi, lokasi, dll.)
+    # TIDAK diterjemahkan — ditampilkan apa adanya dari database.
+    # Helper ini hanya untuk kejelasan di kode pemanggil.
+
     @staticmethod
     def raw_event_field(value: str) -> str:
+        """
+        Tandai bahwa string ini adalah konten asli event (dari EO).
+        Tidak ada terjemahan — dikembalikan apa adanya.
+        """
         return value or ""
 
 
 # ─── SINGLETON GLOBAL ──────────────────────────────────────────
+# Import dan pakai langsung:
+#   from language_manager import lang
+#   label.setText(lang.t("nav.home"))
 lang = LanguageManager()

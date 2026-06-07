@@ -63,6 +63,13 @@ ROLE_MAHASISWA = "mahasiswa"
 ROLE_UMUM      = "umum"
 
 
+def _is_eo_role(role):
+    return (role or "").lower().strip() in ("eo", "organizer")
+
+def _is_mahasiswa_role(role):
+    return (role or "").lower().strip() in ("mahasiswa", "student")
+
+
 # ==============================================================
 # CLASS NotificationsPanel
 # ==============================================================
@@ -174,10 +181,10 @@ class NotificationsPanel(QWidget):
         # ---- KETERANGAN JUDUL ----
         # Subtitle "We may still send..." pakai fallback hardcoded
         # agar tidak crash jika key belum ada di language_manager
-        if self.role == ROLE_ORGANIZER:
+        if _is_eo_role(self.role):
             ket = lang.t("notif.desc_eo",
                 "Manage when you want notifications about registrants for your events.")
-        elif self.role == ROLE_MAHASISWA:
+        elif _is_mahasiswa_role(self.role):
             ket = lang.t("notif.desc_mahasiswa",
                 "Manage reminders for events you follow.")
         else:
@@ -192,7 +199,7 @@ class NotificationsPanel(QWidget):
         layout.addSpacing(32)
 
         # ---- RENDER KONTEN SESUAI ROLE ----
-        if self.role == ROLE_ORGANIZER:
+        if _is_eo_role(self.role):
             self._render_eo(layout)
         else:
             self._render_student(layout)
@@ -306,11 +313,8 @@ class NotificationsPanel(QWidget):
         self._buat_item_notif(
             layout=layout,
             nama_setting="notif_critical_updates",
-            judul="Critical updates",
-            deskripsi=(
-                "Instant alerts for any last-minute changes in venue, "
-                "time, or cancellations."
-            ),
+            judul=lang.t("notif.critical_updates"),
+            deskripsi=lang.t("notif.critical_updates_desc"),
             default_on=True,
             pesan_default=(
                 "📢 Important update for {nama_event}: The organizer has "
@@ -346,10 +350,7 @@ class NotificationsPanel(QWidget):
             layout=layout,
             nama_setting="notif_campus_spotlight",
             judul=lang.t("notif.campus_spotlight"),
-            deskripsi=(
-                "Exclusive updates on internal events from your "
-                "university's organizations."
-            ),
+            deskripsi=lang.t("notif.campus_spotlight_desc"),
             default_on=True,
             pesan_default=(
                 "🏫 Your campus just added a new event: {nama_event}. "
@@ -396,10 +397,7 @@ class NotificationsPanel(QWidget):
         lbl_judul.setStyleSheet(f"color: {COLOR_TEAL_DARK}; font-weight: bold;")
         kiri_layout.addWidget(lbl_judul)
 
-        lbl_desk = QLabel(
-            "Always receive updates when the admin approves or "
-            "rejects your submitted event."
-        )
+        lbl_desk = QLabel(lang.t("notif.event_approval_desc"))
         lbl_desk.setFont(QFont(self.font_regular, 12))
         lbl_desk.setStyleSheet(f"color: {COLOR_TEXT_MUTED};")
         lbl_desk.setWordWrap(True)
@@ -495,29 +493,22 @@ class NotificationsPanel(QWidget):
 
         item_layout.addWidget(kiri, stretch=1)
 
-        # ---- KOLOM KANAN: Toggle + Label "Push" ----
+        # ---- KOLOM KANAN: Toggle saja ----
         kanan = QWidget()
         kanan.setStyleSheet("background: transparent;")
         kanan_layout = QHBoxLayout(kanan)
         kanan_layout.setContentsMargins(0, 0, 0, 0)
-        kanan_layout.setSpacing(8)
+        kanan_layout.setSpacing(0)
         kanan_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        # Toggle switch
+        # Toggle switch diperbesar sedikit agar seimbang, tanpa label teks.
         toggle = ToggleSwitch()
+        toggle.setFixedSize(58, 32)
         toggle.set_on(default_on)
         toggle.setCursor(Qt.PointingHandCursor)
 
-        # Label "Push" — warna mengikuti status toggle
-        lbl_push = QLabel(lang.t("notif.push"))
-        lbl_push.setFont(QFont(self.font_regular, 11))
-        lbl_push.setStyleSheet(
-            f"color: {COLOR_TEAL_DARK};" if default_on
-            else f"color: {COLOR_TEXT_MUTED};"
-        )
-
-        # Saat toggle diklik → update status + warna label Push
-        def on_toggled(is_on, key=nama_setting, lbl=lbl_push):
+        # Saat toggle diklik → update status preferensi.
+        def on_toggled(is_on, key=nama_setting):
             self.notif_states[key] = is_on
 
             if self.email_user:
@@ -525,17 +516,15 @@ class NotificationsPanel(QWidget):
                     db_manager.set_notif_pref(self.email_user, key, is_on)
                 except Exception as exc:
                     print(f"[NotificationsPanel] Gagal simpan preferensi {key}: {exc}")
-            lbl.setStyleSheet(
-                f"color: {COLOR_TEAL_DARK};" if is_on
-                else f"color: {COLOR_TEXT_MUTED};"
-            )
 
         toggle.toggled.connect(on_toggled)
 
-        kanan_layout.addWidget(toggle)
-        kanan_layout.addWidget(lbl_push)
+        kanan_layout.addWidget(toggle, alignment=Qt.AlignRight | Qt.AlignVCenter)
 
-        item_layout.addWidget(kanan)
+        # Fixed width membuat toggle terdorong lebih ke kanan dan rapi
+        # untuk semua role tanpa terlihat terlalu mepet.
+        kanan.setFixedWidth(96)
+        item_layout.addWidget(kanan, 0, Qt.AlignRight | Qt.AlignVCenter)
         layout.addWidget(item_widget)
 
         # ---- GARIS PEMBATAS ----

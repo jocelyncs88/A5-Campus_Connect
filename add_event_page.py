@@ -40,13 +40,21 @@ class AddEventPage(QWidget):
         self.poster_path  = ""
         self.data_event   = data_event
         self.setObjectName("add_event_page")
+
+        # Set state sebelum UI dibuat agar _retranslate() aman dipanggil
+        # baik untuk mode tambah event maupun mode edit event.
+        self.jenis_terpilih = ""
+
         self.setup_ui()
         self.apply_style()
-        lang.language_changed.connect(self._retranslate)
-        self.jenis_terpilih = ""
 
         if self.data_event:
             self._prefill_form(self.data_event)
+
+        # Paksa semua teks UI mengikuti bahasa aktif saat halaman dibuat.
+        # Ini penting untuk halaman edit event yang dibuat dinamis dari Your Events.
+        self._retranslate()
+        lang.language_changed.connect(self._retranslate)
 
     # ----------------------------------------------------------
     def setup_ui(self):

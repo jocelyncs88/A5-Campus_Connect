@@ -35,6 +35,39 @@ from detail_event_page import DetailEventPage
 
 
 # ==============================================================
+# ASYNC IMAGE LOADER — mencegah UI freeze saat load gambar URL
+# ==============================================================
+class _ImageLoaderThread(QThread):
+    loaded = pyqtSignal(QPixmap)
+
+    def __init__(self, source, size, parent=None):
+        super().__init__(parent)
+        self.source = source
+        self.size = size
+
+    def run(self):
+        pixmap = QPixmap()
+        source = str(self.source or "").strip()
+        if source.startswith(("http://", "https://")):
+            try:
+                response = requests.get(source, timeout=8)
+                response.raise_for_status()
+                pixmap.loadFromData(response.content)
+            except Exception:
+                pixmap = QPixmap()
+        elif source and os.path.exists(source):
+            pixmap = QPixmap(source)
+
+        if not pixmap.isNull() and self.size:
+            pixmap = pixmap.scaled(
+                self.size,
+                Qt.KeepAspectRatioByExpanding,
+                Qt.SmoothTransformation,
+            )
+        self.loaded.emit(pixmap)
+
+
+# ==============================================================
 # KONSTANTA WARNA
 # ==============================================================
 C_TITLE = "#516465"
@@ -68,6 +101,13 @@ EO_POSTER_H        = 240
 ROLE_ORGANIZER = "eo"
 ROLE_MAHASISWA = "mahasiswa"
 ROLE_UMUM      = "umum"
+
+
+def _is_eo_role(role):
+    return (role or "").lower().strip() in ("eo", "organizer")
+
+def _is_mahasiswa_role(role):
+    return (role or "").lower().strip() in ("mahasiswa", "student")
 
 
 # ==============================================================
@@ -209,29 +249,43 @@ DUMMY_EVENTS_STUDENT = [
 
 
 def _apply_poster_image(label, image_source, placeholder_color="#D2E6E5"):
-    """Tampilkan poster dari path lokal atau URL ke QLabel."""
-    pixmap = QPixmap()
+    """Tampilkan poster dari path lokal (sync) atau URL (async, non-blocking)."""
     source = str(image_source or "").strip()
 
-    if source.startswith(("http://", "https://")):
-        try:
-            response = requests.get(source, timeout=10)
-            response.raise_for_status()
-            pixmap.loadFromData(response.content)
-        except Exception:
-            pixmap = QPixmap()
-    elif source and os.path.exists(source):
-        pixmap = QPixmap(source)
-
-    if not pixmap.isNull():
-        scaled = pixmap.scaled(
-            label.size(),
-            Qt.KeepAspectRatioByExpanding,
-            Qt.SmoothTransformation,
-        )
-        label.setPixmap(scaled)
-    else:
+    # Path lokal — langsung load, tidak perlu thread
+    if source and not source.startswith(("http://", "https://")):
+        if os.path.exists(source):
+            pixmap = QPixmap(source)
+            if not pixmap.isNull():
+                scaled = pixmap.scaled(
+                    label.size(),
+                    Qt.KeepAspectRatioByExpanding,
+                    Qt.SmoothTransformation,
+                )
+                label.setPixmap(scaled)
+                return
         label.setStyleSheet(f"background-color: {placeholder_color}; border-radius: 8px;")
+        return
+
+    # URL — set placeholder dulu, lalu load di background thread
+    label.setStyleSheet(f"background-color: {placeholder_color}; border-radius: 8px;")
+    if not source:
+        return
+
+    thread = _ImageLoaderThread(source, label.size(), parent=label)
+
+    def _on_loaded(pixmap):
+        if not pixmap.isNull() and label:
+            label.setStyleSheet("border-radius: 8px;")
+            label.setPixmap(pixmap)
+
+    thread.loaded.connect(_on_loaded)
+    # Simpan referensi agar thread tidak di-GC sebelum selesai
+    if not hasattr(label, "_img_threads"):
+        label._img_threads = []
+    label._img_threads.append(thread)
+    thread.finished.connect(lambda t=thread: label._img_threads.remove(t) if hasattr(label, "_img_threads") and t in label._img_threads else None)
+    thread.start()
 
 
 # ==============================================================
@@ -284,7 +338,7 @@ class YourEventsPanel(QWidget):
         self._load_fonts()
 
         self.setStyleSheet("background: transparent;")
-        self._render()
+        self._rendered = False  # render dilakukan saat pertama kali ditampilkan
         lang.language_changed.connect(self._retranslate)
 
 
@@ -332,7 +386,7 @@ class YourEventsPanel(QWidget):
             QMessageBox.warning(self, lang.t("detail.login_required_title"),
                 lang.t("detail.login_required_book"))
             return False
-        if str(self.role).lower() != ROLE_MAHASISWA:
+        if not _is_mahasiswa_role(self.role):
             QMessageBox.warning(self, lang.t("detail.access_denied_title"),
                 lang.t("detail.access_denied_book"))
             return False
@@ -469,7 +523,7 @@ class YourEventsPanel(QWidget):
         self._set_label_style(lbl_judul, 30, C_TITLE, bold=True)
         layout.addWidget(lbl_judul)
 
-        if self.role == ROLE_ORGANIZER:
+        if _is_eo_role(self.role):
             self._render_eo(layout)
         else:
             self._render_student(layout)
@@ -1483,7 +1537,7 @@ class YourEventsPanel(QWidget):
             return []
     
     def _retranslate(self, _code=""):
-        if hasattr(self, "_render"):
+        if self._rendered and hasattr(self, "_render"):
             self._render()
 
 
@@ -1528,4 +1582,3 @@ if __name__ == "__main__":
 
     dialog.show()
     sys.exit(app.exec_())
-
