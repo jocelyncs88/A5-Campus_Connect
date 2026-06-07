@@ -12,10 +12,11 @@ import scraper
 import account_db
 import main_window
 from main_window import MainWindow
+from resource_path import resource_path
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CACHE_DIR = os.path.join(BASE_DIR, "assets", "cache_images")
+CACHE_DIR = resource_path(os.path.join("assets", "cache_images"))
 
 
 def _normalize_event_row(row):

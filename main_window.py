@@ -11,6 +11,7 @@ import os
 import scraper
 import db_manager
 import account_db
+from resource_path import asset_path
 
 from worker_thread import ScraperThread
 from PyQt5.QtWidgets import *
@@ -52,6 +53,7 @@ except ImportError:
 
 # --- WARNA-WARNA UTAMA ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSETS_DIR = asset_path("assets")
 COLOR_PINK_LIGHT = "#F7CBCA"
 COLOR_PINK_LOGIN = "#ff99aa"
 COLOR_GRAY_LIGHT = "#D2E6E5"
@@ -59,12 +61,12 @@ COLOR_TEXT_PRIMARY = "#5D6B6B"
 
 # Data Dummy untuk simulasi tampilan event
 dummy_events = [
-    {"event_id": "EVT-001", "jenis_event": "External", "nama_event": "Sparta Festival", "deskripsi_singkat": "Live painting and exhibition", "tanggal_waktu": "2026-05-20 10:00", "gambar_poster": os.path.join(BASE_DIR, "assets", "images", "dummy_sparta.jpg")},
-    {"event_id": "EVT-002", "jenis_event": "Internal", "nama_event": "Social Festival", "deskripsi_singkat": "Social talk and exhibition", "tanggal_waktu": "2026-06-15 13:00", "gambar_poster": os.path.join(BASE_DIR, "assets", "images", "dummy_social.jpg")},
-    {"event_id": "EVT-003", "jenis_event": "Internal", "nama_event": "Kelas Karir 4.0", "deskripsi_singkat": "Career preparation and talk", "tanggal_waktu": "2026-07-01 09:00", "gambar_poster": os.path.join(BASE_DIR, "assets", "images", "career_40.png")},
-    {"event_id": "EVT-004", "jenis_event": "Internal", "nama_event": "Polban After Campus", "deskripsi_singkat": "Career preparation", "tanggal_waktu": "2026-08-10 10:00", "gambar_poster": os.path.join(BASE_DIR, "assets", "images", "after_campus.jpg")},
-    {"event_id": "EVT-005", "jenis_event": "Internal", "nama_event": "Malam Gala Mahasiswa", "deskripsi_singkat": "Got talent show", "tanggal_waktu": "2026-09-05 19:00", "gambar_poster": os.path.join(BASE_DIR, "assets", "images", "gala.jpg")},
-    {"event_id": "EVT-006", "jenis_event": "External", "nama_event": "Workshop UI/UX", "deskripsi_singkat": "Design thinking session", "tanggal_waktu": "2026-10-12 13:00", "gambar_poster": os.path.join(BASE_DIR, "assets", "images", "workshop.jpg")}
+    {"event_id": "EVT-001", "jenis_event": "External", "nama_event": "Sparta Festival", "deskripsi_singkat": "Live painting and exhibition", "tanggal_waktu": "2026-05-20 10:00", "gambar_poster": os.path.join(ASSETS_DIR, "images", "dummy_sparta.jpg")},
+    {"event_id": "EVT-002", "jenis_event": "Internal", "nama_event": "Social Festival", "deskripsi_singkat": "Social talk and exhibition", "tanggal_waktu": "2026-06-15 13:00", "gambar_poster": os.path.join(ASSETS_DIR, "images", "dummy_social.jpg")},
+    {"event_id": "EVT-003", "jenis_event": "Internal", "nama_event": "Kelas Karir 4.0", "deskripsi_singkat": "Career preparation and talk", "tanggal_waktu": "2026-07-01 09:00", "gambar_poster": os.path.join(ASSETS_DIR, "images", "career_40.png")},
+    {"event_id": "EVT-004", "jenis_event": "Internal", "nama_event": "Polban After Campus", "deskripsi_singkat": "Career preparation", "tanggal_waktu": "2026-08-10 10:00", "gambar_poster": os.path.join(ASSETS_DIR, "images", "after_campus.jpg")},
+    {"event_id": "EVT-005", "jenis_event": "Internal", "nama_event": "Malam Gala Mahasiswa", "deskripsi_singkat": "Got talent show", "tanggal_waktu": "2026-09-05 19:00", "gambar_poster": os.path.join(ASSETS_DIR, "images", "gala.jpg")},
+    {"event_id": "EVT-006", "jenis_event": "External", "nama_event": "Workshop UI/UX", "deskripsi_singkat": "Design thinking session", "tanggal_waktu": "2026-10-12 13:00", "gambar_poster": os.path.join(ASSETS_DIR, "images", "workshop.jpg")}
 ]
 
 class MainWindow(QMainWindow):
@@ -72,8 +74,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         
         # 1. SETUP FONTS (Memuat font custom dari folder assets)
-        id_lobster = QFontDatabase.addApplicationFont("assets/fonts/LobsterTwo-Regular.ttf")
-        id_sans = QFontDatabase.addApplicationFont("assets/fonts/GoogleSans_17pt-Regular.ttf")
+        id_lobster = QFontDatabase.addApplicationFont(os.path.join(ASSETS_DIR, "fonts", "LobsterTwo-Regular.ttf"))
+        id_sans = QFontDatabase.addApplicationFont(os.path.join(ASSETS_DIR, "fonts", "GoogleSans_17pt-Regular.ttf"))
         self.font_lobster = QFontDatabase.applicationFontFamilies(id_lobster)[0] if id_lobster != -1 else "serif"
         self.font_sans = QFontDatabase.applicationFontFamilies(id_sans)[0] if id_sans != -1 else "sans-serif"
 
@@ -390,11 +392,11 @@ class MainWindow(QMainWindow):
         
         # Tombol Navigasi Kiri
         self.btn_home = QPushButton(lang.t("nav.home"))
-        self.btn_home.setIcon(QIcon("assets/icons/home.png"))
+        self.btn_home.setIcon(QIcon(os.path.join(ASSETS_DIR, "icons", "home.png")))
         self.btn_home.setCursor(Qt.PointingHandCursor)
         
         self.btn_about = QPushButton(lang.t("nav.about"))
-        self.btn_about.setIcon(QIcon("assets/icons/information-button.png"))
+        self.btn_about.setIcon(QIcon(os.path.join(ASSETS_DIR, "icons", "information-button.png")))
         self.btn_about.setCursor(Qt.PointingHandCursor)
         
         nav_style = f"font-family: \"{self.font_sans}\"; background: transparent; color: {COLOR_TEXT_PRIMARY}; border: none; font-size: 20px;"
@@ -404,13 +406,13 @@ class MainWindow(QMainWindow):
         # ← TAMBAHKAN BLOK INI DI SINI
         # Bagian Kanan (Login & Hamburger Menu)
         self.btn_login = QPushButton(lang.t("nav.login"))
-        self.btn_login.setIcon(QIcon("assets/icons/user.png"))
+        self.btn_login.setIcon(QIcon(os.path.join(ASSETS_DIR, "icons", "user.png")))
         self.btn_login.setCursor(Qt.PointingHandCursor)
         self.btn_login.setStyleSheet("background-color: #ff99aa; color: white; border-radius: 20px; padding: 10px 25px; font-weight: bold;")
         self.btn_login.clicked.connect(self.show_login_page)
 
         self.btn_menu = QPushButton()
-        self.btn_menu.setIcon(QIcon("assets/icons/menu.png"))
+        self.btn_menu.setIcon(QIcon(os.path.join(ASSETS_DIR, "icons", "menu.png")))
         self.btn_menu.setIconSize(QSize(30, 30))
         self.btn_menu.setCursor(Qt.PointingHandCursor)
         self.btn_menu.setStyleSheet("""
@@ -445,7 +447,7 @@ class MainWindow(QMainWindow):
         icon_search.setFixedSize(18, 18)
         icon_search.setStyleSheet("background: transparent; border: none;")
 
-        pix = QPixmap("assets/icons/search.png").scaled(
+        pix = QPixmap(os.path.join(ASSETS_DIR, "icons", "search.png")).scaled(
             18, 18,
             Qt.KeepAspectRatio,
             Qt.SmoothTransformation
@@ -512,7 +514,7 @@ class MainWindow(QMainWindow):
 
         # Tombol lonceng — child langsung, posisi absolut
         self.btn_bell = QPushButton(self.bell_container)
-        self.btn_bell.setIcon(QIcon("assets/icons/bell.png"))
+        self.btn_bell.setIcon(QIcon(os.path.join(ASSETS_DIR, "icons", "bell.png")))
         self.btn_bell.setIconSize(QSize(26, 26))
         self.btn_bell.setCursor(Qt.PointingHandCursor)
         self.btn_bell.setFixedSize(44, 44)
@@ -1387,8 +1389,8 @@ class MainWindow(QMainWindow):
                 self.navbar_avatar.hide()
 
             # Guest BISA melihat FAQ dan Setting, tapi TIDAK ADA Add Event
-            self.hamburger_menu.addAction(QIcon("assets/icons/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
-            self.hamburger_menu.addAction(QIcon("assets/icons/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "question.png")), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "gear.png")), lang.t("settings.title")).triggered.connect(self.buka_settings)
 
         elif self.current_user_role == "eo":
             # --- TAMPILAN EVENT ORGANIZER ---
@@ -1404,10 +1406,10 @@ class MainWindow(QMainWindow):
             self.refresh_avatar_navbar()
 
             # EO punya akses lengkap
-            self.hamburger_menu.addAction(QIcon("assets/icons/event.png"), lang.t("home.add_event_btn")).triggered.connect(self.buka_form_input) 
-            self.hamburger_menu.addAction(QIcon("assets/icons/event.png"), lang.t("your_events.title")).triggered.connect(self.buka_my_events)
-            self.hamburger_menu.addAction(QIcon("assets/icons/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
-            self.hamburger_menu.addAction(QIcon("assets/icons/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "event.png")), lang.t("home.add_event_btn")).triggered.connect(self.buka_form_input) 
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "event.png")), lang.t("your_events.title")).triggered.connect(self.buka_my_events)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "question.png")), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "gear.png")), lang.t("settings.title")).triggered.connect(self.buka_settings)
 
         elif self.current_user_role == "admin":
             # --- TAMPILAN ADMIN ---
@@ -1422,9 +1424,9 @@ class MainWindow(QMainWindow):
                 self.navbar_avatar.hide()
 
             # Menu khusus Admin
-            self.hamburger_menu.addAction(QIcon("assets/icons/event.png"), lang.t("admin.title")).triggered.connect(self.show_admin_page)
-            self.hamburger_menu.addAction(QIcon("assets/icons/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
-            self.hamburger_menu.addAction(QIcon("assets/icons/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "event.png")), lang.t("admin.title")).triggered.connect(self.show_admin_page)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "question.png")), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "gear.png")), lang.t("settings.title")).triggered.connect(self.buka_settings)
         
         elif self.current_user_role in ["mahasiswa"]:
             # --- TAMPILAN MAHASISWA / USER AUDIENCE ---
@@ -1441,9 +1443,9 @@ class MainWindow(QMainWindow):
 
             # Sesuai aturan RBAC: Mahasiswa TIDAK BISA "Add Event", 
             # menu hamburger mereka dibuat bersih langsung ke riwayat tiket/event mereka
-            self.hamburger_menu.addAction(QIcon("assets/icons/event.png"), lang.t("your_events.title")).triggered.connect(self.buka_my_events)
-            self.hamburger_menu.addAction(QIcon("assets/icons/question.png"), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
-            self.hamburger_menu.addAction(QIcon("assets/icons/gear.png"), lang.t("settings.title")).triggered.connect(self.buka_settings)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "event.png")), lang.t("your_events.title")).triggered.connect(self.buka_my_events)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "question.png")), lang.t("nav.faq")).triggered.connect(self.show_faq_page)
+            self.hamburger_menu.addAction(QIcon(os.path.join(ASSETS_DIR, "icons", "gear.png")), lang.t("settings.title")).triggered.connect(self.buka_settings)
             
     def refresh_greeting_navbar(self):
         """

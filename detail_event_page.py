@@ -25,6 +25,7 @@ from PyQt5.QtCore import QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QPixmap, QColor, QIcon
 
 import os
+from resource_path import asset_path
 from language_manager import lang
 import requests
 import db_manager
@@ -89,7 +90,7 @@ class DetailEventPage(QWidget):
         self.btn_back.setObjectName("btn_back")
 
         # path gambar icon
-        icon_path = os.path.join("assets", "icons", "arrow_back.png")
+        icon_path = asset_path("assets", "icons", "arrow_back.png")
 
         # set icon
         self.btn_back.setIcon(QIcon(icon_path))
@@ -191,7 +192,7 @@ class DetailEventPage(QWidget):
         self.btn_love.setCursor(Qt.PointingHandCursor)
         self.btn_love.setFlat(True)
         try:
-            self.btn_love.setIcon(QIcon(os.path.join("assets", "icons", "unliked.png")))
+            self.btn_love.setIcon(QIcon(asset_path("assets", "icons", "unliked.png")))
         except Exception:
             pass
         self.btn_love.setIconSize(QSize(28, 28))
@@ -242,7 +243,7 @@ class DetailEventPage(QWidget):
 
         self.icon_lokasi = QLabel()
         # load gambar icon lokasi
-        lokasi_pixmap = QPixmap(os.path.join("assets", "icons", "place.png"))
+        lokasi_pixmap = QPixmap(asset_path("assets", "icons", "place.png"))
 
         # resize icon
         lokasi_pixmap = lokasi_pixmap.scaled(
@@ -274,7 +275,7 @@ class DetailEventPage(QWidget):
 
         self.icon_waktu = QLabel()
         # load gambar icon waktu
-        waktu_pixmap = QPixmap(os.path.join("assets", "icons", "clock.png"))
+        waktu_pixmap = QPixmap(asset_path("assets", "icons", "clock.png"))
 
         # resize icon
         waktu_pixmap = waktu_pixmap.scaled(
@@ -301,7 +302,7 @@ class DetailEventPage(QWidget):
         penyelenggara_layout.setSpacing(10)
 
         self.icon_penyelenggara = QLabel()
-        home_pixmap = QPixmap(os.path.join("assets", "icons", "universitas.png"))
+        home_pixmap = QPixmap(asset_path("assets", "icons", "universitas.png"))
 
         home_pixmap = home_pixmap.scaled(
             22, 22,
@@ -326,7 +327,7 @@ class DetailEventPage(QWidget):
         tiket_layout.setSpacing(12)
         self.icon_tiket = QLabel()
         # load gambar icon tiket
-        tiket_pixmap = QPixmap(os.path.join("assets", "icons", "ticket.png"))
+        tiket_pixmap = QPixmap(asset_path("assets", "icons", "ticket.png"))
 
         # resize icon
         tiket_pixmap = tiket_pixmap.scaled(
@@ -420,7 +421,7 @@ class DetailEventPage(QWidget):
             self.liked = False
         icon_path = "liked.png" if self.liked else "unliked.png"
         try:
-            self.btn_love.setIcon(QIcon(os.path.join("assets", "icons", icon_path)))
+            self.btn_love.setIcon(QIcon(asset_path("assets", "icons", icon_path)))
         except Exception:
             pass
 
@@ -618,7 +619,7 @@ class DetailEventPage(QWidget):
         # Update icon love
         icon_path = "liked.png" if self.liked else "unliked.png"
         try:
-            self.btn_love.setIcon(QIcon(os.path.join("assets", "icons", icon_path)))
+            self.btn_love.setIcon(QIcon(asset_path("assets", "icons", icon_path)))
         except Exception:
             pass
 

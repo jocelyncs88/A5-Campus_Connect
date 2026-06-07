@@ -28,6 +28,7 @@ from toggle_widget import ToggleSwitch
 from upload_widget import PosterUploadDialog
 import os
 from language_manager import lang
+from resource_path import asset_path
 
 
 class AddEventPage(QWidget):
@@ -424,7 +425,7 @@ class AddEventPage(QWidget):
         self.jenis_terpilih = ""
         self.input_jenis.setText(lang.t("add_event.select_type"))
         self.input_jenis.setLayoutDirection(Qt.RightToLeft)
-        self.input_jenis.setIcon(QIcon("assets/icons/arrow_down.png"))
+        self.input_jenis.setIcon(QIcon(asset_path("assets", "icons", "arrow_down.png")))
         self.input_jenis.setIconSize(QSize(12, 12))
 
         self.toggle_tiket.set_on(False)
