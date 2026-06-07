@@ -54,7 +54,13 @@ class AdminPage(QWidget):
         # ---- TABEL VALDASI ----
         self.tabel = QTableWidget()
         self.tabel.setColumnCount(5)
-        self.tabel.setHorizontalHeaderLabels(["Event ID", "Event Name", "Type", "Time", "Validation Action"])
+        self.tabel.setHorizontalHeaderLabels([
+            lang.t("admin.col_event_id"),
+            lang.t("admin.col_event_name"),
+            lang.t("admin.col_type"),
+            lang.t("admin.col_time"),
+            lang.t("admin.col_action"),
+        ])
         
         # Pengaturan agar tabel responsif dan rapi
         header = self.tabel.horizontalHeader()
@@ -171,9 +177,9 @@ class AdminPage(QWidget):
         self.sub_judul.setText(lang.t("admin.validation_subtitle"))
         self.btn_kembali.setText(lang.t("admin.return_home"))
         self.tabel.setHorizontalHeaderLabels([
-            "Event ID",
-            "Event Name",
-            "Type",
-            "Time",
-            "Validation Action"
+            lang.t("admin.col_event_id"),
+            lang.t("admin.col_event_name"),
+            lang.t("admin.col_type"),
+            lang.t("admin.col_time"),
+            lang.t("admin.col_action"),
         ])

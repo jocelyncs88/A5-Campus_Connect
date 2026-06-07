@@ -7,7 +7,7 @@ import sqlite3
 import re
 import uuid
 from datetime import datetime
-
+from language_manager import lang
 DB_NAME = "database.db"
 
 # =========================================================
@@ -854,11 +854,8 @@ def kirim_notif_critical_update(event_id: str, nama_event: str):
     yang sudah booking event ini (jika preferensi mereka ON).
     Dipanggil dari main_window.py saat admin/EO update detail event.
     """
-    judul = f"📢 Event Update: {nama_event}"
-    pesan = (
-        f'"{nama_event}" has been updated by the organizer. '
-        f"Please check the latest event details to stay up to date."
-    )
+    judul = lang.t("notif.msg_event_updated_title").format(event=nama_event)
+    pesan = lang.t("notif.msg_event_updated_body").format(event=nama_event)
     for email in _get_emails_booked_event(event_id):
         if get_notif_pref(email, "notif_critical_updates"):
             simpan_notifikasi(email, judul, pesan,
@@ -872,11 +869,8 @@ def kirim_notif_interest_match(event_id: str, nama_event: str, kategori: str):
     me-like event dengan kategori yang sama (jika preferensi ON).
     Dipanggil dari main_window.py saat admin approve event baru.
     """
-    judul = f"✨ New event you might like!"
-    pesan = (
-        f'"{nama_event}" is a new {kategori} event that matches '
-        f"your interests based on your liked events. Check it out!"
-    )
+    judul = lang.t("notif.msg_interest_title")
+    pesan = lang.t("notif.msg_interest_body").format(event=nama_event, kategori=kategori)
     for email in _get_emails_liked_same_category(kategori):
         if get_notif_pref(email, "notif_interest_match"):
             simpan_notifikasi(email, judul, pesan,
@@ -890,11 +884,8 @@ def kirim_notif_campus_spotlight(event_id: str, nama_event: str):
     saat event Internal baru di-approve (jika preferensi ON).
     Dipanggil dari main_window.py saat admin approve event berjenis Internal.
     """
-    judul = f"🏫 New campus event: {nama_event}"
-    pesan = (
-        f'"{nama_event}" from your campus is now live on Campus Connect! '
-        f"Be the first to know and grab your spot."
-    )
+    judul = lang.t("notif.msg_new_event_title").format(event=nama_event)
+    pesan = lang.t("notif.msg_new_event_body").format(event=nama_event)
     for email in _get_all_student_emails():
         if get_notif_pref(email, "notif_campus_spotlight"):
             simpan_notifikasi(email, judul, pesan,
@@ -934,12 +925,10 @@ def kirim_notif_new_registrant(event_id: str, nama_event: str,
         return   # EO matikan toggle ini
 
     total = hitung_registrant_event(event_id)
-    judul = f"New Registrant for {nama_event}!"
     suffix = "s" if total != 1 else ""
-    pesan = (
-        f"Congrats! There's a new registrant for \"{nama_event}\". "
-        f"Your event now has {total} registrant{suffix}. "
-        f"Keep up the momentum!"
+    judul = lang.t("notif.msg_new_registrant_title").format(event=nama_event)
+    pesan = lang.t("notif.msg_new_registrant_body").format(
+        event=nama_event, total=total, suffix=suffix
     )
     simpan_notifikasi(email_eo, judul, pesan,
                       tipe_notif="EO_APPROVAL",   # tampil dengan ikon ✅ di notif EO
@@ -991,11 +980,8 @@ def cek_dan_kirim_reminder_h1(email_user: str):
             continue   # Sudah pernah kirim, skip
 
         waktu_str = waktu_display or tanggal_waktu or "the scheduled time"
-        judul = f"🔔 Reminder: {nama_event} is tomorrow!"
-        pesan = (
-            f"Don't forget — '{nama_event}' is happening tomorrow "
-            f"at {waktu_str}. See you there!"
-        )
+        judul = lang.t("notif.msg_h1_title").format(event=nama_event)
+        pesan = lang.t("notif.msg_h1_body").format(event=nama_event, time=waktu_str)
         simpan_notifikasi(email_user, judul, pesan,
                           tipe_notif="H1_REMINDER",
                           event_id_ref=event_id)
@@ -1093,10 +1079,10 @@ def kirim_notif_cancellation(event_id: str, nama_event: str,
         return
 
     sisa = hitung_registrant_event(event_id)   # hitung SETELAH unbook
-    judul = f"📋 Cancellation: {nama_event}"
-    pesan = (
-        f'A participant has cancelled their registration for "{nama_event}". '
-        f'Your event now has {sisa} registrant{"s" if sisa != 1 else ""} remaining.'
+    suffix = "s" if sisa != 1 else ""
+    judul = lang.t("notif.msg_cancellation_title").format(event=nama_event)
+    pesan = lang.t("notif.msg_cancellation_body").format(
+        event=nama_event, sisa=sisa, suffix=suffix
     )
     simpan_notifikasi(email_eo, judul, pesan,
                       tipe_notif="EO_APPROVAL",

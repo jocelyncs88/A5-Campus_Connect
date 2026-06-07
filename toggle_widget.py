@@ -50,8 +50,8 @@ class ToggleSwitch(QWidget):
         # Menginisialisasi semua fitur bawaan QWidget ke objek ini
         super().__init__(parent)
 
-        # Mengunci ukuran toggle menjadi 44x24 piksel
-        # Lebar 44px, tinggi 24px — sesuai proporsi toggle pada umumnya
+        # Ukuran default toggle. Paint event dibuat dinamis,
+        # jadi komponen ini tetap bisa diperbesar di halaman tertentu.
         self.setFixedSize(44, 24)
 
         # Menyimpan status toggle saat ini
@@ -154,12 +154,13 @@ class ToggleSwitch(QWidget):
         # Qt.NoPen = tidak ada garis tepi sama sekali
         painter.setPen(Qt.NoPen)
 
-        # Menggambar persegi panjang dengan sudut membulat sebagai background
-        # drawRoundedRect(x, y, lebar, tinggi, radius_x, radius_y)
-        # x=0, y=0      = mulai dari pojok kiri atas widget
-        # lebar=44, tinggi=24 = ukuran background
-        # 12, 12        = radius sudut membulat (setengah dari tinggi = pill shape)
-        painter.drawRoundedRect(0, 0, 44, 24, 12, 12)
+        # Menggambar persegi panjang dengan sudut membulat sebagai background.
+        # Ukuran mengikuti ukuran widget agar toggle bisa diperbesar
+        # tanpa mengubah class lain.
+        w = self.width()
+        h = self.height()
+        radius = h / 2
+        painter.drawRoundedRect(0, 0, w, h, radius, radius)
 
 
         # ---- GAMBAR LINGKARAN PUTIH ----
@@ -167,16 +168,8 @@ class ToggleSwitch(QWidget):
         # Mengatur warna knob menjadi putih
         painter.setBrush(QBrush(QColor("white")))
 
-        if self._is_on:
-            # Toggle ON → lingkaran ada di sebelah KANAN
-            # drawEllipse(x, y, lebar, tinggi)
-            # x=22 = mulai dari tengah ke kanan
-            # y=2  = 2px dari atas agar ada jarak dengan tepi
-            # lebar=20, tinggi=20 = ukuran knob bulat
-            painter.drawEllipse(22, 2, 20, 20)
-        else:
-            # Toggle OFF → lingkaran ada di sebelah KIRI
-            # x=2 = 2px dari kiri agar ada jarak dengan tepi
-            # y=2  = 2px dari atas agar ada jarak dengan tepi
-            # lebar=20, tinggi=20 = ukuran knob tetap sama
-            painter.drawEllipse(2, 2, 20, 20)
+        margin = max(2, int(h * 0.10))
+        knob = h - (margin * 2)
+        y = margin
+        x = w - knob - margin if self._is_on else margin
+        painter.drawEllipse(x, y, knob, knob)
