@@ -60,9 +60,22 @@ _TRANSLATIONS = {
 
     # ── HOMEPAGE ───────────────────────────────────────────────
     "home.search_placeholder":  {"en": "Search events ...",                 "id": "Cari event ..."},
+    "home.welcome_to":          {"en": "Welcome to",                        "id": "Selamat Datang di"},
+    
+    # Filter chips labels
+    "home.filter_type":         {"en": "Type",                              "id": "Jenis"},
+    "home.filter_ticket":       {"en": "Ticket",                            "id": "Tiket"},
+    "home.filter_source":       {"en": "Source",                            "id": "Sumber"},
+    
+    # Filter options
     "home.filter_all":          {"en": "All",                               "id": "Semua"},
     "home.filter_internal":     {"en": "Internal",                          "id": "Internal"},
     "home.filter_external":     {"en": "External",                          "id": "Eksternal"},
+    "home.filter_free":         {"en": "Free",                              "id": "Gratis"},
+    "home.filter_paid":         {"en": "Paid",                              "id": "Berbayar"},
+    "home.filter_official":     {"en": "Official",                          "id": "Resmi"},
+    "home.filter_partner":      {"en": "Partner",                           "id": "Partner"},
+    
     "home.upcoming":            {"en": "Upcoming Events",                   "id": "Event Mendatang"},
     "home.no_events":           {"en": "No events found.",                  "id": "Tidak ada event ditemukan."},
     "home.add_event_btn":       {"en": "+ Add Event",                       "id": "+ Tambah Event"},
@@ -129,6 +142,16 @@ _TRANSLATIONS = {
 
     # ── ADMIN ──────────────────────────────────────────────────
     "admin.title":              {"en": "Admin Panel",                       "id": "Panel Admin"},
+    "admin.validation_dashboard": {"en": "Event Validation Dashboard",     "id": "Dashboard Validasi Event"},
+    "admin.validation_subtitle":  {"en": "Review and approve pending events", "id": "Tinjau dan setujui event yang tertunda"},
+    "admin.return_home":        {"en": "← Back",                            "id": "← Kembali"},
+    "admin.col_event_id":       {"en": "Event ID",                          "id": "ID Event"},
+    "admin.col_event_name":     {"en": "Event Name",                        "id": "Nama Event"},
+    "admin.col_type":           {"en": "Type",                              "id": "Jenis"},
+    "admin.col_time":           {"en": "Date & Time",                       "id": "Tanggal & Waktu"},
+    "admin.col_action":         {"en": "Action",                            "id": "Aksi"},
+    "admin.btn_approve_full":   {"en": "✓ Approve",                         "id": "✓ Setujui"},
+    "admin.btn_decline_full":   {"en": "✗ Decline",                         "id": "✗ Tolak"},
     "admin.approve":            {"en": "Approve",                           "id": "Setujui"},
     "admin.reject":             {"en": "Reject",                            "id": "Tolak"},
     "admin.pending":            {"en": "Pending",                           "id": "Menunggu"},

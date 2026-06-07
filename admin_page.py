@@ -183,3 +183,5 @@ class AdminPage(QWidget):
             lang.t("admin.col_time"),
             lang.t("admin.col_action"),
         ])
+        # Reload data dengan tombol yang sudah diterjemahkan ke bahasa baru
+        self.load_data_antrean()
